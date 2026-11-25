@@ -33,7 +33,7 @@ import {
   Zap
 } from "lucide-react";
 import PrismBackground from "./components/PrismBackground";
-import NsCard from "./components/NsCard";
+import InteractiveCard from "./components/InteractiveCard";
 import {
   ResponsiveContainer,
   LineChart,
@@ -431,7 +431,7 @@ export default function App() {
             </div>
           </div>
 
-          <nav className="p-3 space-y-1">
+          <nav className="p-3 space-y-1 nav-group">
             {[
               { id: "overview", label: "Command Center", icon: Activity },
               { id: "simlab", label: "Simulation Lab", icon: Terminal, badge: "DEMO" },
@@ -447,7 +447,7 @@ export default function App() {
                 <button
                   key={item.id}
                   onClick={() => setActiveTab(item.id)}
-                  className={`w-full flex items-center space-x-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200 active:scale-[0.98] ${
+                  className={`nav-item w-full flex items-center space-x-2.5 px-3 py-2 rounded-lg text-xs font-medium active:scale-[0.98] ${
                     active
                       ? "sidebar-active"
                       : "text-[#AD98C5] hover:text-[#F5EDFF] hover:bg-[#211334]/70 border border-transparent"
@@ -566,7 +566,7 @@ export default function App() {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
               {/* Left 32% (4 cols): JARVIS Sentinel Intelligence Core + System Health */}
               <div className="lg:col-span-4 space-y-4">
-                <NsCard noPerspective className="p-4 space-y-3">
+                <InteractiveCard noPerspective className="p-4 space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="ns-section-title">01 / SENTINEL INTELLIGENCE CORE</span>
                     <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#29193E] text-[#FFE3A5] border border-[#E8BB65]/40">
@@ -592,13 +592,13 @@ export default function App() {
                     <span>ML: <strong className="text-emerald-400">{health.components?.ml_engine || "--"}</strong></span>
                     <span>Gateway: <strong className="text-[#E8BB65]">{health.components?.gateway || "active"}</strong></span>
                   </div>
-                </NsCard>
+                </InteractiveCard>
               </div>
 
               {/* Right 68% (8 cols): Asymmetric Bento Grid */}
               <div className="lg:col-span-8 bento-grid grid grid-cols-1 md:grid-cols-3 gap-4">
                 {/* Top Row: 3 compact cards */}
-                <NsCard onClick={() => setActiveTab("workspace")} className="p-4 flex flex-col justify-between">
+                <InteractiveCard onClick={() => setActiveTab("workspace")} className="p-4 flex flex-col justify-between">
                   <div className="flex items-center justify-between">
                     <span className="ns-section-title">Workspace</span>
                     <div className="p-1.5 rounded-lg bg-[#29193E] border border-[#E8BB65]/35">
@@ -612,9 +612,9 @@ export default function App() {
                     <span>Monitor: <strong className="font-mono text-emerald-400">{workspaceStatus?.monitoring_status || "active"}</strong></span>
                     <ArrowRight className="w-3 h-3 text-[#E8BB65]" />
                   </p>
-                </NsCard>
+                </InteractiveCard>
 
-                <NsCard onClick={() => setActiveTab("gateway")} className="p-4 flex flex-col justify-between">
+                <InteractiveCard onClick={() => setActiveTab("gateway")} className="p-4 flex flex-col justify-between">
                   <div className="flex items-center justify-between">
                     <span className="ns-section-title">Gateway</span>
                     <div className="p-1.5 rounded-lg bg-[#29193E] border border-[#E8BB65]/35">
@@ -628,9 +628,9 @@ export default function App() {
                     <span>Accepted: <strong className="font-mono text-[#FFE3A5]">{gateway?.accepted_requests ?? 0}</strong></span>
                     <ArrowRight className="w-3 h-3 text-[#E8BB65]" />
                   </p>
-                </NsCard>
+                </InteractiveCard>
 
-                <NsCard onClick={() => setActiveTab("incidents")} className="p-4 flex flex-col justify-between">
+                <InteractiveCard onClick={() => setActiveTab("incidents")} className="p-4 flex flex-col justify-between">
                   <div className="flex items-center justify-between">
                     <span className="ns-section-title">Incidents</span>
                     <div className={`p-1.5 rounded-lg border ${incidents.length > 0 ? "bg-rose-500/20 border-rose-500/40" : "bg-[#29193E] border-[#E8BB65]/35"}`}>
@@ -644,10 +644,10 @@ export default function App() {
                     <span>Endpoints: <strong className="font-mono text-[#FFE3A5]">{endpoints.length} virtual</strong></span>
                     <ArrowRight className="w-3 h-3 text-[#E8BB65]" />
                   </p>
-                </NsCard>
+                </InteractiveCard>
 
                 {/* Middle Row: Differently sized cards (2 cols + 1 col) */}
-                <NsCard onClick={() => setActiveTab("simlab")} className="md:col-span-2 p-4">
+                <InteractiveCard onClick={() => setActiveTab("simlab")} className="md:col-span-2 p-4">
                   <div className="flex items-center justify-between mb-2">
                     <span className="ns-section-title">Behavioural Analysis — Risk Trajectory</span>
                     <span className="text-[11px] font-mono text-[#AD98C5]">
@@ -681,9 +681,9 @@ export default function App() {
                       </ResponsiveContainer>
                     </div>
                   )}
-                </NsCard>
+                </InteractiveCard>
 
-                <NsCard onClick={() => setActiveTab("analytics")} className="p-4 flex flex-col justify-between">
+                <InteractiveCard onClick={() => setActiveTab("analytics")} className="p-4 flex flex-col justify-between">
                   <div>
                     <div className="flex items-center justify-between">
                       <span className="ns-section-title">Model</span>
@@ -704,10 +704,10 @@ export default function App() {
                       <strong className="text-[#FFE3A5]">{earlyWarning ? `${(earlyWarning.early_detection_rate * 100).toFixed(1)}%` : "--"}</strong>
                     </div>
                   </div>
-                </NsCard>
+                </InteractiveCard>
 
                 {/* Bottom Row: 1 wide card */}
-                <NsCard onClick={() => setActiveTab("endpoints")} className="md:col-span-3 p-4">
+                <InteractiveCard onClick={() => setActiveTab("endpoints")} className="md:col-span-3 p-4">
                   <div className="flex items-center justify-between mb-3">
                     <span className="ns-section-title">Virtual Organization — Endpoint Network</span>
                     <span className="text-[11px] text-[#AD98C5] flex items-center gap-1">
@@ -740,7 +740,7 @@ export default function App() {
                       })}
                     </div>
                   </div>
-                </NsCard>
+                </InteractiveCard>
               </div>
             </div>
           )}
@@ -878,37 +878,37 @@ export default function App() {
 
               {/* Containment & Latency Summary */}
               {workspaceStatus.harness_state && (
-                <div className="grid grid-cols-2 lg:grid-cols-6 gap-3 font-mono text-xs">
-                  <div className="ns-stat">
-                    <span className="text-[11px] text-[#AD98C5] block font-sans">Observations</span>
-                    <span className="text-lg font-bold text-[#F5EDFF]">{workspaceStatus.harness_state.observations_processed}</span>
-                  </div>
-                  <div className="ns-stat">
-                    <span className="text-[11px] text-[#AD98C5] block font-sans">AI Risk Score</span>
-                    <span className={`text-lg font-bold ${(workspaceStatus.harness_state.latest_assessment?.risk_score ?? 0) >= 50 ? "text-rose-400" : "text-emerald-400"}`}>
+                <div className="interactive-group grid grid-cols-2 lg:grid-cols-6 gap-3 text-xs">
+                  <InteractiveCard noPerspective className="p-3">
+                    <span className="text-[11px] text-[#AD98C5] block">Observations</span>
+                    <span className="text-lg font-bold font-mono text-[#F5EDFF]">{workspaceStatus.harness_state.observations_processed}</span>
+                  </InteractiveCard>
+                  <InteractiveCard noPerspective className="p-3">
+                    <span className="text-[11px] text-[#AD98C5] block">AI Risk Score</span>
+                    <span className={`text-lg font-bold font-mono ${(workspaceStatus.harness_state.latest_assessment?.risk_score ?? 0) >= 50 ? "text-rose-400" : "text-emerald-400"}`}>
                       {workspaceStatus.harness_state.latest_assessment?.risk_score ?? "--"}/100
                     </span>
-                  </div>
-                  <div className="ns-stat">
-                    <span className="text-[11px] text-[#AD98C5] block font-sans">Detection Latency</span>
-                    <span className="text-lg font-bold text-[#C084FC]">
+                  </InteractiveCard>
+                  <InteractiveCard noPerspective className="p-3">
+                    <span className="text-[11px] text-[#AD98C5] block">Detection Latency</span>
+                    <span className="text-lg font-bold font-mono text-[#E8BB65]">
                       {workspaceStatus.harness_state.measured_detection_latency_ms ?? "--"} ms
                     </span>
-                  </div>
-                  <div className="ns-stat">
-                    <span className="text-[11px] text-[#AD98C5] block font-sans">Virtually Affected</span>
-                    <span className="text-lg font-bold text-rose-400">{workspaceStatus.harness_state.virtually_affected_count}</span>
-                  </div>
-                  <div className="ns-stat">
-                    <span className="text-[11px] text-[#AD98C5] block font-sans">Unaffected Files</span>
-                    <span className="text-lg font-bold text-emerald-400">{workspaceStatus.harness_state.unaffected_count}</span>
-                  </div>
-                  <div className="ns-stat">
-                    <span className="text-[11px] text-[#AD98C5] block font-sans">Containment</span>
-                    <span className="text-sm font-bold text-[#E9D5FF] uppercase">
+                  </InteractiveCard>
+                  <InteractiveCard noPerspective className="p-3">
+                    <span className="text-[11px] text-[#AD98C5] block">Virtually Affected</span>
+                    <span className="text-lg font-bold font-mono text-rose-400">{workspaceStatus.harness_state.virtually_affected_count}</span>
+                  </InteractiveCard>
+                  <InteractiveCard noPerspective className="p-3">
+                    <span className="text-[11px] text-[#AD98C5] block">Unaffected Files</span>
+                    <span className="text-lg font-bold font-mono text-emerald-400">{workspaceStatus.harness_state.unaffected_count}</span>
+                  </InteractiveCard>
+                  <InteractiveCard noPerspective className="p-3">
+                    <span className="text-[11px] text-[#AD98C5] block">Containment</span>
+                    <span className="text-sm font-bold font-mono text-[#FFE3A5] uppercase">
                       {workspaceStatus.harness_state.containment_timestamp ? "SIM_ISOLATED" : "MONITORING"}
                     </span>
-                  </div>
+                  </InteractiveCard>
                 </div>
               )}
 
@@ -1061,8 +1061,8 @@ export default function App() {
               </div>
 
               {/* Activity Feed & Collapsible Detection / Unavailable Measurements */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 text-xs">
-                <div className="ns-card p-3.5 max-h-56 overflow-y-auto">
+              <div className="interactive-group grid grid-cols-1 lg:grid-cols-2 gap-4 text-xs">
+                <InteractiveCard noPerspective className="p-3.5 max-h-56 overflow-y-auto">
                   <span className="ns-section-title block mb-2">
                     Recent Observed & Synthetic Events
                   </span>
@@ -1078,8 +1078,8 @@ export default function App() {
                       No events yet. Edit a file in demo_workspace/ or click Run Test Script.
                     </span>
                   )}
-                </div>
-                <div className="ns-card p-3.5 space-y-2">
+                </InteractiveCard>
+                <InteractiveCard noPerspective className="p-3.5 space-y-2">
                   <button
                     type="button"
                     onClick={() => setWsShowExplain((v) => !v)}
@@ -1126,7 +1126,7 @@ export default function App() {
                       Click to inspect live model vs heuristic indicators and unmeasured OS-level features.
                     </p>
                   )}
-                </div>
+                </InteractiveCard>
               </div>
             </div>
           )}
@@ -1238,23 +1238,24 @@ export default function App() {
                       {activeEndpoint?.status || "monitoring"}
                     </span>
                   </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                  <div className="interactive-group grid grid-cols-2 sm:grid-cols-3 gap-2.5">
                     {virtualFiles.map((file) => (
-                      <div
+                      <InteractiveCard
                         key={file.id}
+                        noPerspective
                         className={`p-2.5 rounded-lg border text-xs transition-all duration-500 ${
                           file.state === "simulated_encrypted"
-                            ? "bg-rose-950/40 border-rose-700/60 text-rose-200"
+                            ? "!bg-rose-950/45 !border-rose-700/65 text-rose-200"
                             : file.state === "simulated_altered"
-                            ? "bg-amber-950/30 border-amber-700/50 text-amber-200"
-                            : "bg-[#08050F]/80 border-purple-900/50 text-[#E9D5FF]"
+                            ? "!bg-amber-950/35 !border-amber-700/55 text-amber-200"
+                            : "text-[#E9D5FF]"
                         }`}
                       >
                         <div className="flex items-center space-x-1.5 truncate font-mono text-[11px]">
                           {file.state === "simulated_encrypted" ? (
                             <Lock className="w-3.5 h-3.5 text-rose-400 shrink-0" />
                           ) : (
-                            <FileCode className="w-3.5 h-3.5 text-[#C084FC] shrink-0" />
+                            <FileCode className="w-3.5 h-3.5 text-[#E8BB65] shrink-0" />
                           )}
                           <span className="truncate">{file.name}</span>
                         </div>
@@ -1264,7 +1265,7 @@ export default function App() {
                             {file.state === "simulated_encrypted" ? "SIM_LOCKED" : "INTACT"}
                           </span>
                         </div>
-                      </div>
+                      </InteractiveCard>
                     ))}
                   </div>
                 </div>
@@ -1582,32 +1583,32 @@ export default function App() {
 
               {gateway ? (
                 <>
-                  <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-                    <div className="ns-stat">
+                  <div className="interactive-group grid grid-cols-2 lg:grid-cols-5 gap-3">
+                    <InteractiveCard noPerspective className="p-3">
                       <span className="text-[11px] text-[#AD98C5] block">Total Requests</span>
                       <span className="text-xl font-bold font-mono text-[#F5EDFF]">{gateway.total_requests}</span>
-                    </div>
-                    <div className="ns-stat">
+                    </InteractiveCard>
+                    <InteractiveCard noPerspective className="p-3">
                       <span className="text-[11px] text-[#AD98C5] block">Accepted</span>
                       <span className="text-xl font-bold font-mono text-emerald-400">{gateway.accepted_requests}</span>
-                    </div>
-                    <div className="ns-stat">
+                    </InteractiveCard>
+                    <InteractiveCard noPerspective className="p-3">
                       <span className="text-[11px] text-[#AD98C5] block">Restricted (Throttled/Rejected)</span>
                       <span className="text-xl font-bold font-mono text-rose-400">
                         {gateway.throttled_requests + gateway.rejected_requests}
                       </span>
-                    </div>
-                    <div className="ns-stat">
+                    </InteractiveCard>
+                    <InteractiveCard noPerspective className="p-3">
                       <span className="text-[11px] text-[#AD98C5] block">AI Assessments Avoided</span>
-                      <span className="text-xl font-bold font-mono text-[#C084FC]">{gateway.avoided_assessments}</span>
-                    </div>
-                    <div className="ns-stat">
+                      <span className="text-xl font-bold font-mono text-[#E8BB65]">{gateway.avoided_assessments}</span>
+                    </InteractiveCard>
+                    <InteractiveCard noPerspective className="p-3">
                       <span className="text-[11px] text-[#AD98C5] block">Est. CPU Saved (Local RF)</span>
-                      <span className="text-xl font-bold font-mono text-[#C084FC]">{gateway.estimated_cpu_saved_ms} ms</span>
+                      <span className="text-xl font-bold font-mono text-[#E8BB65]">{gateway.estimated_cpu_saved_ms} ms</span>
                       <span className="text-[10px] text-[#AD98C5] block font-mono">
                         GW: {gateway.measured_avg_gateway_latency_ms} ms/req
                       </span>
-                    </div>
+                    </InteractiveCard>
                   </div>
 
                   <div className="ns-card p-4 space-y-2">
@@ -2007,6 +2008,7 @@ export default function App() {
                     <span className="ns-section-title block mb-2">
                       Recorded Incidents ({incidents.length})
                     </span>
+                    <div className="interactive-group space-y-2">
                     {incidents
                       .filter((inc) => {
                         const q = incSearch.toLowerCase();
@@ -2017,18 +2019,19 @@ export default function App() {
                         );
                       })
                       .map((inc) => (
-                        <button
+                        <InteractiveCard
                           key={inc.incident_id}
+                          noPerspective
                           onClick={() => {
                             setSelectedIncidentId(inc.incident_id);
                             setAdminNotes(inc.admin_notes || "");
                             setReplayPlaying(false);
                             setReplayStep(0);
                           }}
-                          className={`w-full text-left p-3 rounded-lg border transition-all ${
+                          className={`w-full text-left p-3 rounded-lg border ${
                             activeIncident?.incident_id === inc.incident_id
-                              ? "bg-[#29193E]/70 border-[#E8BB65]/80 shadow-[0_0_14px_-4px_rgba(232,187,101,0.35)]"
-                              : "bg-[#09060E]/80 border-purple-900/40 hover:border-[#E8BB65]/40"
+                              ? "!bg-[#29193E]/70 !border-[#E8BB65]/80 shadow-[0_0_14px_-4px_rgba(232,187,101,0.35)]"
+                              : ""
                           }`}
                         >
                           <div className="flex justify-between items-center text-xs font-mono">
@@ -2041,8 +2044,9 @@ export default function App() {
                             <span>{inc.endpoint_id}</span>
                             <span>Score: {inc.risk_score ?? "--"}/100</span>
                           </div>
-                        </button>
+                        </InteractiveCard>
                       ))}
+                    </div>
                   </div>
 
                   {/* Dedicated Investigation Workspace */}
@@ -2110,19 +2114,19 @@ export default function App() {
                       )}
 
                       {/* C. AI Intelligence */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-                        <div className="p-3 bg-[#08050F]/80 border border-purple-900/40 rounded-lg space-y-1.5">
-                          <span className="text-[11px] font-semibold text-[#C084FC] uppercase block">Model-Derived Explanations</span>
+                      <div className="interactive-group grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                        <InteractiveCard noPerspective className="p-3 space-y-1.5">
+                          <span className="text-[11px] font-semibold text-[#E8BB65] uppercase block">Model-Derived Explanations</span>
                           {(activeIncident.explanations?.model_derived || []).map((m, i) => (
                             <div key={i} className="font-mono text-[11px] text-[#E9D5FF]">{m}</div>
                           ))}
-                        </div>
-                        <div className="p-3 bg-[#08050F]/80 border border-purple-900/40 rounded-lg space-y-1.5">
+                        </InteractiveCard>
+                        <InteractiveCard noPerspective className="p-3 space-y-1.5">
                           <span className="text-[11px] font-semibold text-amber-300 uppercase block">Heuristic Explanations</span>
                           {(activeIncident.explanations?.heuristic || []).map((h, i) => (
                             <div key={i} className="font-mono text-[11px] text-[#E9D5FF]">{h}</div>
                           ))}
-                        </div>
+                        </InteractiveCard>
                       </div>
 
                       {/* E. Response & Recovery */}
@@ -2169,19 +2173,19 @@ export default function App() {
             <div className="space-y-5">
               {p2 ? (
                 <>
-                  <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
+                  <div className="interactive-group grid grid-cols-2 lg:grid-cols-6 gap-3">
                     {[
-                      { label: "Accuracy", val: `${p2Accuracy.toFixed(2)}%` },
-                      { label: "Precision", val: `${(p2.precision * 100).toFixed(2)}%` },
-                      { label: "Recall", val: `${(p2.recall * 100).toFixed(2)}%` },
-                      { label: "F1 Score", val: `${(p2.f1_score * 100).toFixed(2)}%` },
-                      { label: "FPR", val: `${(p2.false_positive_rate * 100).toFixed(2)}%` },
-                      { label: "Inference Latency", val: `${metrics.single_call_latency_ms} ms` }
+                      { label: "Accuracy", val: `${p2Accuracy.toFixed(2)}%`, tip: "Share of all synthetic validation samples classified correctly (Phase 2)." },
+                      { label: "Precision", val: `${(p2.precision * 100).toFixed(2)}%`, tip: "Share of predicted suspicious events that were true attacks." },
+                      { label: "Recall", val: `${(p2.recall * 100).toFixed(2)}%`, tip: "Share of actual synthetic attacks detected by the model." },
+                      { label: "F1 Score", val: `${(p2.f1_score * 100).toFixed(2)}%`, tip: "Harmonic mean of Precision and Recall on val_phase2.csv." },
+                      { label: "False Positive Rate", val: `${(p2.false_positive_rate * 100).toFixed(2)}%`, tip: "Share of benign backup/compression workloads flagged falsely." },
+                      { label: "Inference Latency", val: `${metrics.single_call_latency_ms} ms`, tip: "Measured single-call prediction latency on the local Random Forest model." }
                     ].map((m) => (
-                      <div key={m.label} className="ns-stat">
+                      <InteractiveCard key={m.label} noPerspective title={m.tip} className="p-3.5">
                         <span className="text-[11px] text-[#AD98C5] block">{m.label}</span>
-                        <span className="text-lg font-bold font-mono text-[#E8BB65]">{m.val}</span>
-                      </div>
+                        <span className="text-lg font-bold font-mono text-[#E8BB65] mt-0.5 block">{m.val}</span>
+                      </InteractiveCard>
                     ))}
                   </div>
 
@@ -2241,27 +2245,27 @@ export default function App() {
                       <h3 className="ns-section-title mb-3">
                         Confusion Matrix (val_phase2.csv, n=600)
                       </h3>
-                      <div className="grid grid-cols-2 gap-3 text-center font-mono text-xs">
-                        <div className="ns-stat p-3">
+                      <div className="interactive-group grid grid-cols-2 gap-3 text-center text-xs">
+                        <InteractiveCard noPerspective title="Benign activity correctly classified as normal" className="p-3">
                           <span className="text-[#AD98C5]">True Negatives (TN)</span>
-                          <div className="text-xl font-bold text-emerald-400 mt-1">{p2.confusion_matrix.tn}</div>
-                        </div>
-                        <div className="ns-stat p-3">
+                          <div className="text-xl font-bold font-mono text-emerald-400 mt-1">{p2.confusion_matrix.tn}</div>
+                        </InteractiveCard>
+                        <InteractiveCard noPerspective title="Benign activity incorrectly flagged as suspicious" className="p-3">
                           <span className="text-[#AD98C5]">False Positives (FP)</span>
-                          <div className="text-xl font-bold text-rose-400 mt-1">{p2.confusion_matrix.fp}</div>
-                        </div>
-                        <div className="ns-stat p-3">
+                          <div className="text-xl font-bold font-mono text-rose-400 mt-1">{p2.confusion_matrix.fp}</div>
+                        </InteractiveCard>
+                        <InteractiveCard noPerspective title="Suspicious activity missed by the classifier" className="p-3">
                           <span className="text-[#AD98C5]">False Negatives (FN)</span>
-                          <div className="text-xl font-bold text-rose-400 mt-1">{p2.confusion_matrix.fn}</div>
-                        </div>
-                        <div className="ns-stat p-3">
+                          <div className="text-xl font-bold font-mono text-rose-400 mt-1">{p2.confusion_matrix.fn}</div>
+                        </InteractiveCard>
+                        <InteractiveCard noPerspective title="Suspicious activity correctly detected" className="p-3">
                           <span className="text-[#AD98C5]">True Positives (TP)</span>
-                          <div className="text-xl font-bold text-emerald-400 mt-1">{p2.confusion_matrix.tp}</div>
-                        </div>
+                          <div className="text-xl font-bold font-mono text-emerald-400 mt-1">{p2.confusion_matrix.tp}</div>
+                        </InteractiveCard>
                       </div>
                     </div>
 
-                    <div className="ns-card p-4">
+                    <InteractiveCard noPerspective className="p-4">
                       <h3 className="ns-section-title mb-3">
                         False-Positive Reduction: Phase 1 (89) vs Phase 2 (4)
                       </h3>
@@ -2273,12 +2277,12 @@ export default function App() {
                             <YAxis stroke="#AD98C5" fontSize={11} />
                             <Tooltip contentStyle={{ backgroundColor: "#10091C", borderColor: "#B88635", fontSize: "11px" }} />
                             <Legend wrapperStyle={{ fontSize: "11px" }} />
-                            <Bar dataKey="Phase 1 Baseline" fill="#7C3AED" radius={[4, 4, 0, 0]} />
-                            <Bar dataKey="Phase 2 Model" fill="#E8BB65" radius={[4, 4, 0, 0]} />
+                            <Bar dataKey="Phase 1 Baseline" fill="#7C3AED" activeBar={{ fill: "#A855F7", stroke: "#E9D5FF", strokeWidth: 1 }} radius={[4, 4, 0, 0]} />
+                            <Bar dataKey="Phase 2 Model" fill="#E8BB65" activeBar={{ fill: "#FFE3A5", stroke: "#FFE3A5", strokeWidth: 1 }} radius={[4, 4, 0, 0]} />
                           </BarChart>
                         </ResponsiveContainer>
                       </div>
-                    </div>
+                    </InteractiveCard>
                   </div>
 
                   {earlyWarning && (
@@ -2291,46 +2295,46 @@ export default function App() {
                           Seed: {earlyWarning.evaluation_seed} | Overlap: {earlyWarning.train_val_exact_overlap}
                         </span>
                       </div>
-                      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 font-mono text-xs">
-                        <div className="ns-stat">
-                          <span className="text-[11px] text-[#AD98C5] block font-sans">Attack Outcomes (n={earlyWarning.attack_sequences})</span>
-                          <span className="text-base font-bold text-emerald-400">
+                      <div className="interactive-group grid grid-cols-2 lg:grid-cols-5 gap-3 text-xs">
+                        <InteractiveCard noPerspective title="Attack sequences detected before simulated encryption completion" className="p-3">
+                          <span className="text-[11px] text-[#AD98C5] block">Attack Outcomes (n={earlyWarning.attack_sequences})</span>
+                          <span className="text-base font-bold font-mono text-emerald-400">
                             Early {earlyWarning.early_detections}/{earlyWarning.attack_sequences}
                           </span>
                           <span className="text-[10px] text-[#AD98C5] block">
                             Late: {earlyWarning.late_detections} | Missed: {earlyWarning.missed_detections} | Premature: {earlyWarning.premature_alerts}
                           </span>
-                        </div>
-                        <div className="ns-stat">
-                          <span className="text-[11px] text-[#AD98C5] block font-sans">Benign Control FA (n={earlyWarning.benign_control_sequences})</span>
-                          <span className="text-base font-bold text-[#C084FC]">
+                        </InteractiveCard>
+                        <InteractiveCard noPerspective title="False alarms observed across benign control sequences" className="p-3">
+                          <span className="text-[11px] text-[#AD98C5] block">Benign Control FA (n={earlyWarning.benign_control_sequences})</span>
+                          <span className="text-base font-bold font-mono text-[#E8BB65]">
                             {earlyWarning.benign_control_false_alarms}/{earlyWarning.benign_control_sequences}
                           </span>
                           <span className="text-[10px] text-[#AD98C5] block">
                             Rate: {(earlyWarning.benign_control_false_alarm_rate * 100).toFixed(2)}%
                           </span>
-                        </div>
-                        <div className="ns-stat">
-                          <span className="text-[11px] text-[#AD98C5] block font-sans">Time to First Alert (Sim)</span>
-                          <span className="text-base font-bold text-[#F5EDFF]">
+                        </InteractiveCard>
+                        <InteractiveCard noPerspective title="Simulated elapsed time until first alert" className="p-3">
+                          <span className="text-[11px] text-[#AD98C5] block">Time to First Alert (Sim)</span>
+                          <span className="text-base font-bold font-mono text-[#F5EDFF]">
                             Med {earlyWarning.median_time_to_first_alert_sim_s}s
                           </span>
                           <span className="text-[10px] text-[#AD98C5] block">
                             p95: {earlyWarning.p95_time_to_first_alert_sim_s}s
                           </span>
-                        </div>
-                        <div className="ns-stat">
-                          <span className="text-[11px] text-[#AD98C5] block font-sans">Warm Latency (100 calls)</span>
-                          <span className="text-base font-bold text-[#F5EDFF]">{earlyWarning.latency_mean_ms} ms</span>
+                        </InteractiveCard>
+                        <InteractiveCard noPerspective title="Warm-cache inference latency across 100 calls" className="p-3">
+                          <span className="text-[11px] text-[#AD98C5] block">Warm Latency (100 calls)</span>
+                          <span className="text-base font-bold font-mono text-[#E8BB65]">{earlyWarning.latency_mean_ms} ms</span>
                           <span className="text-[10px] text-[#AD98C5] block">
                             Med {earlyWarning.latency_median_ms} | p95 {earlyWarning.latency_p95_ms}
                           </span>
-                        </div>
-                        <div className="ns-stat">
-                          <span className="text-[11px] text-[#AD98C5] block font-sans">Peak Traced Memory</span>
-                          <span className="text-base font-bold text-[#F5EDFF]">{earlyWarning.peak_traced_memory_mb} MB</span>
+                        </InteractiveCard>
+                        <InteractiveCard noPerspective title="Peak Python tracemalloc memory during isolated benchmark" className="p-3">
+                          <span className="text-[11px] text-[#AD98C5] block">Peak Traced Memory</span>
+                          <span className="text-base font-bold font-mono text-[#F5EDFF]">{earlyWarning.peak_traced_memory_mb} MB</span>
                           <span className="text-[10px] text-[#AD98C5] block">tracemalloc (separate)</span>
-                        </div>
+                        </InteractiveCard>
                       </div>
                     </div>
                   )}

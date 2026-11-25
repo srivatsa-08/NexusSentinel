@@ -127,17 +127,20 @@ export default function SecurityTopology3D({
   }, []);
 
   const nodePositions = useMemo(() => {
-    const coords = [
-      [-3.2, 0.2, -1.5],
-      [-1.8, 0.2, -3.0],
-      [0.0, 0.2, -3.5],
-      [1.8, 0.2, -3.0],
-      [3.2, 0.2, -1.5]
-    ];
-    return endpoints.slice(0, 5).map((ep, idx) => ({
-      ep,
-      pos: coords[idx] || [0, 0, -2]
-    }));
+    // Distribute all 5 endpoints evenly in a balanced arc/ring around the central AI Core
+    const radius = 2.55;
+    const angles = [-Math.PI * 0.85, -Math.PI * 0.5, -Math.PI * 0.15, Math.PI * 0.18, Math.PI * 0.82];
+    return endpoints.slice(0, 5).map((ep, idx) => {
+      const a = angles[idx] ?? (idx / 5) * Math.PI * 2;
+      return {
+        ep,
+        pos: [
+          Number((Math.cos(a) * radius).toFixed(2)),
+          0.15,
+          Number((Math.sin(a) * radius - 0.35).toFixed(2))
+        ]
+      };
+    });
   }, [endpoints]);
 
   const hasIncident = endpoints.some((e) => e.status === "simulated_isolated");
@@ -178,34 +181,34 @@ export default function SecurityTopology3D({
   }
 
   return (
-    <div className="h-72 w-full bg-[#10091C]/35 backdrop-blur-sm border border-purple-900/50 rounded-xl overflow-hidden relative">
+    <div className="h-80 sm:h-96 w-full bg-[#10091C]/35 backdrop-blur-sm border border-purple-900/50 rounded-xl overflow-hidden relative">
       <Canvas
         dpr={[1, 1.5]}
-        camera={{ position: [0, 4.2, 7.2], fov: 45 }}
+        camera={{ position: [0, 5.4, 7.6], fov: 42 }}
         gl={{ alpha: true, antialias: true }}
         style={{ background: "transparent" }}
         frameloop={reducedMotion ? "demand" : "always"}
       >
-        <ambientLight intensity={0.6} />
+        <ambientLight intensity={0.65} />
         <pointLight position={[5, 6, 5]} intensity={1.2} color="#A855F7" />
         <pointLight position={[-5, 4, -5]} intensity={0.7} color="#7C3AED" />
 
         <ProtectionCore hasIncident={hasIncident} reducedMotion={reducedMotion} />
 
         {/* Gateway Node */}
-        <group position={[0, 0, 3.0]}>
+        <group position={[0, 0, 3.1]}>
           <mesh>
             <boxGeometry args={[0.8, 0.45, 0.5]} />
             <meshStandardMaterial color="#7C3AED" metalness={0.5} roughness={0.35} />
           </mesh>
-          <Html position={[0, 0.55, 0]} center distanceFactor={10}>
+          <Html position={[0, 0.62, 0]} center distanceFactor={11}>
             <div className="px-2 py-0.5 rounded bg-[#10091C]/90 border border-purple-700/60 text-[10px] font-mono text-[#E9D5FF] whitespace-nowrap pointer-events-none">
               GATEWAY ({gateway?.queue_depth ?? 0}/{gateway?.queue_capacity ?? 10})
             </div>
           </Html>
         </group>
 
-        <Line points={[[0, 0, 3.0], [0, 0, 0]]} color="#A855F7" lineWidth={1.5} />
+        <Line points={[[0, 0, 3.1], [0, 0, 0]]} color="#A855F7" lineWidth={1.5} />
         <GatewayFlowParticles gateway={gateway} reducedMotion={reducedMotion} />
 
         {/* 5 Virtual Department Workstations */}
@@ -214,17 +217,19 @@ export default function SecurityTopology3D({
           const isSelected = ep.endpoint_id === selectedEndpointId;
           const isHovered = ep.endpoint_id === hoveredEndpointId;
           const dimmed = hoveredEndpointId && !isHovered;
+          const nodeScale = isHovered ? 1.24 : isSelected ? 1.1 : 1.0;
           return (
             <group key={ep.endpoint_id}>
               <Line
                 points={[[0, 0, 0], pos]}
                 color={isHovered || isSelected ? "#E8BB65" : color}
-                lineWidth={isHovered || isSelected ? 2.5 : 1}
+                lineWidth={isHovered || isSelected ? 2.8 : 1}
                 transparent
-                opacity={dimmed ? 0.2 : 0.9}
+                opacity={dimmed ? 0.2 : 0.92}
               />
               <mesh
                 position={pos}
+                scale={nodeScale}
                 onPointerOver={(e) => {
                   e.stopPropagation();
                   setHoveredEndpointId(ep.endpoint_id);
@@ -237,34 +242,35 @@ export default function SecurityTopology3D({
               >
                 <boxGeometry args={[0.55, 0.45, 0.55]} />
                 <meshStandardMaterial
-                  color={isSelected ? "#E8BB65" : color}
-                  emissive={isSelected ? "#E8BB65" : color}
+                  color={isHovered || isSelected ? "#E8BB65" : color}
+                  emissive={isHovered || isSelected ? "#E8BB65" : color}
                   emissiveIntensity={isHovered ? 0.85 : isSelected ? 0.55 : 0.18}
                   transparent
-                  opacity={dimmed ? 0.35 : 1}
+                  opacity={dimmed ? 0.28 : 1}
                 />
               </mesh>
-              <Html position={[pos[0], pos[1] + 0.55, pos[2]]} center distanceFactor={10}>
+              <Html position={[pos[0], pos[1] + 0.65, pos[2]]} center distanceFactor={11}>
                 <button
                   onMouseEnter={() => setHoveredEndpointId(ep.endpoint_id)}
                   onMouseLeave={() => setHoveredEndpointId(null)}
                   onClick={() => onSelectEndpoint(ep.endpoint_id)}
-                  className={`px-1.5 py-0.5 rounded text-[10px] font-mono whitespace-nowrap border transition-opacity ${
-                    dimmed ? "opacity-35" : "opacity-100"
+                  className={`px-2 py-0.5 rounded text-[10px] font-mono whitespace-nowrap border transition-all duration-200 ${
+                    dimmed ? "opacity-30" : "opacity-100"
                   } ${
                     isHovered || isSelected
-                      ? "bg-[#29193E] border-[#E8BB65] text-[#FFE3A5]"
+                      ? "bg-[#29193E] border-[#E8BB65] text-[#FFE3A5] shadow-[0_0_12px_rgba(232,187,101,0.35)]"
                       : "bg-[#10091C]/90 border-purple-800/60 text-[#AD98C5]"
                   }`}
                 >
                   {ep.endpoint_id} ({ep.current_risk_score ?? 0})
+                  {isHovered && ` • ${ep.department}`}
                 </button>
               </Html>
             </group>
           );
         })}
 
-        <OrbitControls enablePan={false} minDistance={4} maxDistance={12} maxPolarAngle={Math.PI / 2.1} />
+        <OrbitControls enablePan={false} minDistance={5.5} maxDistance={12} minPolarAngle={0.35} maxPolarAngle={Math.PI / 2.2} />
       </Canvas>
     </div>
   );
