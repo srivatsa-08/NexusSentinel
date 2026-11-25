@@ -67,6 +67,7 @@ import {
 } from "./services/api";
 
 const SecurityTopology3D = lazy(() => import("./components/SecurityTopology3D"));
+const SecurityLock3D = lazy(() => import("./components/SecurityLock3D"));
 
 const INITIAL_VIRTUAL_FILES = [
   { id: 1, name: "financial_ledger_2026.xlsx", state: "intact", entropy: 0.22 },
@@ -361,23 +362,23 @@ export default function App() {
   }, [replayPlaying, activeIncident?.incident_id]);
 
   return (
-    <div className="flex h-screen bg-slate-950 text-slate-100 overflow-hidden font-sans">
+    <div className="flex h-screen bg-[#090610] text-[#F3E8FF] overflow-hidden font-sans">
       {/* Sidebar */}
-      <aside className="w-60 bg-slate-900 border-r border-slate-800 flex flex-col justify-between shrink-0">
+      <aside className="w-60 bg-[#160D26] border-r border-purple-900/40 flex flex-col justify-between shrink-0">
         <div>
-          <div className="p-4 border-b border-slate-800 flex items-center space-x-3">
-            <div className="p-2 bg-cyan-950/60 border border-cyan-800/50 rounded-lg">
-              <ShieldAlert className="w-5 h-5 text-cyan-400" />
+          <div className="p-4 border-b border-purple-900/40 flex items-center space-x-3">
+            <div className="p-2 bg-[#2E1065]/70 border border-purple-500/40 rounded-lg">
+              <ShieldAlert className="w-5 h-5 text-[#D8B4FE]" />
             </div>
             <div>
-              <h1 className="font-semibold text-sm tracking-wide text-slate-100">Nexus Sentinel</h1>
-              <span className="text-[10px] text-cyan-400 font-mono">DEFENSIVE PROTOTYPE</span>
+              <h1 className="font-semibold text-sm tracking-wide text-[#F3E8FF]">Nexus Sentinel</h1>
+              <span className="text-[10px] text-[#A855F7] font-mono">PURPLE COMMAND</span>
             </div>
           </div>
 
           <nav className="p-3 space-y-1">
             {[
-              { id: "overview", label: "Overview", icon: Activity },
+              { id: "overview", label: "Command Center", icon: Activity },
               { id: "simlab", label: "Simulation Lab", icon: Terminal, badge: "DEMO" },
               { id: "workspace", label: "Workspace Monitor", icon: HardDrive },
               { id: "gateway", label: "Gateway Protection", icon: Cpu },
@@ -393,14 +394,14 @@ export default function App() {
                   onClick={() => setActiveTab(item.id)}
                   className={`w-full flex items-center space-x-2.5 px-3 py-2 rounded-md text-xs font-medium transition-colors ${
                     active
-                      ? "bg-cyan-500/10 text-cyan-300 border border-cyan-500/30"
-                      : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
+                      ? "bg-[#7C3AED]/20 text-[#D8B4FE] border border-[#A855F7]/50"
+                      : "text-purple-300/70 hover:text-[#F3E8FF] hover:bg-[#241438]/70"
                   }`}
                 >
                   <Icon className="w-4 h-4 shrink-0" />
                   <span>{item.label}</span>
                   {item.badge && (
-                    <span className="ml-auto text-[9px] font-mono bg-cyan-950 text-cyan-300 border border-cyan-800 px-1.5 py-0.5 rounded">
+                    <span className="ml-auto text-[9px] font-mono bg-[#2E1065] text-[#D8B4FE] border border-purple-600/50 px-1.5 py-0.5 rounded">
                       {item.badge}
                     </span>
                   )}
@@ -409,7 +410,7 @@ export default function App() {
                       className={`ml-auto text-[10px] font-mono px-1.5 py-0.5 rounded ${
                         item.warn
                           ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
-                          : "bg-slate-800 text-slate-300"
+                          : "bg-[#241438] text-purple-200"
                       }`}
                     >
                       {item.count}
@@ -421,12 +422,12 @@ export default function App() {
           </nav>
         </div>
 
-        <div className="p-4 border-t border-slate-800 bg-slate-900/70">
-          <div className="flex items-center space-x-2 text-[11px] text-cyan-400 mb-1">
-            <span className="w-2 h-2 rounded-full bg-cyan-400"></span>
+        <div className="p-4 border-t border-purple-900/40 bg-[#160D26]">
+          <div className="flex items-center space-x-2 text-[11px] text-[#D8B4FE] mb-1">
+            <span className="w-2 h-2 rounded-full bg-[#A855F7]"></span>
             <span className="font-mono uppercase font-semibold">Simulation Mode</span>
           </div>
-          <p className="text-[11px] text-slate-400 leading-snug">
+          <p className="text-[11px] text-purple-300/70 leading-snug">
             Synthetic tabular observations only. Endpoint isolation and containment are simulated.
           </p>
         </div>
@@ -434,15 +435,15 @@ export default function App() {
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-w-0 overflow-y-auto">
-        <header className="h-14 border-b border-slate-800 bg-slate-900/40 px-6 flex items-center justify-between shrink-0">
+        <header className="h-14 border-b border-purple-900/40 bg-[#160D26]/60 px-6 flex items-center justify-between shrink-0">
           <div className="flex items-center space-x-3">
-            <h2 className="text-sm font-semibold text-slate-100">
-              {activeTab === "simlab" ? "Simulation Lab" : activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
+            <h2 className="text-sm font-semibold text-[#F3E8FF]">
+              {activeTab === "overview" ? "Command Center" : activeTab === "simlab" ? "Simulation Lab" : activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
             </h2>
-            <span className="text-slate-700">|</span>
+            <span className="text-purple-800">|</span>
             <div className="flex items-center space-x-1.5">
               <span className={`w-2 h-2 rounded-full ${health.status === "ok" ? "bg-emerald-400" : "bg-rose-500"}`} />
-              <span className="text-[11px] font-mono text-slate-400">
+              <span className="text-[11px] font-mono text-purple-300/80">
                 API {health.status === "ok" ? "ONLINE (:8000)" : "OFFLINE"}
               </span>
             </div>
@@ -454,7 +455,7 @@ export default function App() {
                 key={sc}
                 onClick={() => handleScenarioTrigger(sc)}
                 disabled={actionLoading}
-                className="text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 px-2.5 py-1.5 rounded border border-slate-700 transition capitalize disabled:opacity-50"
+                className="text-xs bg-[#241438] hover:bg-[#2E1065] text-[#F3E8FF] px-2.5 py-1.5 rounded border border-purple-700/40 transition capitalize disabled:opacity-50"
               >
                 {sc}
               </button>
@@ -469,7 +470,7 @@ export default function App() {
             <button
               onClick={handleReset}
               disabled={actionLoading}
-              className="text-xs bg-slate-800 hover:bg-slate-700 text-cyan-300 px-2.5 py-1.5 rounded border border-cyan-800/50 transition flex items-center space-x-1 disabled:opacity-50"
+              className="text-xs bg-[#241438] hover:bg-[#2E1065] text-[#D8B4FE] px-2.5 py-1.5 rounded border border-[#7C3AED]/50 transition flex items-center space-x-1 disabled:opacity-50"
             >
               <RotateCcw className="w-3 h-3" />
               <span>Reset</span>
@@ -505,251 +506,162 @@ export default function App() {
             </div>
           )}
 
-          {/* OVERVIEW (SECURITY OPERATIONS CENTER) */}
+          {/* OVERVIEW (ASYMMETRIC BENTO-GRID COMMAND CENTER) */}
           {activeTab === "overview" && (
-            <div className="space-y-5">
-              {/* System Health & Protection Status */}
-              <div className="p-4 bg-slate-900/70 border border-slate-800 rounded-lg flex flex-wrap items-center justify-between gap-4">
-                <div className="space-y-1">
-                  <div className="flex items-center space-x-2">
-                    <span className="text-sm font-semibold text-slate-100">Security Operations Center</span>
-                    <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-800">
-                      Model: {health.model_version || "rf-phase2-v1"}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+              {/* Left 32% (4 cols): Interactive 3D Security Lock + System Health */}
+              <div className="lg:col-span-4 space-y-4">
+                <div className="p-4 rounded-xl bg-[#160D26]/90 border border-purple-900/50 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold uppercase tracking-wider text-[#D8B4FE]">
+                      3D Protection Core
+                    </span>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#2E1065] text-[#D8B4FE] border border-purple-600/40">
+                      {health.model_version || "rf-phase2-v1"}
                     </span>
                   </div>
-                  <div className="flex flex-wrap items-center gap-3 text-[11px] font-mono text-slate-400">
-                    <span>Backend: <strong className={health.components?.backend === "ok" ? "text-emerald-400" : "text-rose-400"}>{health.components?.backend || health.status}</strong></span>
-                    <span>DB: <strong className={health.components?.database === "ok" ? "text-emerald-400" : "text-rose-400"}>{health.components?.database || "--"}</strong></span>
-                    <span>ML: <strong className={health.components?.ml_engine === "ok" ? "text-emerald-400" : "text-rose-400"}>{health.components?.ml_engine || "--"}</strong></span>
-                    <span>Gateway: <strong className="text-cyan-300">{health.components?.gateway || "active"}</strong></span>
-                    <span>Monitor: <strong className="text-cyan-300 uppercase">{monitorStatus.status}</strong></span>
+                  <Suspense
+                    fallback={
+                      <div className="h-80 flex items-center justify-center text-xs text-purple-300 font-mono">
+                        Loading 3D Security Lock...
+                      </div>
+                    }
+                  >
+                    <SecurityLock3D hasIncident={incidents.length > 0} />
+                  </Suspense>
+                  <div className="grid grid-cols-2 gap-2 text-[11px] font-mono text-purple-200/80 pt-1 border-t border-purple-900/40">
+                    <span>Backend: <strong className="text-emerald-400">{health.components?.backend || health.status}</strong></span>
+                    <span>DB: <strong className="text-emerald-400">{health.components?.database || "--"}</strong></span>
+                    <span>ML: <strong className="text-emerald-400">{health.components?.ml_engine || "--"}</strong></span>
+                    <span>Gateway: <strong className="text-[#D8B4FE]">{health.components?.gateway || "active"}</strong></span>
                   </div>
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <button
-                    onClick={() => setActiveTab("simlab")}
-                    className="px-3 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-semibold text-xs rounded transition flex items-center space-x-1"
-                  >
-                    <span>Simulation Lab</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    onClick={() => setActiveTab("gateway")}
-                    className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs rounded border border-slate-700 transition"
-                  >
-                    Gateway
-                  </button>
-                  <button
-                    onClick={() => setActiveTab("incidents")}
-                    className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs rounded border border-slate-700 transition"
-                  >
-                    Incidents ({incidents.length})
-                  </button>
                 </div>
               </div>
 
-              {/* 3D Network Topology & Protection Core */}
-              <div className="p-4 bg-slate-900/60 border border-slate-800 rounded-lg space-y-2.5">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div>
-                    <h3 className="text-xs font-semibold text-slate-200 uppercase tracking-wider">
-                      Live 3D Network Topology & Protection Core
-                    </h3>
-                    <p className="text-[11px] text-slate-400">
-                      Click any virtual workstation node to inspect its file workspace. Drag to orbit, scroll to zoom.
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => setLowPerfMode((v) => !v)}
-                    className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-mono rounded border border-slate-700"
-                  >
-                    {lowPerfMode ? "Enable 3D View" : "Low-Perf 2D Mode"}
-                  </button>
-                </div>
-                <Suspense
-                  fallback={
-                    <div className="h-72 flex items-center justify-center text-xs text-slate-500 font-mono bg-slate-950 border border-slate-800 rounded-lg">
-                      Loading 3D Security Topology...
-                    </div>
-                  }
+              {/* Right 68% (8 cols): Asymmetric Bento Grid */}
+              <div className="lg:col-span-8 bento-grid grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Top Row: 3 compact cards */}
+                <div
+                  tabIndex={0}
+                  onClick={() => setActiveTab("workspace")}
+                  onKeyDown={(e) => e.key === "Enter" && setActiveTab("workspace")}
+                  className="bento-card rounded-xl p-4 cursor-pointer"
                 >
-                  <SecurityTopology3D
-                    endpoints={endpoints}
-                    selectedEndpointId={selectedEndpointId}
-                    onSelectEndpoint={(id) => {
-                      setSelectedEndpointId(id);
-                      setActiveTab("endpoints");
-                    }}
-                    gateway={gateway}
-                    replayIncident={replayPlaying ? activeIncident : null}
-                    replayStep={replayStep}
-                    lowPerfMode={lowPerfMode}
-                  />
-                </Suspense>
-              </div>
+                  <span className="text-[11px] font-mono uppercase text-[#A855F7]">Workspace Protection</span>
+                  <div className="text-xl font-bold text-[#F3E8FF] mt-1 font-mono">
+                    {workspaceStatus?.file_count ?? 20} Files
+                  </div>
+                  <p className="text-xs text-purple-300/75 mt-1">
+                    Status: <span className="font-mono text-emerald-400">{workspaceStatus?.monitoring_status || "active"}</span>
+                  </p>
+                </div>
 
-              {/* Core SOC Metrics */}
-              <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-                <div className="p-3.5 bg-slate-900/60 border border-slate-800 rounded-lg">
-                  <span className="text-[11px] text-slate-400">Assessments / Incidents</span>
-                  <div className="text-xl font-bold text-slate-100 mt-1 font-mono">
-                    {assessments.length} <span className="text-amber-400 text-sm">/ {incidents.length} inc</span>
+                <div
+                  tabIndex={0}
+                  onClick={() => setActiveTab("gateway")}
+                  onKeyDown={(e) => e.key === "Enter" && setActiveTab("gateway")}
+                  className="bento-card rounded-xl p-4 cursor-pointer"
+                >
+                  <span className="text-[11px] font-mono uppercase text-[#A855F7]">Gateway Protection</span>
+                  <div className="text-xl font-bold text-[#F3E8FF] mt-1 font-mono">
+                    {gateway?.avoided_assessments ?? 0} Avoided
                   </div>
+                  <p className="text-xs text-purple-300/75 mt-1">
+                    Accepted: <span className="font-mono text-[#D8B4FE]">{gateway?.accepted_requests ?? 0}</span>
+                  </p>
                 </div>
-                <div className="p-3.5 bg-slate-900/60 border border-slate-800 rounded-lg">
-                  <span className="text-[11px] text-slate-400">Obs-Level FPR (n=400)</span>
-                  <div className="text-xl font-bold text-emerald-400 mt-1 font-mono">
-                    {p2 ? `${(p2.false_positive_rate * 100).toFixed(2)}%` : "--"}
+
+                <div
+                  tabIndex={0}
+                  onClick={() => setActiveTab("incidents")}
+                  onKeyDown={(e) => e.key === "Enter" && setActiveTab("incidents")}
+                  className="bento-card rounded-xl p-4 cursor-pointer"
+                >
+                  <span className="text-[11px] font-mono uppercase text-[#A855F7]">Incidents & Containment</span>
+                  <div className="text-xl font-bold text-amber-300 mt-1 font-mono">
+                    {incidents.length} Active
                   </div>
+                  <p className="text-xs text-purple-300/75 mt-1">
+                    Endpoints: <span className="font-mono text-[#D8B4FE]">{endpoints.length} virtual</span>
+                  </p>
                 </div>
-                <div className="p-3.5 bg-slate-900/60 border border-slate-800 rounded-lg">
-                  <span className="text-[11px] text-slate-400">Seq Control FA (n=60)</span>
-                  <div className="text-xl font-bold text-cyan-300 mt-1 font-mono">
-                    {earlyWarning ? `${(earlyWarning.benign_control_false_alarm_rate * 100).toFixed(1)}%` : "--"}
-                  </div>
-                </div>
-                <div className="p-3.5 bg-slate-900/60 border border-slate-800 rounded-lg">
-                  <span className="text-[11px] text-slate-400">Early Detection (n=60)</span>
-                  <div className="text-xl font-bold text-emerald-400 mt-1 font-mono">
-                    {earlyWarning ? `${(earlyWarning.early_detection_rate * 100).toFixed(1)}%` : "--"}
-                  </div>
-                </div>
-                <div className="p-3.5 bg-slate-900/60 border border-slate-800 rounded-lg">
-                  <span className="text-[11px] text-slate-400">Gateway Avoided / Latency</span>
-                  <div className="text-xl font-bold text-cyan-300 mt-1 font-mono">
-                    {gateway ? gateway.avoided_assessments : 0}{" "}
-                    <span className="text-slate-400 text-xs">
-                      ({earlyWarning ? `${earlyWarning.latency_median_ms}ms` : "--"})
+
+                {/* Middle Row: Differently sized cards (2 cols + 1 col) */}
+                <div
+                  tabIndex={0}
+                  onClick={() => setActiveTab("simlab")}
+                  onKeyDown={(e) => e.key === "Enter" && setActiveTab("simlab")}
+                  className="bento-card md:col-span-2 rounded-xl p-4 cursor-pointer"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-semibold uppercase tracking-wider text-[#D8B4FE]">
+                      Risk Score Trajectory
+                    </span>
+                    <span className="text-[11px] font-mono text-purple-300/75">
+                      {assessments.length} assessments
                     </span>
                   </div>
-                </div>
-              </div>
-
-              {/* Live Workspace Monitoring (demo_workspace/ + Independent Harness) */}
-              {workspaceStatus && (
-                <div className="p-4 bg-slate-900/60 border border-slate-800 rounded-lg space-y-3">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div>
-                      <h3 className="text-xs font-semibold text-slate-200 uppercase tracking-wider">
-                        Live Workspace Monitoring ({workspaceStatus.workspace_path})
-                      </h3>
-                      <p className="text-[11px] text-slate-400">
-                        Status: <strong className="text-emerald-400 font-mono uppercase">{workspaceStatus.monitoring_status}</strong> |{" "}
-                        Dummy Files: <strong className="font-mono text-slate-200">{workspaceStatus.file_count}</strong> |{" "}
-                        Telemetry: <strong className="font-mono text-cyan-300">{workspaceStatus.telemetry_status}</strong>
-                      </p>
-                    </div>
-                    <span className="text-[10px] font-mono text-slate-400">
-                      Observed Events: {workspaceStatus.measurable_features?.observed_event_count ?? 0} |{" "}
-                      Exts: {workspaceStatus.measurable_features?.unique_ext_count ?? 0}
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 text-xs">
-                    <div className="p-2.5 bg-slate-950 border border-slate-800 rounded max-h-32 overflow-y-auto">
-                      <span className="text-[10px] font-mono text-slate-400 uppercase block mb-1">
-                        Recent Observed File Activity (workspace_observer)
-                      </span>
-                      {workspaceStatus.recent_events?.length > 0 ? (
-                        workspaceStatus.recent_events.slice(0, 6).map((ev, i) => (
-                          <div key={i} className="font-mono text-[11px] text-slate-300 flex justify-between">
-                            <span>[{ev.event_type}] {ev.filename}</span>
-                            <span className="text-slate-500">{ev.timestamp.substring(11, 19)}Z</span>
-                          </div>
-                        ))
-                      ) : (
-                        <span className="text-[11px] text-slate-500">
-                          No manual edits yet. Edit or rename a file in demo_workspace/ to observe live events.
-                        </span>
-                      )}
-                    </div>
-                    <div className="p-2.5 bg-slate-950 border border-slate-800 rounded">
-                      <span className="text-[10px] font-mono text-amber-300 uppercase block mb-1">
-                        Unavailable Measurements (Not Fabricated)
-                      </span>
-                      <ul className="space-y-0.5 text-[11px] font-mono text-slate-400">
-                        {(workspaceStatus.unavailable_features || []).map((u, i) => (
-                          <li key={i}>• {u}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-                <div className="p-4 bg-slate-900/60 border border-slate-800 rounded-lg">
-                  <h3 className="text-xs font-semibold text-slate-200 uppercase tracking-wider mb-3">
-                    Risk Score History
-                  </h3>
                   {chartData.length === 0 ? (
-                    <div className="h-44 flex flex-col items-center justify-center text-xs text-slate-400 border border-dashed border-slate-800 rounded gap-2">
-                      <span>No assessments recorded yet.</span>
-                      <button
-                        onClick={() => handleScenarioTrigger("normal")}
-                        className="text-cyan-400 hover:text-cyan-300 underline"
-                      >
-                        Run Normal Scenario
-                      </button>
+                    <div className="h-36 flex items-center justify-center text-xs text-purple-300/60 border border-dashed border-purple-800/50 rounded">
+                      Trigger a scenario above or open Simulation Lab.
                     </div>
                   ) : (
-                    <div className="h-44">
+                    <div className="h-36">
                       <ResponsiveContainer width="100%" height="100%">
                         <LineChart data={chartData}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                          <XAxis dataKey="name" stroke="#64748b" fontSize={11} />
-                          <YAxis stroke="#64748b" domain={[0, 100]} fontSize={11} />
-                          <Tooltip contentStyle={{ backgroundColor: "#0f172a", borderColor: "#334155", fontSize: "11px" }} />
-                          <Line type="monotone" dataKey="risk_score" stroke="#22d3ee" strokeWidth={2} dot={{ r: 3 }} />
+                          <CartesianGrid strokeDasharray="3 3" stroke="#2E1065" />
+                          <XAxis dataKey="name" stroke="#A855F7" fontSize={10} />
+                          <YAxis stroke="#A855F7" domain={[0, 100]} fontSize={10} />
+                          <Tooltip contentStyle={{ backgroundColor: "#160D26", borderColor: "#7C3AED", fontSize: "11px" }} />
+                          <Line type="monotone" dataKey="risk_score" stroke="#D8B4FE" strokeWidth={2} dot={{ r: 3 }} />
                         </LineChart>
                       </ResponsiveContainer>
                     </div>
                   )}
                 </div>
 
-                <div className="p-4 bg-slate-900/60 border border-slate-800 rounded-lg">
-                  <h3 className="text-xs font-semibold text-slate-200 uppercase tracking-wider mb-3">
-                    Recent Assessments
-                  </h3>
-                  {assessments.length === 0 ? (
-                    <div className="h-44 flex items-center justify-center text-xs text-slate-500 border border-dashed border-slate-800 rounded">
-                      Empty observation feed.
+                <div
+                  tabIndex={0}
+                  onClick={() => setActiveTab("analytics")}
+                  onKeyDown={(e) => e.key === "Enter" && setActiveTab("analytics")}
+                  className="bento-card rounded-xl p-4 cursor-pointer flex flex-col justify-between"
+                >
+                  <div>
+                    <span className="text-[11px] font-mono uppercase text-[#A855F7]">Model Analytics</span>
+                    <div className="text-2xl font-bold text-[#F3E8FF] mt-2 font-mono">
+                      {p2 ? `${(p2.f1_score * 100).toFixed(2)}%` : "--"}
                     </div>
-                  ) : (
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left text-xs">
-                        <thead className="text-[11px] text-slate-400 border-b border-slate-800">
-                          <tr>
-                            <th className="pb-2">ID</th>
-                            <th className="pb-2">Score</th>
-                            <th className="pb-2">Label</th>
-                            <th className="pb-2">Time (UTC)</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-800/60">
-                          {assessments.slice(0, 5).map((a) => (
-                            <tr key={a.assessment_id} className="hover:bg-slate-800/30">
-                              <td className="py-2 font-mono text-cyan-400">{a.assessment_id}</td>
-                              <td className="py-2 font-mono font-semibold">
-                                {a.risk_score !== null ? a.risk_score : "null"}
-                              </td>
-                              <td className="py-2">
-                                <span
-                                  className={`px-2 py-0.5 rounded text-[10px] font-mono uppercase ${
-                                    a.label === "suspicious"
-                                      ? "bg-rose-950/60 text-rose-300 border border-rose-800/50"
-                                      : "bg-emerald-950/40 text-emerald-300 border border-emerald-800/40"
-                                  }`}
-                                >
-                                  {a.label}
-                                </span>
-                              </td>
-                              <td className="py-2 font-mono text-slate-400">{a.timestamp.substring(11, 19)}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
+                    <span className="text-xs text-purple-300/75">Phase 2 F1 Score</span>
+                  </div>
+                  <div className="pt-3 border-t border-purple-900/40 text-[11px] font-mono space-y-1">
+                    <div>Obs FPR: <strong className="text-emerald-400">{p2 ? `${(p2.false_positive_rate * 100).toFixed(2)}%` : "--"}</strong></div>
+                    <div>Early Det: <strong className="text-[#D8B4FE]">{earlyWarning ? `${(earlyWarning.early_detection_rate * 100).toFixed(1)}%` : "--"}</strong></div>
+                  </div>
+                </div>
+
+                {/* Bottom Row: 1 wide card */}
+                <div
+                  tabIndex={0}
+                  onClick={() => setActiveTab("endpoints")}
+                  onKeyDown={(e) => e.key === "Enter" && setActiveTab("endpoints")}
+                  className="bento-card md:col-span-3 rounded-xl p-4 cursor-pointer"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-semibold uppercase tracking-wider text-[#D8B4FE]">
+                      Virtual Organization & Recent Assessments
+                    </span>
+                    <span className="text-[11px] text-purple-300/75">Click to open Endpoints</span>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                    {endpoints.map((ep) => (
+                      <div key={ep.endpoint_id} className="p-2 rounded bg-[#090610]/70 border border-purple-900/40 text-xs font-mono">
+                        <div className="font-semibold text-[#F3E8FF]">{ep.endpoint_id}</div>
+                        <div className={ep.status === "simulated_isolated" ? "text-rose-400 text-[10px]" : "text-emerald-400 text-[10px]"}>
+                          {ep.status} ({ep.current_risk_score ?? 0})
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
