@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useState, useEffect } from "react";
-import { Canvas, useFrame } from "@react-three/fiber";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls, Line } from "@react-three/drei";
 import * as THREE from "three";
 
@@ -28,7 +28,31 @@ function resolveEndpointColor(ep, replayIncident, replayStep) {
   return STATE_COLORS.monitoring;
 }
 
-/* ─── JARVIS-Inspired Mechanical Intelligence Core ───────────── */
+/* ─── 3D -> 2D Screen-Space Label Projector (Zero React Roots) ─ */
+function LabelProjector({ items, labelRefs }) {
+  const { camera, size } = useThree();
+  const vec = useMemo(() => new THREE.Vector3(), []);
+
+  useFrame(() => {
+    items.forEach(({ id, pos }) => {
+      const el = labelRefs.current[id];
+      if (!el) return;
+      vec.set(pos[0], pos[1], pos[2]).project(camera);
+      if (vec.z > 1) {
+        el.style.opacity = "0";
+        return;
+      }
+      const x = (vec.x * 0.5 + 0.5) * size.width;
+      const y = (-vec.y * 0.5 + 0.5) * size.height;
+      el.style.opacity = "1";
+      el.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0) translate(-50%, -100%)`;
+    });
+  });
+
+  return null;
+}
+
+/* ─── JARVIS-Inspired Central Intelligence Core ──────────────── */
 function ProtectionCore({ hasIncident, reducedMotion }) {
   const sphereRef = useRef();
   const ring1Ref = useRef();
@@ -41,8 +65,7 @@ function ProtectionCore({ hasIncident, reducedMotion }) {
     const t = clock.getElapsedTime();
     const speed = hasIncident ? 0.65 : 0.35;
     if (sphereRef.current) {
-      const s = 1 + Math.sin(t * 2.1) * 0.05;
-      sphereRef.current.scale.setScalar(s);
+      sphereRef.current.scale.setScalar(1 + Math.sin(t * 2.1) * 0.05);
     }
     if (ring1Ref.current) ring1Ref.current.rotation.z += delta * speed * 0.9;
     if (ring2Ref.current) {
@@ -54,92 +77,71 @@ function ProtectionCore({ hasIncident, reducedMotion }) {
   });
 
   return (
-    <group position={[0, 0.15, 0]}>
-      {/* Luminous Golden Central Sphere */}
+    <group position={[0, 0.2, 0]}>
       <mesh ref={sphereRef}>
         <sphereGeometry args={[0.38, 28, 28]} />
         <meshStandardMaterial
           color="#FFE3A5"
           emissive="#E8BB65"
           emissiveIntensity={0.95}
-          metalness={0.4}
+          metalness={0.35}
           roughness={0.2}
         />
       </mesh>
-
-      {/* Purple Energy Cage */}
-      <mesh>
-        <icosahedronGeometry args={[0.62, 1]} />
-        <meshStandardMaterial
-          color="#A855F7"
-          wireframe
-          emissive="#7C3AED"
-          emissiveIntensity={0.45}
-          transparent
-          opacity={0.7}
-        />
-      </mesh>
-
-      {/* Segmented Mechanical Arcs */}
       <group ref={arcRef}>
         <mesh rotation={[Math.PI / 2, 0, 0]}>
-          <torusGeometry args={[0.88, 0.032, 10, 48, Math.PI * 1.35]} />
-          <meshStandardMaterial color="#E8BB65" emissive="#B88635" emissiveIntensity={0.55} metalness={0.8} roughness={0.2} />
+          <torusGeometry args={[0.72, 0.03, 10, 48, Math.PI * 1.35]} />
+          <meshStandardMaterial color="#E8BB65" emissive="#B88635" emissiveIntensity={0.6} />
         </mesh>
         <mesh rotation={[Math.PI / 2, 0, Math.PI]}>
-          <torusGeometry args={[0.88, 0.022, 10, 48, Math.PI * 0.85]} />
-          <meshStandardMaterial color="#A855F7" emissive="#7C3AED" emissiveIntensity={0.5} />
+          <torusGeometry args={[0.72, 0.022, 10, 48, Math.PI * 0.85]} />
+          <meshStandardMaterial color="#A855F7" emissive="#7C3AED" emissiveIntensity={0.55} />
         </mesh>
       </group>
-
-      {/* Independently Rotating Orbital Rings */}
       <mesh ref={ring1Ref} rotation={[Math.PI / 3, 0.2, 0]}>
-        <torusGeometry args={[1.08, 0.018, 10, 64]} />
-        <meshStandardMaterial color="#C084FC" emissive="#7C3AED" emissiveIntensity={0.4} metalness={0.6} roughness={0.3} />
+        <torusGeometry args={[0.98, 0.018, 10, 64]} />
+        <meshStandardMaterial color="#C084FC" emissive="#7C3AED" emissiveIntensity={0.45} />
       </mesh>
       <mesh ref={ring2Ref} rotation={[-Math.PI / 4, Math.PI / 4, 0]}>
-        <torusGeometry args={[1.24, 0.016, 10, 64]} />
-        <meshStandardMaterial color="#E8BB65" emissive="#B88635" emissiveIntensity={0.45} metalness={0.75} roughness={0.25} />
+        <torusGeometry args={[1.14, 0.016, 10, 64]} />
+        <meshStandardMaterial color="#E8BB65" emissive="#B88635" emissiveIntensity={0.5} />
       </mesh>
       <mesh ref={ring3Ref} rotation={[Math.PI / 2, 0, 0]}>
-        <torusGeometry args={[1.38, 0.01, 8, 72]} />
-        <meshStandardMaterial color="#7C3AED" emissive="#7C3AED" emissiveIntensity={0.35} transparent opacity={0.65} />
+        <torusGeometry args={[1.28, 0.012, 8, 72]} />
+        <meshStandardMaterial color="#7C3AED" emissive="#7C3AED" emissiveIntensity={0.4} transparent opacity={0.7} />
       </mesh>
     </group>
   );
 }
 
-/* ─── Holographic Gateway Shield Structure ───────────────────── */
-function GatewayStructure({ gateway, reducedMotion }) {
+/* ─── Layered Holographic Gateway Shield ─────────────────────── */
+function GatewayStructure({ reducedMotion }) {
   const ringRef = useRef();
   useFrame((_, delta) => {
-    if (!reducedMotion && ringRef.current) {
-      ringRef.current.rotation.z += delta * 0.45;
-    }
+    if (!reducedMotion && ringRef.current) ringRef.current.rotation.z += delta * 0.45;
   });
 
   return (
-    <group position={[0, 0.05, 3.15]}>
-      {/* Base Platform */}
-      <mesh position={[0, -0.22, 0]}>
-        <cylinderGeometry args={[0.62, 0.68, 0.06, 8]} />
-        <meshStandardMaterial color="#29193E" metalness={0.7} roughness={0.3} />
+    <group position={[0, 0.05, 2.75]}>
+      <mesh position={[0, -0.2, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <circleGeometry args={[0.58, 24]} />
+        <meshBasicMaterial color="#2E1065" transparent opacity={0.32} side={THREE.DoubleSide} />
       </mesh>
-      {/* Shield Core */}
-      <mesh position={[0, 0.08, 0]}>
-        <octahedronGeometry args={[0.34, 0]} />
+      <mesh ref={ringRef} rotation={[Math.PI / 2, 0, 0]} position={[0, -0.18, 0]}>
+        <torusGeometry args={[0.6, 0.018, 8, 48]} />
+        <meshStandardMaterial color="#E8BB65" emissive="#B88635" emissiveIntensity={0.55} />
+      </mesh>
+      <mesh position={[0, 0.14, 0]}>
+        <cylinderGeometry args={[0.36, 0.24, 0.48, 6]} />
         <meshStandardMaterial
           color="#7C3AED"
           emissive="#A855F7"
           emissiveIntensity={0.45}
-          metalness={0.6}
-          roughness={0.25}
+          metalness={0.3}
+          roughness={0.35}
+          transparent
+          opacity={0.85}
         />
-      </mesh>
-      {/* Rotating Gold Perimeter Ring */}
-      <mesh ref={ringRef} rotation={[Math.PI / 2, 0, 0]} position={[0, -0.15, 0]}>
-        <torusGeometry args={[0.66, 0.018, 8, 48]} />
-        <meshStandardMaterial color="#E8BB65" emissive="#B88635" emissiveIntensity={0.5} />
       </mesh>
     </group>
   );
@@ -156,7 +158,7 @@ function GatewayFlowParticles({ gateway, reducedMotion }) {
     const t = clock.getElapsedTime();
     groupRef.current.children.forEach((mesh, idx) => {
       const progress = (t * 0.45 + idx / count) % 1;
-      mesh.position.z = 3.15 - progress * 3.15;
+      mesh.position.z = 2.75 - progress * 2.75;
       mesh.position.x = Math.sin(progress * Math.PI * 2 + idx) * 0.08;
     });
   });
@@ -172,7 +174,7 @@ function GatewayFlowParticles({ gateway, reducedMotion }) {
       {Array.from({ length: count }).map((_, i) => {
         const isRestricted = i / count < restrictedRatio;
         return (
-          <mesh key={i} position={[0, 0.12, 3.15 - (i / count) * 3.15]}>
+          <mesh key={i} position={[0, 0.14, 2.75 - (i / count) * 2.75]}>
             <sphereGeometry args={[0.05, 8, 8]} />
             <meshBasicMaterial color={isRestricted ? STATE_COLORS.suspicious : "#E8BB65"} />
           </mesh>
@@ -182,27 +184,19 @@ function GatewayFlowParticles({ gateway, reducedMotion }) {
   );
 }
 
-/* ─── Detailed Holographic Workstation / Server Endpoint ─────── */
-function EndpointNode({
-  ep,
-  pos,
-  color,
-  isSelected,
-  isHovered,
-  dimmed,
-  onHover,
-  onSelect,
-}) {
+/* ─── Recognizable Holographic Workstation / Server Endpoint ─── */
+function EndpointNode({ ep, pos, color, isSelected, isHovered, dimmed, onHover, onSelect }) {
   const isIsolated = ep.status === "simulated_isolated";
-  const nodeScale = isHovered ? 1.2 : isSelected ? 1.08 : 1.0;
+  const isServer = ep.endpoint_id.startsWith("BAK");
+  const nodeScale = isHovered ? 1.18 : isSelected ? 1.08 : 1.0;
   const accentColor = isIsolated ? STATE_COLORS.contained : isHovered || isSelected ? "#E8BB65" : color;
 
   return (
     <group>
       <Line
-        points={[[0, 0.15, 0], pos]}
+        points={[[0, 0.2, 0], pos]}
         color={isIsolated ? STATE_COLORS.contained : isHovered || isSelected ? "#E8BB65" : "#7C3AED"}
-        lineWidth={isHovered || isSelected || isIsolated ? 2.6 : 1.1}
+        lineWidth={isHovered || isSelected || isIsolated ? 2.6 : 1.2}
         transparent
         opacity={dimmed ? 0.18 : 0.9}
       />
@@ -220,19 +214,12 @@ function EndpointNode({
           onSelect(ep.endpoint_id);
         }}
       >
-        {/* Lightweight Holographic Platform Ring */}
         <mesh position={[0, -0.18, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-          <circleGeometry args={[0.44, 24]} />
-          <meshBasicMaterial
-            color="#2E1065"
-            transparent
-            opacity={dimmed ? 0.1 : 0.28}
-            side={THREE.DoubleSide}
-          />
+          <circleGeometry args={[0.48, 24]} />
+          <meshBasicMaterial color="#2E1065" transparent opacity={dimmed ? 0.1 : 0.28} side={THREE.DoubleSide} />
         </mesh>
-        {/* Champagne-Gold Platform Outline Ring */}
         <mesh position={[0, -0.17, 0]} rotation={[Math.PI / 2, 0, 0]}>
-          <torusGeometry args={[0.45, 0.015, 8, 32]} />
+          <torusGeometry args={[0.49, 0.015, 8, 32]} />
           <meshStandardMaterial
             color={accentColor}
             emissive={accentColor}
@@ -242,38 +229,44 @@ function EndpointNode({
           />
         </mesh>
 
-        {/* Localized Containment Isolation Boundary */}
         {isIsolated && (
           <mesh position={[0, -0.15, 0]} rotation={[Math.PI / 2, 0, 0]}>
-            <torusGeometry args={[0.62, 0.02, 8, 36]} />
+            <torusGeometry args={[0.66, 0.022, 8, 36]} />
             <meshStandardMaterial color="#f43f5e" emissive="#f43f5e" emissiveIntensity={0.9} />
           </mesh>
         )}
 
-        {/* Workstation / Server Chassis (Lit Translucent Purple, Never Black) */}
-        <mesh position={[-0.12, 0.02, 0]}>
-          <boxGeometry args={[0.18, 0.36, 0.26]} />
-          <meshStandardMaterial
-            color="#7C3AED"
-            emissive="#2E1065"
-            emissiveIntensity={0.45}
-            metalness={0.25}
-            roughness={0.45}
-            transparent
-            opacity={dimmed ? 0.35 : 0.88}
-          />
-        </mesh>
-        {/* Holographic Monitor Screen */}
-        <mesh position={[0.12, 0.06, 0]} rotation={[0, -0.25, 0]}>
-          <boxGeometry args={[0.26, 0.2, 0.03]} />
-          <meshStandardMaterial
-            color={accentColor}
-            emissive={accentColor}
-            emissiveIntensity={isHovered ? 0.85 : isSelected ? 0.6 : 0.32}
-            transparent
-            opacity={dimmed ? 0.35 : 0.95}
-          />
-        </mesh>
+        {isServer ? (
+          /* Backup Server Rack Silhouette */
+          <group>
+            <mesh position={[0, 0.1, 0]}>
+              <boxGeometry args={[0.38, 0.5, 0.3]} />
+              <meshStandardMaterial color="#7C3AED" emissive="#2E1065" emissiveIntensity={0.45} metalness={0.25} roughness={0.4} transparent opacity={dimmed ? 0.35 : 0.9} />
+            </mesh>
+            {[0.22, 0.08, -0.06].map((yPos, idx) => (
+              <mesh key={idx} position={[0, yPos, 0.16]}>
+                <boxGeometry args={[0.28, 0.04, 0.02]} />
+                <meshStandardMaterial color={accentColor} emissive={accentColor} emissiveIntensity={0.75} />
+              </mesh>
+            ))}
+          </group>
+        ) : (
+          /* Workstation Silhouette (Monitor + Base + Tower) */
+          <group>
+            <mesh position={[-0.18, 0.02, 0]}>
+              <boxGeometry args={[0.14, 0.34, 0.24]} />
+              <meshStandardMaterial color="#7C3AED" emissive="#2E1065" emissiveIntensity={0.45} metalness={0.25} roughness={0.4} transparent opacity={dimmed ? 0.35 : 0.9} />
+            </mesh>
+            <mesh position={[0.1, 0.1, -0.02]}>
+              <boxGeometry args={[0.34, 0.22, 0.03]} />
+              <meshStandardMaterial color={accentColor} emissive={accentColor} emissiveIntensity={isHovered ? 0.9 : 0.45} transparent opacity={dimmed ? 0.35 : 0.95} />
+            </mesh>
+            <mesh position={[0.1, -0.12, 0.08]}>
+              <boxGeometry args={[0.28, 0.03, 0.14]} />
+              <meshStandardMaterial color="#A855F7" emissive="#2E1065" emissiveIntensity={0.35} transparent opacity={dimmed ? 0.35 : 0.9} />
+            </mesh>
+          </group>
+        )}
       </group>
     </group>
   );
@@ -292,6 +285,7 @@ export default function SecurityTopology3D({
   const [reducedMotion, setReducedMotion] = useState(false);
   const [hoveredEndpointId, setHoveredEndpointId] = useState(null);
   const controlsRef = useRef(null);
+  const labelRefs = useRef({});
 
   useEffect(() => {
     const mq = window.matchMedia?.("(prefers-reduced-motion: reduce)");
@@ -306,20 +300,30 @@ export default function SecurityTopology3D({
   }, []);
 
   const nodePositions = useMemo(() => {
-    const radius = 2.6;
-    const angles = [-Math.PI * 0.85, -Math.PI * 0.5, -Math.PI * 0.15, Math.PI * 0.18, Math.PI * 0.82];
-    return endpoints.slice(0, 5).map((ep, idx) => {
-      const a = angles[idx] ?? (idx / 5) * Math.PI * 2;
-      return {
-        ep,
-        pos: [
-          Number((Math.cos(a) * radius).toFixed(2)),
-          0.1,
-          Number((Math.sin(a) * radius - 0.3).toFixed(2)),
-        ],
-      };
-    });
+    const coords = [
+      [-3.3, 0.1, -0.6],
+      [-2.0, 0.1, -2.2],
+      [0.0, 0.1, -2.65],
+      [2.0, 0.1, -2.2],
+      [3.3, 0.1, -0.6],
+    ];
+    return endpoints.slice(0, 5).map((ep, idx) => ({
+      ep,
+      pos: coords[idx] || [0, 0.1, -2],
+    }));
   }, [endpoints]);
+
+  const labelItems = useMemo(
+    () => [
+      { id: "__core__", pos: [0, 1.35, 0] },
+      { id: "__gw__", pos: [0, 0.65, 2.75] },
+      ...nodePositions.map(({ ep, pos }) => ({
+        id: ep.endpoint_id,
+        pos: [pos[0], pos[1] + 0.52, pos[2]],
+      })),
+    ],
+    [nodePositions]
+  );
 
   const hasIncident = endpoints.some((e) => e.status === "simulated_isolated");
 
@@ -359,50 +363,58 @@ export default function SecurityTopology3D({
   }
 
   return (
-    <div className="h-80 sm:h-96 w-full bg-[#160D26]/10 backdrop-blur-[5px] border border-purple-300/10 rounded-xl overflow-hidden relative">
+    <div className="h-80 sm:h-[410px] w-full bg-[#160D26]/10 backdrop-blur-[5px] border border-purple-300/10 rounded-xl overflow-hidden relative">
       <button
         type="button"
         onClick={() => controlsRef.current?.reset()}
-        className="absolute top-3 right-3 z-10 px-2.5 py-1 rounded bg-[#160D26]/60 hover:bg-[#29193E]/80 border border-[#E8BB65]/35 text-[10px] font-mono text-[#FFE3A5] transition"
+        className="absolute top-3 right-3 z-20 px-2.5 py-1 rounded bg-[#160D26]/70 hover:bg-[#29193E]/85 border border-[#E8BB65]/35 text-[10px] font-mono text-[#FFE3A5] transition"
       >
         Reset View
       </button>
 
-      {/* Safe React HUD Overlay (replaces drei <Html> to prevent React 19 root.unmount race) */}
-      <div className="absolute bottom-2.5 inset-x-3 z-10 flex flex-wrap items-center justify-between gap-2 pointer-events-none">
-        <span className="px-2 py-0.5 rounded bg-[#160D26]/75 border border-purple-300/20 text-[10px] font-mono text-[#E9D5FF]">
-          CORE · GATEWAY ({gateway?.queue_depth ?? 0}/{gateway?.queue_capacity ?? 10})
-        </span>
-        <div className="flex flex-wrap items-center gap-1.5 pointer-events-auto">
-          {endpoints.slice(0, 5).map((ep) => {
-            const isSelected = ep.endpoint_id === selectedEndpointId;
-            const isHovered = ep.endpoint_id === hoveredEndpointId;
-            const isIsolated = ep.status === "simulated_isolated";
-            return (
-              <button
-                key={ep.endpoint_id}
-                type="button"
-                onMouseEnter={() => setHoveredEndpointId(ep.endpoint_id)}
-                onMouseLeave={() => setHoveredEndpointId(null)}
-                onClick={() => onSelectEndpoint(ep.endpoint_id)}
-                className={`px-2 py-0.5 rounded text-[10px] font-mono border transition-all ${
-                  isIsolated
-                    ? "bg-rose-950/85 border-rose-500 text-rose-200"
-                    : isHovered || isSelected
-                    ? "bg-[#29193E]/90 border-[#E8BB65] text-[#FFE3A5]"
-                    : "bg-[#160D26]/75 border-purple-300/20 text-[#F3E8FF]"
-                }`}
-              >
-                {ep.endpoint_id} ({ep.current_risk_score ?? 0})
-              </button>
-            );
-          })}
+      {/* Projected 3D-Anchored HTML Labels (Zero Nested React Roots) */}
+      <div className="absolute inset-0 z-10 pointer-events-none overflow-hidden">
+        <div
+          ref={(el) => (labelRefs.current.__core__ = el)}
+          className="absolute top-0 left-0 px-2 py-0.5 rounded bg-[#160D26]/80 border border-[#E8BB65]/45 text-[10px] font-mono text-[#FFE3A5] whitespace-nowrap"
+        >
+          SENTINEL CORE
         </div>
+        <div
+          ref={(el) => (labelRefs.current.__gw__ = el)}
+          className="absolute top-0 left-0 px-2 py-0.5 rounded bg-[#160D26]/80 border border-purple-300/25 text-[10px] font-mono text-[#E9D5FF] whitespace-nowrap"
+        >
+          GATEWAY ({gateway?.queue_depth ?? 0}/{gateway?.queue_capacity ?? 10})
+        </div>
+        {nodePositions.map(({ ep }) => {
+          const isSelected = ep.endpoint_id === selectedEndpointId;
+          const isHovered = ep.endpoint_id === hoveredEndpointId;
+          const isIsolated = ep.status === "simulated_isolated";
+          return (
+            <button
+              key={ep.endpoint_id}
+              ref={(el) => (labelRefs.current[ep.endpoint_id] = el)}
+              type="button"
+              onMouseEnter={() => setHoveredEndpointId(ep.endpoint_id)}
+              onMouseLeave={() => setHoveredEndpointId(null)}
+              onClick={() => onSelectEndpoint(ep.endpoint_id)}
+              className={`pointer-events-auto absolute top-0 left-0 px-2 py-0.5 rounded text-[10px] font-mono whitespace-nowrap border transition-colors ${
+                isIsolated
+                  ? "bg-rose-950/90 border-rose-500 text-rose-200"
+                  : isHovered || isSelected
+                  ? "bg-[#29193E]/95 border-[#E8BB65] text-[#FFE3A5] shadow-[0_0_12px_rgba(232,187,101,0.35)]"
+                  : "bg-[#160D26]/80 border-purple-300/20 text-[#F3E8FF]"
+              }`}
+            >
+              {ep.endpoint_id} · {ep.current_risk_score ?? 0} · {ep.status}
+            </button>
+          );
+        })}
       </div>
 
       <Canvas
         dpr={[1, 1.5]}
-        camera={{ position: [0, 5.4, 7.6], fov: 42 }}
+        camera={{ position: [0, 5.2, 8.2], fov: 38 }}
         gl={{ alpha: true, antialias: true }}
         style={{ background: "transparent" }}
         frameloop={reducedMotion ? "demand" : "always"}
@@ -413,13 +425,13 @@ export default function SecurityTopology3D({
         <pointLight position={[5, 6, 5]} intensity={1.2} color="#A855F7" />
         <pointLight position={[-5, 4, -5]} intensity={0.9} color="#E8BB65" />
 
-        {/* Subtle Spatial Grid */}
-        <gridHelper args={[12, 16, "#7C3AED", "#29193E"]} position={[0, -0.25, 0]} material-transparent material-opacity={0.18} />
+        <gridHelper args={[12, 16, "#7C3AED", "#29193E"]} position={[0, -0.25, 0]} material-transparent material-opacity={0.14} />
 
+        <LabelProjector items={labelItems} labelRefs={labelRefs} />
         <ProtectionCore hasIncident={hasIncident} reducedMotion={reducedMotion} />
-        <GatewayStructure gateway={gateway} reducedMotion={reducedMotion} />
+        <GatewayStructure reducedMotion={reducedMotion} />
 
-        <Line points={[[0, 0.05, 3.15], [0, 0.15, 0]]} color="#A855F7" lineWidth={1.6} />
+        <Line points={[[0, 0.05, 2.75], [0, 0.2, 0]]} color="#A855F7" lineWidth={1.6} />
         <GatewayFlowParticles gateway={gateway} reducedMotion={reducedMotion} />
 
         {nodePositions.map(({ ep, pos }) => {
@@ -445,10 +457,10 @@ export default function SecurityTopology3D({
         <OrbitControls
           ref={controlsRef}
           enablePan={false}
-          minDistance={5.2}
-          maxDistance={12}
+          minDistance={5.5}
+          maxDistance={13}
           minPolarAngle={0.35}
-          maxPolarAngle={Math.PI / 2.2}
+          maxPolarAngle={Math.PI / 2.25}
         />
       </Canvas>
     </div>
