@@ -52,3 +52,23 @@ def test_gateway_excessive_requests_restricted_and_recovery() -> None:
     rst = client.post("/api/v1/gateway/reset")
     assert rst.status_code == 200
     assert rst.json()["total_requests"] == 0
+
+
+
+def test_gateway_custom_bulk_and_invalid_bounds() -> None:
+    gateway_controller.reset()
+    res = client.post("/api/v1/gateway/bulk", json={"profile": "excessive_requests", "count": 12})
+    assert res.status_code == 200
+    d = res.json()
+    assert d["total_requests"] == 12
+    assert d["accepted_requests"] == 5
+    assert d["throttled_requests"] == 1
+    assert d["rejected_requests"] == 6
+    assert d["avoided_assessments"] == 7
+    assert d["bulk_processing_duration_ms"] >= 0
+
+    bad_count = client.post("/api/v1/gateway/bulk", json={"profile": "normal_upload", "count": 101})
+    assert bad_count.status_code == 400
+
+    bad_prof = client.post("/api/v1/gateway/bulk", json={"profile": "unknown", "count": 5})
+    assert bad_prof.status_code == 400

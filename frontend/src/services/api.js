@@ -35,3 +35,5 @@ export const fetchGatewayStatus = async () => (await api.get("/gateway/status"))
 export const simulateGatewayScenario = async (scenario) =>
   (await api.post("/gateway/simulate", { scenario })).data;
 export const resetGateway = async () => (await api.post("/gateway/reset")).data;
+export const simulateGatewayBulk = async (profile, count) =>
+  (await api.post("/gateway/bulk", { profile, count })).data;

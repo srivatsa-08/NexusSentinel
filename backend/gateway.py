@@ -127,6 +127,33 @@ class GatewayController:
             self.queue_depth = max(0, self.queue_depth - max(0, count))
             return self._status_locked()
 
+    def simulate_custom_bulk(self, profile: str, count: int) -> dict[str, Any]:
+        """Run a bounded in-memory custom bulk simulation (1..100 synthetic requests)."""
+        sc = profile.lower().strip()
+        if sc not in ("normal_upload", "legitimate_bulk", "excessive_requests"):
+            raise ValueError(
+                f"Invalid profile '{sc}'. Choose from normal_upload, legitimate_bulk, excessive_requests."
+            )
+        if not isinstance(count, int) or count < 1 or count > 100:
+            raise ValueError("count must be an integer between 1 and 100.")
+
+        template = {
+            "normal_upload": {"uploader_id": "uploader-alpha", "fictional_ip": "198.51.100.10", "interval_s": 5.0, "declared_size_mb": 1.2},
+            "legitimate_bulk": {"uploader_id": "uploader-backup", "fictional_ip": "198.51.100.20", "interval_s": 2.5, "declared_size_mb": 45.0},
+            "excessive_requests": {"uploader_id": "uploader-burst", "fictional_ip": "198.51.100.99", "interval_s": 0.1, "declared_size_mb": 2.0},
+        }[sc]
+
+        t0 = time.perf_counter_ns()
+        with self._lock:
+            for _ in range(count):
+                self._evaluate_locked(dict(template))
+            if sc in ("normal_upload", "legitimate_bulk"):
+                self.queue_depth = max(0, self.queue_depth - count)
+            status_out = self._status_locked()
+        status_out["bulk_processing_duration_ms"] = round((time.perf_counter_ns() - t0) / 1_000_000.0, 3)
+        status_out["bulk_requested_count"] = count
+        return status_out
+
     def simulate_scenario(self, scenario: str) -> dict[str, Any]:
         sc = scenario.lower().strip()
         with self._lock:

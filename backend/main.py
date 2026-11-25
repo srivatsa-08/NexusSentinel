@@ -73,9 +73,36 @@ app.add_middleware(
 # CORS middleware above handles localhost origins
 
 
-@app.get("/api/v1/health", response_model=HealthResponse)
-def get_health() -> HealthResponse:
-    return HealthResponse(status="ok")
+@app.get("/api/v1/health")
+def get_health() -> dict[str, Any]:
+    db_ok = "ok"
+    try:
+        conn = get_db_connection()
+        conn.execute("SELECT 1").fetchone()
+        conn.close()
+    except Exception:
+        db_ok = "error"
+
+    ml_ok = "ok"
+    model_ver = "rf-phase2-v1"
+    try:
+        from ml_engine.predict import load_trusted_artifact
+
+        art = load_trusted_artifact()
+        model_ver = art.get("model_version", "rf-phase2-v1")
+    except Exception:
+        ml_ok = "error"
+
+    return {
+        "status": "ok" if db_ok == "ok" and ml_ok == "ok" else "degraded",
+        "model_version": model_ver,
+        "components": {
+            "backend": "ok",
+            "database": db_ok,
+            "ml_engine": ml_ok,
+            "gateway": "active",
+        },
+    }
 
 
 @app.get("/api/v1/endpoints", response_model=EndpointsResponse)
@@ -564,3 +591,13 @@ def post_gateway_simulate(req: DemoStartRequest) -> dict[str, Any]:
 def post_gateway_reset() -> dict[str, Any]:
     gateway_controller.reset()
     return gateway_controller.get_status()
+
+
+@app.post("/api/v1/gateway/bulk")
+def post_gateway_bulk(payload: dict[str, Any]) -> dict[str, Any]:
+    profile = str(payload.get("profile", ""))
+    count = payload.get("count")
+    try:
+        return gateway_controller.simulate_custom_bulk(profile=profile, count=count)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))

@@ -22,7 +22,9 @@ def setup_teardown_db():
 def test_health_endpoint():
     res = client.get("/api/v1/health")
     assert res.status_code == 200
-    assert res.json() == {"status": "ok"}
+    data = res.json()
+    assert data["status"] == "ok"
+    assert "components" in data
 
 
 def test_endpoints_list():
