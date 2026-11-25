@@ -1,45 +1,48 @@
 # Nexus Sentinel — ML Engine (`ml_engine/`)
 
-Defensive early-warning classification using **synthetic tabular observations only**.
+Defensive ransomware early-warning classification using **synthetic tabular observations only**.
 
 > **Scope & Limitations:** Trained and evaluated exclusively on synthetic tabular records (`datasets/`). `risk_score` is a model-derived score in `[0, 100]` and is **not** a calibrated real-world probability. Does **not** monitor live filesystems, terminate processes, modify networks, or claim real-world ransomware protection.
 
-## Inference Interface (for Backend)
+---
 
+## 1. Backend Integration Guide
+
+The ML engine provides a clean Python module interface that the FastAPI backend can directly import.
+
+### Quick Start
 ```python
-from ml_engine import predict_assessment
+from ml_engine import predict_assessment, SYNTHETIC_INFERENCE_EXAMPLES
 
-observation = {
-    "file_mod_rate": 95.0,
-    "entropy_delta": 2.3,
-    "rename_ratio": 0.10,
-    "unique_ext_count": 3,
-    "burst_io_score": 0.72,
-    "shadow_copy_access_flag": 0,
-}
-
-result = predict_assessment(observation)
+# Using standard synthetic scenario examples
+sample_obs = SYNTHETIC_INFERENCE_EXAMPLES["suspicious"]
+result = predict_assessment(sample_obs)
 ```
 
-### Return Format (`API_CONTRACT.md` compatible)
-`predict_assessment` returns the assessment payload fields; the backend supplies `assessment_id`, `endpoint_id`, and `timestamp`:
+### Inference Output Specification (`API_CONTRACT.md` Compliant)
+`predict_assessment(observation: dict)` returns the core assessment fields. The backend supplies `assessment_id`, `endpoint_id`, and `timestamp`:
 
 ```json
 {
-  "risk_score": 18,
-  "label": "normal",
+  "risk_score": 99,
+  "label": "suspicious",
   "indicators": [
-    "model: rename_ratio decreases suspicious score by 12.4 pts vs benign median",
+    "model: unique_ext_count increases suspicious score by 38.0 pts vs benign median",
+    "model: rename_ratio increases suspicious score by 35.6 pts vs benign median",
+    "model: entropy_delta increases suspicious score by 13.5 pts vs benign median",
     "heuristic: elevated entropy delta (>= 1.5)",
-    "heuristic: high file modification rate (>= 80/min)"
+    "heuristic: elevated file rename ratio (>= 0.45)",
+    "heuristic: broad extension diversity (>= 10)",
+    "heuristic: high file modification rate (>= 80/min)",
+    "heuristic: sustained I/O burst (>= 0.70)",
+    "heuristic: shadow copy access pattern (flag == 1)"
   ],
   "simulated": true
 }
 ```
 
-For separated explanation objects (`explanations.model_derived` vs `explanations.heuristic`), use `predict_assessment_detailed(observation)`.
-
-If `observation` is malformed, missing fields, out of bounds, or contains non-finite values, `predict_assessment` returns `label: "unknown"` with `risk_score: null` (never fabricates a score):
+### Invalid / Unknown Input Handling
+If an observation is missing keys, contains invalid types, non-finite values, or out-of-range values, `predict_assessment` safely returns `label: "unknown"` and `risk_score: null` without throwing an unhandled exception:
 
 ```json
 {
@@ -50,7 +53,18 @@ If `observation` is malformed, missing fields, out of bounds, or contains non-fi
 }
 ```
 
-## Synthetic Feature Schema (`SCHEMA_VERSION = "1.0.0"`)
+### Detailed Explanations
+For endpoints requiring structured separation of explainability indicators:
+```python
+from ml_engine import predict_assessment_detailed
+detailed_result = predict_assessment_detailed(observation)
+# detailed_result["explanations"]["model_derived"]
+# detailed_result["explanations"]["heuristic"]
+```
+
+---
+
+## 2. Feature Schema (`SCHEMA_VERSION = "1.0.0"`)
 
 | Feature | Type | Valid Range | Description |
 | :--- | :--- | :--- | :--- |
@@ -61,20 +75,33 @@ If `observation` is malformed, missing fields, out of bounds, or contains non-fi
 | `burst_io_score` | `float` | `[0.0, 1.0]` | Synthetic I/O burstiness indicator |
 | `shadow_copy_access_flag` | `int` | `0` or `1` | Synthetic shadow-copy-like access flag |
 
-## Model Artifacts & Fallback
-- **Default (Phase 2):** `ml_engine/artifacts/rf_phase2.joblib` (trained on `datasets/train_phase2.csv` with `normal`, `backup`, `compression`, and `suspicious` scenarios).
-- **Fallback (Phase 1):** `ml_engine/artifacts/rf_baseline_v1.joblib` (preserved; automatically used if Phase 2 artifact is absent, or selectable via `model_path`).
-- **Evaluation Report:** `ml_engine/EVALUATION_REPORT.md` and `ml_engine/artifacts/metrics_phase2.json`.
-- **Verified Python environment:** Python `3.14.5`, `numpy 2.5.5`, `scikit-learn 1.9.1`, `scipy 1.18.1`, `joblib 1.6.0`, `pytest 9.2.0` (no `pandas` dependency).
+---
 
-## Latency Distinction
-- **Inference latency:** CPU prediction time inside `predict_assessment()` (including local perturbation explanations; see `ml_engine/EVALUATION_REPORT.md` for measured batch vs single-call latency).
-- **End-to-end detection latency:** Includes telemetry windowing, backend HTTP handling, SQLite persistence, and frontend polling intervals (typically seconds, much larger than model inference alone).
+## 3. Artifacts, Versions & Dependencies
 
-## Reproduce Training & Tests
+- **Phase 2 Artifact (Default):** `ml_engine/artifacts/rf_phase2.joblib` (`model_version: "rf-phase2-v1"`)
+- **Phase 1 Fallback Artifact:** `ml_engine/artifacts/rf_baseline_v1.joblib` (`model_version: "rf-baseline-v1"`)
+- **Evaluation Metrics JSON:** `ml_engine/artifacts/metrics_phase2.json` (Exposes `precision`, `recall`, `f1_score`, `false_positive_rate`, `confusion_matrix`, and scenario breakdown for frontend reporting)
+- **Environment & Dependency Requirements:**
+  - Python: `3.14.5` (or compatible 3.10+)
+  - `scikit-learn`: `1.9.1`
+  - `numpy`: `2.5.5`
+  - `scipy`: `1.18.1`
+  - `joblib`: `1.6.0`
+  - `pytest`: `9.2.0`
+  - *Note: `pandas` is deliberately avoided in `ml_engine/` due to a Windows Application Control DLL policy blocker on `pandas_datetime.pyd`.*
+
+---
+
+## 4. Latency Characteristics
+
+- **Model inference latency:** Measured in-memory CPU computation for `predict_assessment()`. Single-sample call (including input validation + batched perturbation feature importance) is `~40 ms`; bulk vector inference without perturbation is `< 0.1 ms/sample`.
+- **End-to-end detection latency:** Full pipeline latency includes simulator/telemetry generation, backend HTTP transport, database insertion, and frontend polling (typically seconds), which dwarfs raw model inference.
+
+---
+
+## 5. Running Tests
 
 ```powershell
-.\.venv\Scripts\python.exe -m datasets.generate_phase2
-.\.venv\Scripts\python.exe -m ml_engine.train_phase2
 .\.venv\Scripts\python.exe -m pytest ml_engine/tests -v
 ```
