@@ -1,0 +1,2 @@
+- Lights checked
+- Badges verified

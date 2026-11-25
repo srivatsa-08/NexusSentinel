@@ -55,7 +55,8 @@ import {
   toggleEndpointMonitoring,
   reviewIncident,
   resolveIncident,
-  getIncidentReportUrl
+  getIncidentReportUrl,
+  fetchWorkspaceStatus
 } from "./services/api";
 
 const SecurityTopology3D = lazy(() => import("./components/SecurityTopology3D"));
@@ -78,6 +79,7 @@ export default function App() {
   const [metrics, setMetrics] = useState(null);
   const [earlyWarning, setEarlyWarning] = useState(null);
   const [gateway, setGateway] = useState(null);
+  const [workspaceStatus, setWorkspaceStatus] = useState(null);
   const [bulkProfile, setBulkProfile] = useState("excessive_requests");
   const [bulkCount, setBulkCount] = useState(12);
   const [actionLoading, setActionLoading] = useState(false);
@@ -120,13 +122,14 @@ export default function App() {
     if (isFetchingRef.current) return;
     isFetchingRef.current = true;
     try {
-      const [hRes, epRes, asRes, incRes, monRes, gwRes] = await Promise.all([
+      const [hRes, epRes, asRes, incRes, monRes, gwRes, wsRes] = await Promise.all([
         fetchHealth().catch(() => ({ status: "offline" })),
         fetchEndpoints().catch(() => ({ items: [] })),
         fetchAssessments().catch(() => ({ items: [] })),
         fetchIncidents().catch(() => ({ items: [] })),
         fetchMonitorStatus().catch(() => ({ status: "stopped", processed_count: 0, total_sequence: 6, duration_seconds: 0 })),
-        fetchGatewayStatus().catch(() => null)
+        fetchGatewayStatus().catch(() => null),
+        fetchWorkspaceStatus().catch(() => null)
       ]);
       setHealth(hRes);
       setEndpoints(epRes.items || []);
@@ -135,6 +138,7 @@ export default function App() {
       setIncidents(incRes.items || []);
       setMonitorStatus(monRes);
       setGateway(gwRes);
+      setWorkspaceStatus(wsRes);
 
       if (loadedAssessments.length > 0) {
         setSelectedAssessment((prev) => prev || loadedAssessments[0]);
@@ -610,6 +614,57 @@ export default function App() {
                 </div>
               </div>
 
+              {/* Live Workspace Monitoring (demo_workspace/ + Independent Harness) */}
+              {workspaceStatus && (
+                <div className="p-4 bg-slate-900/60 border border-slate-800 rounded-lg space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <h3 className="text-xs font-semibold text-slate-200 uppercase tracking-wider">
+                        Live Workspace Monitoring ({workspaceStatus.workspace_path})
+                      </h3>
+                      <p className="text-[11px] text-slate-400">
+                        Status: <strong className="text-emerald-400 font-mono uppercase">{workspaceStatus.monitoring_status}</strong> |{" "}
+                        Dummy Files: <strong className="font-mono text-slate-200">{workspaceStatus.file_count}</strong> |{" "}
+                        Telemetry: <strong className="font-mono text-cyan-300">{workspaceStatus.telemetry_status}</strong>
+                      </p>
+                    </div>
+                    <span className="text-[10px] font-mono text-slate-400">
+                      Observed Events: {workspaceStatus.measurable_features?.observed_event_count ?? 0} |{" "}
+                      Exts: {workspaceStatus.measurable_features?.unique_ext_count ?? 0}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 text-xs">
+                    <div className="p-2.5 bg-slate-950 border border-slate-800 rounded max-h-32 overflow-y-auto">
+                      <span className="text-[10px] font-mono text-slate-400 uppercase block mb-1">
+                        Recent Observed File Activity (workspace_observer)
+                      </span>
+                      {workspaceStatus.recent_events?.length > 0 ? (
+                        workspaceStatus.recent_events.slice(0, 6).map((ev, i) => (
+                          <div key={i} className="font-mono text-[11px] text-slate-300 flex justify-between">
+                            <span>[{ev.event_type}] {ev.filename}</span>
+                            <span className="text-slate-500">{ev.timestamp.substring(11, 19)}Z</span>
+                          </div>
+                        ))
+                      ) : (
+                        <span className="text-[11px] text-slate-500">
+                          No manual edits yet. Edit or rename a file in demo_workspace/ to observe live events.
+                        </span>
+                      )}
+                    </div>
+                    <div className="p-2.5 bg-slate-950 border border-slate-800 rounded">
+                      <span className="text-[10px] font-mono text-amber-300 uppercase block mb-1">
+                        Unavailable Measurements (Not Fabricated)
+                      </span>
+                      <ul className="space-y-0.5 text-[11px] font-mono text-slate-400">
+                        {(workspaceStatus.unavailable_features || []).map((u, i) => (
+                          <li key={i}>• {u}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
                 <div className="p-4 bg-slate-900/60 border border-slate-800 rounded-lg">
                   <h3 className="text-xs font-semibold text-slate-200 uppercase tracking-wider mb-3">
@@ -892,6 +947,57 @@ export default function App() {
               </div>
 
               {/* Batch Import & Summary */}
+              {/* Live Workspace Monitoring (demo_workspace/ + Independent Harness) */}
+              {workspaceStatus && (
+                <div className="p-4 bg-slate-900/60 border border-slate-800 rounded-lg space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <h3 className="text-xs font-semibold text-slate-200 uppercase tracking-wider">
+                        Live Workspace Monitoring ({workspaceStatus.workspace_path})
+                      </h3>
+                      <p className="text-[11px] text-slate-400">
+                        Status: <strong className="text-emerald-400 font-mono uppercase">{workspaceStatus.monitoring_status}</strong> |{" "}
+                        Dummy Files: <strong className="font-mono text-slate-200">{workspaceStatus.file_count}</strong> |{" "}
+                        Telemetry: <strong className="font-mono text-cyan-300">{workspaceStatus.telemetry_status}</strong>
+                      </p>
+                    </div>
+                    <span className="text-[10px] font-mono text-slate-400">
+                      Observed Events: {workspaceStatus.measurable_features?.observed_event_count ?? 0} |{" "}
+                      Exts: {workspaceStatus.measurable_features?.unique_ext_count ?? 0}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 text-xs">
+                    <div className="p-2.5 bg-slate-950 border border-slate-800 rounded max-h-32 overflow-y-auto">
+                      <span className="text-[10px] font-mono text-slate-400 uppercase block mb-1">
+                        Recent Observed File Activity (workspace_observer)
+                      </span>
+                      {workspaceStatus.recent_events?.length > 0 ? (
+                        workspaceStatus.recent_events.slice(0, 6).map((ev, i) => (
+                          <div key={i} className="font-mono text-[11px] text-slate-300 flex justify-between">
+                            <span>[{ev.event_type}] {ev.filename}</span>
+                            <span className="text-slate-500">{ev.timestamp.substring(11, 19)}Z</span>
+                          </div>
+                        ))
+                      ) : (
+                        <span className="text-[11px] text-slate-500">
+                          No manual edits yet. Edit or rename a file in demo_workspace/ to observe live events.
+                        </span>
+                      )}
+                    </div>
+                    <div className="p-2.5 bg-slate-950 border border-slate-800 rounded">
+                      <span className="text-[10px] font-mono text-amber-300 uppercase block mb-1">
+                        Unavailable Measurements (Not Fabricated)
+                      </span>
+                      <ul className="space-y-0.5 text-[11px] font-mono text-slate-400">
+                        {(workspaceStatus.unavailable_features || []).map((u, i) => (
+                          <li key={i}>• {u}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
                 <div className="p-4 bg-slate-900/60 border border-slate-800 rounded-lg space-y-3">
                   <div className="flex items-center justify-between">
@@ -1134,7 +1240,58 @@ export default function App() {
                     <p className="text-[11px] text-slate-400">{gateway.estimation_note}</p>
                   </div>
 
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                  {/* Live Workspace Monitoring (demo_workspace/ + Independent Harness) */}
+              {workspaceStatus && (
+                <div className="p-4 bg-slate-900/60 border border-slate-800 rounded-lg space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <h3 className="text-xs font-semibold text-slate-200 uppercase tracking-wider">
+                        Live Workspace Monitoring ({workspaceStatus.workspace_path})
+                      </h3>
+                      <p className="text-[11px] text-slate-400">
+                        Status: <strong className="text-emerald-400 font-mono uppercase">{workspaceStatus.monitoring_status}</strong> |{" "}
+                        Dummy Files: <strong className="font-mono text-slate-200">{workspaceStatus.file_count}</strong> |{" "}
+                        Telemetry: <strong className="font-mono text-cyan-300">{workspaceStatus.telemetry_status}</strong>
+                      </p>
+                    </div>
+                    <span className="text-[10px] font-mono text-slate-400">
+                      Observed Events: {workspaceStatus.measurable_features?.observed_event_count ?? 0} |{" "}
+                      Exts: {workspaceStatus.measurable_features?.unique_ext_count ?? 0}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 text-xs">
+                    <div className="p-2.5 bg-slate-950 border border-slate-800 rounded max-h-32 overflow-y-auto">
+                      <span className="text-[10px] font-mono text-slate-400 uppercase block mb-1">
+                        Recent Observed File Activity (workspace_observer)
+                      </span>
+                      {workspaceStatus.recent_events?.length > 0 ? (
+                        workspaceStatus.recent_events.slice(0, 6).map((ev, i) => (
+                          <div key={i} className="font-mono text-[11px] text-slate-300 flex justify-between">
+                            <span>[{ev.event_type}] {ev.filename}</span>
+                            <span className="text-slate-500">{ev.timestamp.substring(11, 19)}Z</span>
+                          </div>
+                        ))
+                      ) : (
+                        <span className="text-[11px] text-slate-500">
+                          No manual edits yet. Edit or rename a file in demo_workspace/ to observe live events.
+                        </span>
+                      )}
+                    </div>
+                    <div className="p-2.5 bg-slate-950 border border-slate-800 rounded">
+                      <span className="text-[10px] font-mono text-amber-300 uppercase block mb-1">
+                        Unavailable Measurements (Not Fabricated)
+                      </span>
+                      <ul className="space-y-0.5 text-[11px] font-mono text-slate-400">
+                        {(workspaceStatus.unavailable_features || []).map((u, i) => (
+                          <li key={i}>• {u}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
                     <div className="p-4 bg-slate-900/60 border border-slate-800 rounded-lg">
                       <h3 className="text-xs font-semibold text-slate-200 uppercase tracking-wider mb-3">
                         Request Volume Breakdown
@@ -1610,7 +1767,58 @@ export default function App() {
                     ))}
                   </div>
 
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                  {/* Live Workspace Monitoring (demo_workspace/ + Independent Harness) */}
+              {workspaceStatus && (
+                <div className="p-4 bg-slate-900/60 border border-slate-800 rounded-lg space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <h3 className="text-xs font-semibold text-slate-200 uppercase tracking-wider">
+                        Live Workspace Monitoring ({workspaceStatus.workspace_path})
+                      </h3>
+                      <p className="text-[11px] text-slate-400">
+                        Status: <strong className="text-emerald-400 font-mono uppercase">{workspaceStatus.monitoring_status}</strong> |{" "}
+                        Dummy Files: <strong className="font-mono text-slate-200">{workspaceStatus.file_count}</strong> |{" "}
+                        Telemetry: <strong className="font-mono text-cyan-300">{workspaceStatus.telemetry_status}</strong>
+                      </p>
+                    </div>
+                    <span className="text-[10px] font-mono text-slate-400">
+                      Observed Events: {workspaceStatus.measurable_features?.observed_event_count ?? 0} |{" "}
+                      Exts: {workspaceStatus.measurable_features?.unique_ext_count ?? 0}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 text-xs">
+                    <div className="p-2.5 bg-slate-950 border border-slate-800 rounded max-h-32 overflow-y-auto">
+                      <span className="text-[10px] font-mono text-slate-400 uppercase block mb-1">
+                        Recent Observed File Activity (workspace_observer)
+                      </span>
+                      {workspaceStatus.recent_events?.length > 0 ? (
+                        workspaceStatus.recent_events.slice(0, 6).map((ev, i) => (
+                          <div key={i} className="font-mono text-[11px] text-slate-300 flex justify-between">
+                            <span>[{ev.event_type}] {ev.filename}</span>
+                            <span className="text-slate-500">{ev.timestamp.substring(11, 19)}Z</span>
+                          </div>
+                        ))
+                      ) : (
+                        <span className="text-[11px] text-slate-500">
+                          No manual edits yet. Edit or rename a file in demo_workspace/ to observe live events.
+                        </span>
+                      )}
+                    </div>
+                    <div className="p-2.5 bg-slate-950 border border-slate-800 rounded">
+                      <span className="text-[10px] font-mono text-amber-300 uppercase block mb-1">
+                        Unavailable Measurements (Not Fabricated)
+                      </span>
+                      <ul className="space-y-0.5 text-[11px] font-mono text-slate-400">
+                        {(workspaceStatus.unavailable_features || []).map((u, i) => (
+                          <li key={i}>• {u}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
                     <div className="p-4 bg-slate-900/60 border border-slate-800 rounded-lg">
                       <h3 className="text-xs font-semibold text-slate-200 uppercase tracking-wider mb-3">
                         Confusion Matrix (val_phase2.csv, n=600)

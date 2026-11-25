@@ -44,3 +44,4 @@ export const reviewIncident = async (incidentId, adminNotes) =>
 export const resolveIncident = async (incidentId, adminNotes) =>
   (await api.post(`/incidents/${incidentId}/resolve`, { admin_notes: adminNotes })).data;
 export const getIncidentReportUrl = (incidentId) => `${API_BASE}/incidents/${incidentId}/report`;
+export const fetchWorkspaceStatus = async () => (await api.get("/workspace/status")).data;

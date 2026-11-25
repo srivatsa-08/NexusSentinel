@@ -19,6 +19,7 @@ from fastapi.responses import PlainTextResponse
 
 from backend.database import get_db_connection, init_db, reset_db
 from backend.gateway import gateway_controller
+from backend.workspace_monitor import workspace_monitor
 from backend.schemas import (
     AssessmentRecord,
     AssessmentsResponse,
@@ -816,3 +817,122 @@ def get_incident_report(incident_id: str) -> PlainTextResponse:
         media_type="text/markdown",
         headers={"Content-Disposition": f"attachment; filename={incident_id}_report.md"},
     )
+
+
+@app.get("/api/v1/workspace/status")
+def get_workspace_status() -> dict[str, Any]:
+    return workspace_monitor.get_status()
+
+
+@app.post("/api/v1/workspace/ingest")
+def post_workspace_ingest(payload: dict[str, Any]) -> dict[str, Any]:
+    """Ingest compatible 6-feature synthetic telemetry from independent harness."""
+    endpoint_id = str(payload.get("endpoint_id", "FIN-001")).strip() or "FIN-001"
+    observation = payload.get("observation")
+    telemetry_source = str(payload.get("telemetry_source", "independent_harness"))
+    if not isinstance(observation, dict):
+        raise HTTPException(status_code=400, detail="observation object is required.")
+
+    t0_ns = time.perf_counter_ns()
+    assessment_record = _run_single_assessment(observation, endpoint_id=endpoint_id, t0_ns=t0_ns)
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    ep_row = cursor.execute(
+        "SELECT endpoint_id FROM endpoints WHERE endpoint_id = ?", (endpoint_id,)
+    ).fetchone()
+    if ep_row is None:
+        conn.close()
+        raise HTTPException(status_code=404, detail=f"Endpoint '{endpoint_id}' not found.")
+
+    cursor.execute(
+        "UPDATE endpoints SET current_risk_score = ?, last_activity = ? WHERE endpoint_id = ?",
+        (
+            assessment_record.risk_score or 0,
+            f"{telemetry_source} ({assessment_record.label})",
+            endpoint_id,
+        ),
+    )
+
+    incident_record = None
+    if assessment_record.label == "suspicious":
+        incident_id = f"i-{uuid.uuid4().hex[:6]}"
+        checklist = [
+            "Notify security operations team",
+            "Review multi-feature anomaly evidence",
+            "Verify snapshot integrity",
+            "Review simulated containment state",
+        ]
+        t_alert_iso = datetime.now(timezone.utc).isoformat()
+        cursor.execute(
+            "UPDATE endpoints SET status = 'simulated_isolated', containment_status = 'simulated_isolated' WHERE endpoint_id = ?",
+            (endpoint_id,),
+        )
+        det_reason = "; ".join(assessment_record.indicators[:3])
+        severity = "critical" if (assessment_record.risk_score or 0) >= 85 else "high"
+        cursor.execute(
+            """
+            INSERT INTO incidents (
+                incident_id, endpoint_id, assessment_id, status, checklist, simulated,
+                timestamp, timeline, severity, investigation_status, admin_notes,
+                risk_score, model_version, detection_reason, processing_time_ms,
+                explanations, raw_observation
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                incident_id,
+                endpoint_id,
+                assessment_record.assessment_id,
+                "simulated_isolated",
+                json.dumps(checklist),
+                1,
+                t_alert_iso,
+                json.dumps([t.model_dump() for t in (assessment_record.timeline or [])]),
+                severity,
+                "open",
+                f"Source: {telemetry_source}",
+                assessment_record.risk_score,
+                assessment_record.model_version,
+                det_reason,
+                assessment_record.processing_time_ms,
+                json.dumps(assessment_record.explanations.model_dump() if assessment_record.explanations else {}),
+                json.dumps(observation),
+            ),
+        )
+        incident_record = {
+            "incident_id": incident_id,
+            "endpoint_id": endpoint_id,
+            "status": "simulated_isolated",
+            "simulated": True,
+        }
+
+    cursor.execute(
+        """
+        INSERT INTO assessments (assessment_id, endpoint_id, timestamp, risk_score, label, indicators,
+                                simulated, model_version, processing_time_ms, explanations, timeline)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            assessment_record.assessment_id,
+            endpoint_id,
+            assessment_record.timestamp,
+            assessment_record.risk_score,
+            assessment_record.label,
+            json.dumps(assessment_record.indicators),
+            1,
+            assessment_record.model_version,
+            assessment_record.processing_time_ms,
+            json.dumps(assessment_record.explanations.model_dump() if assessment_record.explanations else {}),
+            json.dumps([t.model_dump() for t in (assessment_record.timeline or [])]),
+        ),
+    )
+    conn.commit()
+    conn.close()
+
+    return {
+        "status": "ingested",
+        "telemetry_source": telemetry_source,
+        "assessment": assessment_record.model_dump(),
+        "incident": incident_record,
+    }

@@ -1,0 +1,2 @@
+Goal 1: Improve reliability.
+Goal 2: Reduce latency.
