@@ -147,7 +147,7 @@ export default function SecurityTopology3D({
 
   if (!webglOk || lowPerfMode) {
     return (
-      <div className="p-4 bg-[#160D26]/25 backdrop-blur-[10px] border border-purple-300/15 rounded-xl space-y-3">
+      <div className="p-4 bg-[#160D26]/12 backdrop-blur-[5px] border border-purple-300/10 rounded-xl space-y-3">
         <div className="flex items-center justify-between text-xs">
           <span className="font-semibold text-[#C084FC] uppercase tracking-wider">
             2D Topology Fallback ({!webglOk ? "WebGL Unavailable" : "Low-Performance Mode"})
@@ -181,7 +181,7 @@ export default function SecurityTopology3D({
   }
 
   return (
-    <div className="h-80 sm:h-96 w-full bg-[#160D26]/22 backdrop-blur-[10px] border border-purple-300/15 rounded-xl overflow-hidden relative">
+    <div className="h-80 sm:h-96 w-full bg-[#160D26]/10 backdrop-blur-[5px] border border-purple-300/10 rounded-xl overflow-hidden relative">
       <Canvas
         dpr={[1, 1.5]}
         camera={{ position: [0, 5.4, 7.6], fov: 42 }}

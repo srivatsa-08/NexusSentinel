@@ -420,7 +420,7 @@ export default function App() {
     <div className="ns-cursor-spotlight relative flex h-screen bg-[#08050F] text-[#F5EDFF] overflow-hidden font-sans">
       <PrismBackground />
       {/* Sidebar */}
-      <aside className="relative z-10 w-60 bg-[#160D26]/24 backdrop-blur-[10px] backdrop-saturate-125 border-r border-purple-300/12 flex flex-col justify-between shrink-0">
+      <aside className="relative z-10 w-60 bg-[#160D26]/12 backdrop-blur-[5px] backdrop-saturate-125 border-r border-purple-300/12 flex flex-col justify-between shrink-0">
         <div>
           <div className="p-4 border-b border-purple-300/12 flex items-center space-x-3">
             <div className="p-2 bg-gradient-to-br from-[#29193E] to-[#160D26] border border-[#E8BB65]/45 rounded-lg shadow-[0_0_16px_-4px_rgba(232,187,101,0.35)]">
@@ -493,7 +493,7 @@ export default function App() {
 
       {/* Main Content */}
       <main className="relative z-10 flex-1 flex flex-col min-w-0 overflow-y-auto">
-        <header className="h-14 border-b border-purple-300/12 bg-[#160D26]/22 backdrop-blur-[10px] backdrop-saturate-125 px-6 flex items-center justify-between shrink-0 sticky top-0 z-20">
+        <header className="h-14 border-b border-purple-300/12 bg-[#160D26]/12 backdrop-blur-[5px] backdrop-saturate-125 px-6 flex items-center justify-between shrink-0 sticky top-0 z-20">
           <div className="flex items-center space-x-3">
             <h2 className="text-sm font-semibold text-[#F5EDFF] tracking-tight">
               {activeTab === "overview" ? "Command Center" : activeTab === "simlab" ? "Simulation Lab" : activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
@@ -727,7 +727,7 @@ export default function App() {
                         return (
                           <div
                             key={ep.endpoint_id}
-                            className={`p-2.5 rounded-lg bg-[#160D26]/28 border text-xs font-mono transition-colors ${
+                            className={`p-2.5 rounded-lg bg-[#160D26]/14 border text-xs font-mono transition-colors ${
                               isSelected ? "border-[#E8BB65]/80 shadow-[0_0_14px_-4px_rgba(232,187,101,0.45)]" : "border-purple-900/50 hover:border-[#E8BB65]/50"
                             }`}
                           >
@@ -937,7 +937,7 @@ export default function App() {
                     />
                   </div>
                 </div>
-                <div className="max-h-72 overflow-y-auto border border-purple-300/12 rounded-lg bg-[#160D26]/28">
+                <div className="max-h-72 overflow-y-auto border border-purple-300/12 rounded-lg bg-[#160D26]/14">
                   <table className="ns-table">
                     <thead>
                       <tr>
@@ -1035,7 +1035,7 @@ export default function App() {
                   </table>
                 </div>
                 {(wsPreview || wsMeta) && (
-                  <div className="p-3 bg-[#160D26]/34 border border-purple-800/50 rounded-lg text-xs space-y-2">
+                  <div className="p-3 bg-[#160D26]/16 border border-purple-800/50 rounded-lg text-xs space-y-2">
                     <div className="flex justify-between items-center">
                       <span className="font-mono text-[#C084FC]">
                         {wsPreview ? `Preview: ${wsPreview.relative_path}` : `Metadata: ${wsMeta.relative_path}`}
@@ -1106,7 +1106,7 @@ export default function App() {
                           </span>
                           <div className="space-y-1">
                             {workspaceStatus.harness_state.latest_assessment.indicators.map((ind, idx) => (
-                              <div key={idx} className="text-[11px] font-mono text-[#E9D5FF] bg-[#160D26]/28 px-2 py-1 rounded border border-purple-300/12">
+                              <div key={idx} className="text-[11px] font-mono text-[#E9D5FF] bg-[#160D26]/14 px-2 py-1 rounded border border-purple-300/12">
                                 {ind}
                               </div>
                             ))}
@@ -1302,7 +1302,7 @@ export default function App() {
                           {selectedAssessment.label}
                         </span>
                       </div>
-                      <div className="flex justify-between text-[11px] font-mono text-[#AD98C5] bg-[#160D26]/28 p-2 rounded border border-purple-300/12">
+                      <div className="flex justify-between text-[11px] font-mono text-[#AD98C5] bg-[#160D26]/14 p-2 rounded border border-purple-300/12">
                         <span>Model: {selectedAssessment.model_version || "rf-phase2-v1"}</span>
                         <span>Time: {selectedAssessment.processing_time_ms ?? "--"} ms</span>
                       </div>
@@ -1310,7 +1310,7 @@ export default function App() {
                         <span className="text-[11px] text-[#AD98C5] font-medium">Model & Heuristic Explanations:</span>
                         <div className="max-h-28 overflow-y-auto space-y-1">
                           {selectedAssessment.indicators.map((ind, i) => (
-                            <div key={i} className="text-[11px] font-mono text-[#E9D5FF] bg-[#160D26]/28 px-2 py-1 rounded border border-purple-300/12">
+                            <div key={i} className="text-[11px] font-mono text-[#E9D5FF] bg-[#160D26]/14 px-2 py-1 rounded border border-purple-300/12">
                               {ind}
                             </div>
                           ))}
@@ -1459,7 +1459,7 @@ export default function App() {
                         <span>Total: {batchResult.total_processing_time_ms} ms</span>
                         <span>Avg: {batchResult.avg_latency_ms} ms/record</span>
                       </div>
-                      <div className="max-h-32 overflow-y-auto divide-y divide-purple-900/30 border border-purple-300/12 rounded-lg bg-[#160D26]/28">
+                      <div className="max-h-32 overflow-y-auto divide-y divide-purple-900/30 border border-purple-300/12 rounded-lg bg-[#160D26]/14">
                         {batchResult.assessments.map((item, idx) => (
                           <div key={idx} className="px-2.5 py-1.5 flex justify-between text-xs font-mono">
                             <span className="text-[#AD98C5]">#{idx + 1}</span>
@@ -1652,7 +1652,7 @@ export default function App() {
                         </span>
                       </div>
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 text-xs">
-                        <div className="p-2.5 bg-[#160D26]/28 border border-purple-300/12 rounded-lg max-h-32 overflow-y-auto">
+                        <div className="p-2.5 bg-[#160D26]/14 border border-purple-300/12 rounded-lg max-h-32 overflow-y-auto">
                           <span className="text-[10px] font-mono text-[#AD98C5] uppercase block mb-1">
                             Recent Observed File Activity (workspace_observer)
                           </span>
@@ -1669,7 +1669,7 @@ export default function App() {
                             </span>
                           )}
                         </div>
-                        <div className="p-2.5 bg-[#160D26]/28 border border-purple-300/12 rounded-lg">
+                        <div className="p-2.5 bg-[#160D26]/14 border border-purple-300/12 rounded-lg">
                           <span className="text-[10px] font-mono text-amber-300 uppercase block mb-1">
                             Unavailable Measurements (Not Fabricated)
                           </span>
@@ -1718,7 +1718,7 @@ export default function App() {
                       ) : (
                         <div className="space-y-2 max-h-44 overflow-y-auto">
                           {gateway.uploaders.map((u) => (
-                            <div key={u.uploader_id} className="p-2.5 bg-[#160D26]/28 border border-purple-300/12 rounded-lg flex items-center justify-between text-xs font-mono">
+                            <div key={u.uploader_id} className="p-2.5 bg-[#160D26]/14 border border-purple-300/12 rounded-lg flex items-center justify-between text-xs font-mono">
                               <div>
                                 <span className="text-[#C084FC] font-semibold">{u.uploader_id}</span>
                                 <span className="text-[#AD98C5] ml-2">({u.fictional_ip})</span>
@@ -1745,7 +1745,7 @@ export default function App() {
                     ) : (
                       <div className="space-y-1.5 max-h-44 overflow-y-auto">
                         {gateway.recent_decisions.slice(0, 8).map((d, idx) => (
-                          <div key={idx} className="p-2 bg-[#160D26]/28 border border-purple-300/12 rounded-lg flex items-center justify-between text-xs">
+                          <div key={idx} className="p-2 bg-[#160D26]/14 border border-purple-300/12 rounded-lg flex items-center justify-between text-xs">
                             <span className="font-mono text-[#C084FC]">{d.uploader_id}</span>
                             <span className="text-[#E9D5FF] truncate max-w-lg">{d.reason}</span>
                             <span
@@ -1934,7 +1934,7 @@ export default function App() {
                       {(activeEndpoint.virtual_files || []).length} virtual files
                     </span>
                   </div>
-                  <div className="max-h-64 overflow-y-auto border border-purple-300/12 rounded-lg bg-[#160D26]/28">
+                  <div className="max-h-64 overflow-y-auto border border-purple-300/12 rounded-lg bg-[#160D26]/14">
                     <table className="ns-table">
                       <thead>
                         <tr>
@@ -2136,7 +2136,7 @@ export default function App() {
 
                       {/* B. Behaviour Timeline & Incident Replay */}
                       {activeIncident.timeline && activeIncident.timeline.length > 0 && (
-                        <div className="p-3.5 bg-[#160D26]/28 border border-purple-300/12 rounded-lg space-y-3">
+                        <div className="p-3.5 bg-[#160D26]/14 border border-purple-300/12 rounded-lg space-y-3">
                           <div className="flex items-center justify-between">
                             <span className="ns-section-title">
                               Stored Incident Replay ({replayStep + 1}/{activeIncident.timeline.length})
@@ -2190,7 +2190,7 @@ export default function App() {
                       </div>
 
                       {/* E. Response & Recovery */}
-                      <div className="p-3.5 bg-[#160D26]/28 border border-purple-300/12 rounded-lg space-y-3">
+                      <div className="p-3.5 bg-[#160D26]/14 border border-purple-300/12 rounded-lg space-y-3">
                         <span className="ns-section-title block">
                           Simulated Response & Recovery
                         </span>
@@ -2269,7 +2269,7 @@ export default function App() {
                         </span>
                       </div>
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 text-xs">
-                        <div className="p-2.5 bg-[#160D26]/28 border border-purple-300/12 rounded-lg max-h-32 overflow-y-auto">
+                        <div className="p-2.5 bg-[#160D26]/14 border border-purple-300/12 rounded-lg max-h-32 overflow-y-auto">
                           <span className="text-[10px] font-mono text-[#AD98C5] uppercase block mb-1">
                             Recent Observed File Activity (workspace_observer)
                           </span>
@@ -2286,7 +2286,7 @@ export default function App() {
                             </span>
                           )}
                         </div>
-                        <div className="p-2.5 bg-[#160D26]/28 border border-purple-300/12 rounded-lg">
+                        <div className="p-2.5 bg-[#160D26]/14 border border-purple-300/12 rounded-lg">
                           <span className="text-[10px] font-mono text-amber-300 uppercase block mb-1">
                             Unavailable Measurements (Not Fabricated)
                           </span>

@@ -17,6 +17,14 @@
   --text-primary:   #F3E8FF;
   --text-secondary: #AD98C5;
 
+  /* shared glassmorphism tokens */
+  --glass-bg:         rgba(22, 13, 38, 0.12);
+  --glass-bg-hover:   rgba(41, 25, 62, 0.24);
+  --glass-bg-nested:  rgba(16, 9, 28, 0.14);
+  --glass-border:     rgba(216, 180, 254, 0.08);
+  --glass-blur:       blur(5px) saturate(115%);
+  --glass-reflection: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+
   /* cursor spotlight vars — updated by JS */
   --mouse-x: 50%;
   --mouse-y: 50%;
@@ -106,13 +114,13 @@
 .bento-card {
   position: relative;
   overflow: hidden;
-  background-color: rgba(22, 13, 38, 0.25);
-  border: 1px solid rgba(216, 180, 254, 0.13);
-  backdrop-filter: blur(10px) saturate(120%);
-  -webkit-backdrop-filter: blur(10px) saturate(120%);
+  background-color: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
   box-shadow:
-    0 8px 32px rgba(0, 0, 0, 0.14),
-    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    0 8px 32px rgba(0, 0, 0, 0.12),
+    var(--glass-reflection);
   transition:
     transform 300ms cubic-bezier(0.22, 1, 0.36, 1),
     opacity   280ms ease,
@@ -127,7 +135,7 @@
 .bento-card .interactive-card {
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
-  background-color: rgba(22, 13, 38, 0.28);
+  background-color: var(--glass-bg-nested);
 }
 
 /* internal cursor-driven radial highlight */
@@ -152,13 +160,12 @@
   opacity: 1;
 }
 
-/* corner accent glow */
+/* remove heavy static corner gradient; keep subtle edge reflection */
 .bento-card::after {
   content: '';
   position: absolute;
-  top: 0; left: 0;
-  width: 64px; height: 64px;
-  background: radial-gradient(circle at 0 0, rgba(232, 187, 101, 0.22), transparent 70%);
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0%, transparent 40%);
   pointer-events: none;
   border-radius: inherit;
 }
@@ -183,7 +190,7 @@
 .interactive-card:focus-within {
   transform: translateY(-7px) scale(1.025);
   border-color: rgba(232, 187, 101, 0.74);
-  background-color: rgba(41, 25, 62, 0.42);
+  background-color: var(--glass-bg-hover);
   box-shadow:
     0 18px 40px -12px rgba(232, 187, 101, 0.26),
     0 12px 28px -12px rgba(124, 58, 237, 0.34),
@@ -206,14 +213,14 @@
 
 /* ─── NS GLASS CARD (non-bento panels) ───────────────────────── */
 .ns-card {
-  background: rgba(22, 13, 38, 0.24);
-  border: 1px solid rgba(216, 180, 254, 0.12);
-  backdrop-filter: blur(10px) saturate(120%);
-  -webkit-backdrop-filter: blur(10px) saturate(120%);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
   border-radius: 1rem;
   box-shadow:
     0 8px 32px rgba(0, 0, 0, 0.12),
-    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    var(--glass-reflection);
 }
 
 /* ─── NS BADGE ───────────────────────────────────────────────── */
@@ -371,11 +378,11 @@
 
 /* ─── STAT CARD ──────────────────────────────────────────────── */
 .ns-stat {
-  background: rgba(22, 13, 38, 0.26);
-  border: 1px solid rgba(216, 180, 254, 0.12);
+  background: var(--glass-bg-nested);
+  border: 1px solid var(--glass-border);
   border-radius: 0.75rem;
   padding: 0.75rem 1rem;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  box-shadow: var(--glass-reflection);
 }
 
 /* ─── PROGRESS BAR ───────────────────────────────────────────── */
