@@ -48,3 +48,4 @@ The system combines local feature perturbation analysis with heuristic threshold
 - [ ] **Snapshot Verification:** Validate snapshot integrity prior to the `2026-11-25T13:45:00Z` observation window.
 - [ ] **Process Triage Review:** Review parent process IDs associated with burst rename events.
 - [ ] **Remediation Sign-off:** Confirm environment safety before executing simulated un-isolation (`POST /api/v1/demo/reset`).
+

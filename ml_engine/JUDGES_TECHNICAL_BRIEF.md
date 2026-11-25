@@ -70,3 +70,4 @@ Nexus Sentinel rejects "black box" security. When an endpoint is flagged, SOC ma
 
 **Q: "How does this scale in production?"**  
 *Answer:* "The CPU inference cost is negligible (under 0.1 ms for bulk scoring, ~33 ms for full perturbation explainability on a single core). In production, feature extraction happens asynchronously on endpoint agent buffers, meaning millions of endpoints can be scored with minimal compute overhead."
+

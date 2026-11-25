@@ -48,3 +48,4 @@ def test_gateway_queue_releases_capacity_for_legitimate_traffic() -> None:
         assert status["queue_depth"] == 0
     assert status["accepted_requests"] == 15
     assert status["rejected_requests"] == 0
+

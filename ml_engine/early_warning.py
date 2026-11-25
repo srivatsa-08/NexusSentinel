@@ -129,7 +129,9 @@ def run_multi_sequence_early_warning_evaluation(
     early_detections = 0
     late_detections = 0
     missed_detections = 0
-    false_alarms = 0
+    premature_alerts = 0
+    benign_control_false_alarms = 0
+    benign_control_true_negatives = 0
     first_alert_times: list[float] = []
 
     def _to_obs(row: dict[str, Any]) -> dict[str, float | int]:
@@ -148,7 +150,9 @@ def run_multi_sequence_early_warning_evaluation(
                 flagged = True
                 break
         if flagged:
-            false_alarms += 1
+            benign_control_false_alarms += 1
+        else:
+            benign_control_true_negatives += 1
 
     # 2. Attack-onset sequences (3 benign steps at 0,2,4s + 3 suspicious steps at 6,8,10s)
     for _ in range(attack_count):
@@ -173,7 +177,7 @@ def run_multi_sequence_early_warning_evaluation(
                 break
 
         if pre_attack_fp:
-            false_alarms += 1
+            premature_alerts += 1
         elif detected_time is None:
             missed_detections += 1
         else:
@@ -221,17 +225,20 @@ def run_multi_sequence_early_warning_evaluation(
         "early_detections": early_detections,
         "late_detections": late_detections,
         "missed_detections": missed_detections,
-        "false_alarms": false_alarms,
+        "premature_alerts": premature_alerts,
+        "benign_control_true_negatives": benign_control_true_negatives,
+        "benign_control_false_alarms": benign_control_false_alarms,
         "early_detection_rate": round(early_detections / attack_count, 4) if attack_count else 0.0,
-        "benign_control_false_alarm_rate": round(false_alarms / num_sequences, 4),
+        "benign_control_false_alarm_rate": round(benign_control_false_alarms / benign_count, 4) if benign_count else 0.0,
         "median_time_to_first_alert_sim_s": median_alert,
         "p95_time_to_first_alert_sim_s": p95_alert,
+        "time_to_first_alert_note": "Reflects fixed synthetic observation schedule (attack onset at sim_t = 6.0 s).",
         "latency_benchmark_calls": 100,
         "latency_mean_ms": round(statistics.mean(latencies_ms), 4),
         "latency_median_ms": round(statistics.median(latencies_ms), 4),
         "latency_p95_ms": round(lat_sorted[94], 4),
         "peak_traced_memory_mb": round(peak_bytes / (1024 * 1024), 4),
-        "memory_method": "Python tracemalloc peak traced memory over 1 suspicious assessment call",
+        "memory_method": "Python tracemalloc peak traced Python allocations over 1 suspicious assessment call (excludes native C/sklearn heap)",
         "train_val_exact_overlap": overlap,
         "ground_truth_excluded_from_inputs": "label" not in FEATURE_NAMES and "scenario" not in FEATURE_NAMES,
     }

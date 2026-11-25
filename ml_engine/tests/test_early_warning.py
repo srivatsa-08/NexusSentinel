@@ -32,6 +32,22 @@ def test_multi_sequence_early_warning_evaluation() -> None:
     assert report["total_sequences"] == 120
     assert report["attack_sequences"] == 60
     assert report["benign_control_sequences"] == 60
+    assert (
+        report["early_detections"]
+        + report["late_detections"]
+        + report["missed_detections"]
+        + report["premature_alerts"]
+        == report["attack_sequences"]
+    )
+    assert (
+        report["benign_control_true_negatives"] + report["benign_control_false_alarms"]
+        == report["benign_control_sequences"]
+    )
+    assert report["benign_control_false_alarm_rate"] == round(
+        report["benign_control_false_alarms"] / report["benign_control_sequences"], 4
+    )
+    assert "fixed synthetic observation schedule" in report["time_to_first_alert_note"]
+    assert "traced Python allocations" in report["memory_method"]
     assert report["train_val_exact_overlap"] == 0
     assert report["ground_truth_excluded_from_inputs"] is True
     assert report["latency_benchmark_calls"] == 100

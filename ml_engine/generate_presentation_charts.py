@@ -100,3 +100,4 @@ if __name__ == "__main__":
     paths = generate_charts()
     for p in paths:
         print("Generated chart:", p)
+
