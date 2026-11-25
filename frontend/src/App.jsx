@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, Suspense, lazy } from "react";
 import {
   ShieldAlert,
   Activity,
@@ -58,6 +58,8 @@ import {
   getIncidentReportUrl
 } from "./services/api";
 
+const SecurityTopology3D = lazy(() => import("./components/SecurityTopology3D"));
+
 const INITIAL_VIRTUAL_FILES = [
   { id: 1, name: "financial_ledger_2026.xlsx", state: "intact", entropy: 0.22 },
   { id: 2, name: "customer_contracts.pdf", state: "intact", entropy: 0.35 },
@@ -94,6 +96,7 @@ export default function App() {
   const [adminNotes, setAdminNotes] = useState("");
   const [replayPlaying, setReplayPlaying] = useState(false);
   const [replayStep, setReplayStep] = useState(0);
+  const [lowPerfMode, setLowPerfMode] = useState(false);
   const [virtualFiles, setVirtualFiles] = useState(INITIAL_VIRTUAL_FILES);
   const [monitorStatus, setMonitorStatus] = useState({
     status: "stopped",
@@ -528,6 +531,46 @@ export default function App() {
                     Incidents ({incidents.length})
                   </button>
                 </div>
+              </div>
+
+              {/* 3D Network Topology & Protection Core */}
+              <div className="p-4 bg-slate-900/60 border border-slate-800 rounded-lg space-y-2.5">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <h3 className="text-xs font-semibold text-slate-200 uppercase tracking-wider">
+                      Live 3D Network Topology & Protection Core
+                    </h3>
+                    <p className="text-[11px] text-slate-400">
+                      Click any virtual workstation node to inspect its file workspace. Drag to orbit, scroll to zoom.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setLowPerfMode((v) => !v)}
+                    className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-mono rounded border border-slate-700"
+                  >
+                    {lowPerfMode ? "Enable 3D View" : "Low-Perf 2D Mode"}
+                  </button>
+                </div>
+                <Suspense
+                  fallback={
+                    <div className="h-72 flex items-center justify-center text-xs text-slate-500 font-mono bg-slate-950 border border-slate-800 rounded-lg">
+                      Loading 3D Security Topology...
+                    </div>
+                  }
+                >
+                  <SecurityTopology3D
+                    endpoints={endpoints}
+                    selectedEndpointId={selectedEndpointId}
+                    onSelectEndpoint={(id) => {
+                      setSelectedEndpointId(id);
+                      setActiveTab("endpoints");
+                    }}
+                    gateway={gateway}
+                    replayIncident={replayPlaying ? activeIncident : null}
+                    replayStep={replayStep}
+                    lowPerfMode={lowPerfMode}
+                  />
+                </Suspense>
               </div>
 
               {/* Core SOC Metrics */}
