@@ -178,13 +178,14 @@ export default function SecurityTopology3D({
   }
 
   return (
-    <div className="h-72 w-full bg-[#08050F] border border-purple-900/50 rounded-xl overflow-hidden relative">
+    <div className="h-72 w-full bg-[#10091C]/35 backdrop-blur-sm border border-purple-900/50 rounded-xl overflow-hidden relative">
       <Canvas
         dpr={[1, 1.5]}
         camera={{ position: [0, 4.2, 7.2], fov: 45 }}
+        gl={{ alpha: true, antialias: true }}
+        style={{ background: "transparent" }}
         frameloop={reducedMotion ? "demand" : "always"}
       >
-        <color attach="background" args={["#08050F"]} />
         <ambientLight intensity={0.6} />
         <pointLight position={[5, 6, 5]} intensity={1.2} color="#A855F7" />
         <pointLight position={[-5, 4, -5]} intensity={0.7} color="#7C3AED" />

@@ -32,7 +32,7 @@ import {
   ShieldCheck,
   Zap
 } from "lucide-react";
-import AtmosphericBackground from "./components/AtmosphericBackground";
+import PrismBackground from "./components/PrismBackground";
 import NsCard from "./components/NsCard";
 import {
   ResponsiveContainer,
@@ -392,9 +392,9 @@ export default function App() {
 
   return (
     <div className="ns-cursor-spotlight relative flex h-screen bg-[#08050F] text-[#F5EDFF] overflow-hidden font-sans">
-      <AtmosphericBackground />
+      <PrismBackground />
       {/* Sidebar */}
-      <aside className="relative z-10 w-60 bg-[#10091C]/90 backdrop-blur-xl border-r border-purple-900/40 flex flex-col justify-between shrink-0">
+      <aside className="relative z-10 w-60 bg-[#10091C]/62 backdrop-blur-md border-r border-purple-900/40 flex flex-col justify-between shrink-0">
         <div>
           <div className="p-4 border-b border-purple-900/40 flex items-center space-x-3">
             <div className="p-2 bg-gradient-to-br from-[#7C3AED]/40 to-[#2E1065]/80 border border-purple-500/40 rounded-lg shadow-[0_0_16px_-4px_rgba(124,58,237,0.6)]">
@@ -452,7 +452,7 @@ export default function App() {
           </nav>
         </div>
 
-        <div className="p-4 border-t border-purple-900/40 bg-[#10091C]/80">
+        <div className="p-4 border-t border-purple-900/40 bg-[#10091C]/45">
           <div className="flex items-center space-x-2 text-[11px] text-[#E9D5FF] mb-1">
             <span className="w-2 h-2 rounded-full bg-[#A855F7] animate-pulse"></span>
             <span className="font-mono uppercase font-semibold tracking-wider">Simulation Mode</span>
@@ -465,7 +465,7 @@ export default function App() {
 
       {/* Main Content */}
       <main className="relative z-10 flex-1 flex flex-col min-w-0 overflow-y-auto">
-        <header className="h-14 border-b border-purple-900/40 bg-[#10091C]/70 backdrop-blur-md px-6 flex items-center justify-between shrink-0 sticky top-0 z-20">
+        <header className="h-14 border-b border-purple-900/40 bg-[#10091C]/55 backdrop-blur-md px-6 flex items-center justify-between shrink-0 sticky top-0 z-20">
           <div className="flex items-center space-x-3">
             <h2 className="text-sm font-semibold text-[#F5EDFF] tracking-tight">
               {activeTab === "overview" ? "Command Center" : activeTab === "simlab" ? "Simulation Lab" : activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
