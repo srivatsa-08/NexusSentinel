@@ -2,13 +2,17 @@
 
 from __future__ import annotations
 
+import base64
 import threading
-import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 WORKSPACE_DIR = (Path(__file__).resolve().parent.parent / "demo_workspace").resolve()
+ALLOWED_IMPORT_EXTENSIONS = {".txt", ".csv", ".md", ".json", ".log", ".yaml", ".yml", ".pdf", ".docx", ".xlsx"}
+PREVIEWABLE_EXTENSIONS = {".txt", ".csv", ".md", ".json", ".log", ".yaml", ".yml"}
+MAX_IMPORT_FILES = 50
+MAX_IMPORT_BYTES = 10 * 1024 * 1024
 
 
 class WorkspaceMonitor:
@@ -19,7 +23,9 @@ class WorkspaceMonitor:
         self.root_dir = root_dir.resolve()
         self._snapshot: dict[str, tuple[int, int]] = {}
         self._file_activity: dict[str, str] = {}
+        self._original_names: dict[str, str] = {}
         self._simulated_status: dict[str, str] = {}
+        self._simulated_names: dict[str, str] = {}
         self.recent_events: list[dict[str, Any]] = []
         self.harness_state: dict[str, Any] = self._initial_harness_state()
         self._scan_locked(record_events=False)
@@ -38,12 +44,103 @@ class WorkspaceMonitor:
             "timeline": [],
         }
 
+    def _safe_resolve(self, rel_path: str) -> Path:
+        if not rel_path or ".." in Path(rel_path).parts or Path(rel_path).is_absolute():
+            raise ValueError("Unsafe path rejected.")
+        target = (self.root_dir / rel_path).resolve()
+        if not str(target).startswith(str(self.root_dir)):
+            raise ValueError("Path escapes controlled workspace.")
+        if target.is_symlink():
+            raise ValueError("Symbolic links are not permitted.")
+        return target
+
+    def import_files(self, files: list[dict[str, Any]]) -> dict[str, Any]:
+        if len(files) > MAX_IMPORT_FILES:
+            raise ValueError(f"Too many files ({len(files)} > {MAX_IMPORT_FILES}).")
+        total_bytes = 0
+        staged: list[tuple[Path, bytes, str]] = []
+        for item in files:
+            rel = str(item.get("relative_path", "")).replace("\\", "/").lstrip("/")
+            ext = Path(rel).suffix.lower()
+            if ext not in ALLOWED_IMPORT_EXTENSIONS:
+                raise ValueError(f"Unsupported or executable file type rejected: '{ext or '(none)'}' ({rel})")
+            raw_b64 = str(item.get("content_base64", ""))
+            data = base64.b64decode(raw_b64)
+            total_bytes += len(data)
+            if total_bytes > MAX_IMPORT_BYTES:
+                raise ValueError("Total import size exceeds 10 MB limit.")
+            dest = self._safe_resolve(f"imported/{rel}")
+            staged.append((dest, data, f"imported/{rel}"))
+
+        with self._lock:
+            now_iso = datetime.now(timezone.utc).isoformat()
+            for dest, data, rel_key in staged:
+                dest.parent.mkdir(parents=True, exist_ok=True)
+                dest.write_bytes(data)
+                self._file_activity[rel_key] = "imported"
+                self._original_names.setdefault(rel_key, Path(rel_key).name)
+                self.recent_events.insert(
+                    0,
+                    {
+                        "timestamp": now_iso,
+                        "event_type": "imported",
+                        "filename": rel_key,
+                        "telemetry_source": "folder_import",
+                    },
+                )
+            self.recent_events = self.recent_events[:30]
+            self._scan_locked(record_events=False)
+        return self.get_status()
+
+    def rename_file(self, rel_path: str, new_name: str) -> dict[str, Any]:
+        if not new_name or "/" in new_name or "\\" in new_name or ".." in new_name:
+            raise ValueError("Invalid target filename.")
+        src = self._safe_resolve(rel_path)
+        if not src.is_file():
+            raise FileNotFoundError(f"File not found: {rel_path}")
+        dest = self._safe_resolve(str(Path(rel_path).parent / new_name))
+        if dest.exists():
+            raise ValueError(f"Target file already exists: {new_name}")
+
+        old_ext, new_ext = src.suffix, dest.suffix
+        evt_type = "extension_changed" if old_ext != new_ext else "renamed"
+        src.rename(dest)
+
+        new_rel = str(dest.relative_to(self.root_dir)).replace("\\", "/")
+        with self._lock:
+            orig = self._original_names.pop(rel_path, Path(rel_path).name)
+            self._original_names[new_rel] = orig
+            self._file_activity[new_rel] = evt_type
+            self.recent_events.insert(
+                0,
+                {
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "event_type": evt_type,
+                    "filename": f"{rel_path} -> {new_rel}",
+                    "telemetry_source": "workspace_observer",
+                },
+            )
+            self.recent_events = self.recent_events[:30]
+            self._scan_locked(record_events=False)
+        return self.get_status()
+
+    def preview_file(self, rel_path: str) -> dict[str, Any]:
+        target = self._safe_resolve(rel_path)
+        if not target.is_file():
+            raise FileNotFoundError(f"File not found: {rel_path}")
+        if target.suffix.lower() not in PREVIEWABLE_EXTENSIONS:
+            raise ValueError(f"Preview not supported for '{target.suffix}'.")
+        text = target.read_text(encoding="utf-8", errors="replace")[:4000]
+        return {"relative_path": rel_path, "content": text}
+
     def reset_simulation(self) -> None:
+        """Clear virtual extension changes and test state without undoing manual edits or imports."""
         with self._lock:
             self._simulated_status.clear()
+            self._simulated_names.clear()
             self.harness_state = self._initial_harness_state()
             self.recent_events = [
-                e for e in self.recent_events if e.get("telemetry_source") == "workspace_observer"
+                e for e in self.recent_events if e.get("telemetry_source") in ("workspace_observer", "folder_import")
             ]
 
     def record_harness_event(
@@ -79,17 +176,19 @@ class WorkspaceMonitor:
                 self.harness_state["status"] = "contained"
                 self.harness_state["timeline"] = assessment.get("timeline") or []
 
-                # Progressively mark a subset of virtual file states (never touching real files)
                 names = sorted(self._snapshot.keys())
+                # Affected count driven by observations processed before containment, never hardcoded
+                affect_limit = min(len(names), max(1, self.harness_state["observations_processed"]))
                 affected = 0
-                for idx, name in enumerate(names):
-                    if idx < 6:
-                        self._simulated_status[name] = (
+                for idx, rel_name in enumerate(names):
+                    if idx < affect_limit:
+                        self._simulated_status[rel_name] = (
                             "simulated_encrypted" if idx % 2 == 0 else "simulated_altered"
                         )
+                        self._simulated_names[rel_name] = f"{rel_name}.locked (simulated)"
                         affected += 1
                     else:
-                        self._simulated_status[name] = "simulated_contained"
+                        self._simulated_status[rel_name] = "simulated_contained"
                 self.harness_state["virtually_affected_count"] = affected
                 self.harness_state["unaffected_count"] = max(0, len(names) - affected)
 
@@ -99,10 +198,11 @@ class WorkspaceMonitor:
         current: dict[str, tuple[int, int]] = {}
         files_list: list[dict[str, Any]] = []
 
-        for p in sorted(self.root_dir.iterdir()):
-            if p.is_file():
+        for p in sorted(self.root_dir.rglob("*")):
+            if p.is_file() and not p.is_symlink():
+                rel = str(p.relative_to(self.root_dir)).replace("\\", "/")
                 st = p.stat()
-                current[p.name] = (st.st_mtime_ns, st.st_size)
+                current[rel] = (st.st_mtime_ns, st.st_size)
 
         if record_events:
             now_iso = datetime.now(timezone.utc).isoformat()
@@ -117,6 +217,7 @@ class WorkspaceMonitor:
                 old_ext, new_ext = Path(old_name).suffix, Path(new_name).suffix
                 evt_type = "extension_changed" if old_ext != new_ext else "renamed"
                 self._file_activity[new_name] = evt_type
+                self._original_names[new_name] = self._original_names.pop(old_name, Path(old_name).name)
                 self.recent_events.insert(
                     0,
                     {
@@ -166,16 +267,19 @@ class WorkspaceMonitor:
 
         self._snapshot = current
 
-        for name, (mtime_ns, size_bytes) in current.items():
+        for rel_name, (mtime_ns, size_bytes) in current.items():
             mtime_iso = datetime.fromtimestamp(mtime_ns / 1_000_000_000, tz=timezone.utc).isoformat()
             files_list.append(
                 {
-                    "filename": name,
-                    "extension": Path(name).suffix or "(none)",
+                    "relative_path": rel_name,
+                    "filename": Path(rel_name).name,
+                    "original_filename": self._original_names.get(rel_name, Path(rel_name).name),
+                    "simulated_filename": self._simulated_names.get(rel_name),
+                    "extension": Path(rel_name).suffix or "(none)",
                     "size_bytes": size_bytes,
                     "last_modified": mtime_iso,
-                    "observed_activity": self._file_activity.get(name, "intact"),
-                    "simulated_status": self._simulated_status.get(name, "protected"),
+                    "observed_activity": self._file_activity.get(rel_name, "intact"),
+                    "simulated_status": self._simulated_status.get(rel_name, "protected"),
                 }
             )
         return files_list

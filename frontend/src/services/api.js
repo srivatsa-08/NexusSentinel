@@ -49,3 +49,9 @@ export const runWorkspaceTest = async (endpointId = "FIN-001") =>
   (await api.post("/workspace/run-test", { endpoint_id: endpointId })).data;
 export const stopWorkspaceTest = async () => (await api.post("/workspace/stop-test")).data;
 export const resetWorkspaceSimulation = async () => (await api.post("/workspace/reset")).data;
+export const importWorkspaceFolder = async (files) =>
+  (await api.post("/workspace/import", { files })).data;
+export const renameWorkspaceFile = async (relativePath, newName) =>
+  (await api.post("/workspace/file/rename", { relative_path: relativePath, new_name: newName })).data;
+export const previewWorkspaceFile = async (relativePath) =>
+  (await api.get("/workspace/file/preview", { params: { relative_path: relativePath } })).data;

@@ -987,3 +987,36 @@ def post_workspace_stop_test() -> dict[str, Any]:
 def post_workspace_reset() -> dict[str, Any]:
     workspace_monitor.reset_simulation()
     return workspace_monitor.get_status()
+
+
+@app.post("/api/v1/workspace/import")
+def post_workspace_import(payload: dict[str, Any]) -> dict[str, Any]:
+    files = payload.get("files")
+    if not isinstance(files, list) or not files:
+        raise HTTPException(status_code=400, detail="files list is required.")
+    try:
+        return workspace_monitor.import_files(files)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@app.post("/api/v1/workspace/file/rename")
+def post_workspace_file_rename(payload: dict[str, Any]) -> dict[str, Any]:
+    rel_path = str(payload.get("relative_path", ""))
+    new_name = str(payload.get("new_name", ""))
+    try:
+        return workspace_monitor.rename_file(rel_path, new_name)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@app.get("/api/v1/workspace/file/preview")
+def get_workspace_file_preview(relative_path: str) -> dict[str, Any]:
+    try:
+        return workspace_monitor.preview_file(relative_path)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))

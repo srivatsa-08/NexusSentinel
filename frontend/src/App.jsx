@@ -59,7 +59,10 @@ import {
   fetchWorkspaceStatus,
   runWorkspaceTest,
   stopWorkspaceTest,
-  resetWorkspaceSimulation
+  resetWorkspaceSimulation,
+  importWorkspaceFolder,
+  renameWorkspaceFile,
+  previewWorkspaceFile
 } from "./services/api";
 
 const SecurityTopology3D = lazy(() => import("./components/SecurityTopology3D"));
@@ -83,6 +86,9 @@ export default function App() {
   const [earlyWarning, setEarlyWarning] = useState(null);
   const [gateway, setGateway] = useState(null);
   const [workspaceStatus, setWorkspaceStatus] = useState(null);
+  const [wsPreview, setWsPreview] = useState(null);
+  const [wsMeta, setWsMeta] = useState(null);
+  const folderInputRef = useRef(null);
   const [bulkProfile, setBulkProfile] = useState("excessive_requests");
   const [bulkCount, setBulkCount] = useState(12);
   const [actionLoading, setActionLoading] = useState(false);
@@ -764,6 +770,53 @@ export default function App() {
                   </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
+                  <input
+                    ref={folderInputRef}
+                    type="file"
+                    webkitdirectory=""
+                    directory=""
+                    multiple
+                    className="hidden"
+                    onChange={async (e) => {
+                      const picked = Array.from(e.target.files || []);
+                      if (!picked.length) return;
+                      try {
+                        setActionLoading(true);
+                        const payload = await Promise.all(
+                          picked.slice(0, 50).map(
+                            (f) =>
+                              new Promise((resolve, reject) => {
+                                const reader = new FileReader();
+                                reader.onload = () => {
+                                  const b64 = String(reader.result || "").split(",")[1] || "";
+                                  resolve({
+                                    relative_path: f.webkitRelativePath || f.name,
+                                    content_base64: b64
+                                  });
+                                };
+                                reader.onerror = reject;
+                                reader.readAsDataURL(f);
+                              })
+                          )
+                        );
+                        const updated = await importWorkspaceFolder(payload);
+                        setWorkspaceStatus(updated);
+                        setStatusBanner({ type: "ok", text: `Imported ${payload.length} file(s) into demo_workspace/.` });
+                      } catch (err) {
+                        setStatusBanner({ type: "error", text: err.response?.data?.detail || err.message });
+                      } finally {
+                        setActionLoading(false);
+                        e.target.value = "";
+                      }
+                    }}
+                  />
+                  <button
+                    onClick={() => folderInputRef.current?.click()}
+                    disabled={actionLoading}
+                    className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-cyan-300 text-xs rounded border border-cyan-800/50"
+                  >
+                    Add Folder
+                  </button>
                   <button
                     onClick={async () => {
                       setActionLoading(true);
@@ -780,6 +833,53 @@ export default function App() {
                   >
                     Run Test Script
                   </button>
+                  <input
+                    ref={folderInputRef}
+                    type="file"
+                    webkitdirectory=""
+                    directory=""
+                    multiple
+                    className="hidden"
+                    onChange={async (e) => {
+                      const picked = Array.from(e.target.files || []);
+                      if (!picked.length) return;
+                      try {
+                        setActionLoading(true);
+                        const payload = await Promise.all(
+                          picked.slice(0, 50).map(
+                            (f) =>
+                              new Promise((resolve, reject) => {
+                                const reader = new FileReader();
+                                reader.onload = () => {
+                                  const b64 = String(reader.result || "").split(",")[1] || "";
+                                  resolve({
+                                    relative_path: f.webkitRelativePath || f.name,
+                                    content_base64: b64
+                                  });
+                                };
+                                reader.onerror = reject;
+                                reader.readAsDataURL(f);
+                              })
+                          )
+                        );
+                        const updated = await importWorkspaceFolder(payload);
+                        setWorkspaceStatus(updated);
+                        setStatusBanner({ type: "ok", text: `Imported ${payload.length} file(s) into demo_workspace/.` });
+                      } catch (err) {
+                        setStatusBanner({ type: "error", text: err.response?.data?.detail || err.message });
+                      } finally {
+                        setActionLoading(false);
+                        e.target.value = "";
+                      }
+                    }}
+                  />
+                  <button
+                    onClick={() => folderInputRef.current?.click()}
+                    disabled={actionLoading}
+                    className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-cyan-300 text-xs rounded border border-cyan-800/50"
+                  >
+                    Add Folder
+                  </button>
                   <button
                     onClick={async () => {
                       setWorkspaceStatus(await stopWorkspaceTest());
@@ -788,6 +888,53 @@ export default function App() {
                   >
                     Stop Test
                   </button>
+                  <input
+                    ref={folderInputRef}
+                    type="file"
+                    webkitdirectory=""
+                    directory=""
+                    multiple
+                    className="hidden"
+                    onChange={async (e) => {
+                      const picked = Array.from(e.target.files || []);
+                      if (!picked.length) return;
+                      try {
+                        setActionLoading(true);
+                        const payload = await Promise.all(
+                          picked.slice(0, 50).map(
+                            (f) =>
+                              new Promise((resolve, reject) => {
+                                const reader = new FileReader();
+                                reader.onload = () => {
+                                  const b64 = String(reader.result || "").split(",")[1] || "";
+                                  resolve({
+                                    relative_path: f.webkitRelativePath || f.name,
+                                    content_base64: b64
+                                  });
+                                };
+                                reader.onerror = reject;
+                                reader.readAsDataURL(f);
+                              })
+                          )
+                        );
+                        const updated = await importWorkspaceFolder(payload);
+                        setWorkspaceStatus(updated);
+                        setStatusBanner({ type: "ok", text: `Imported ${payload.length} file(s) into demo_workspace/.` });
+                      } catch (err) {
+                        setStatusBanner({ type: "error", text: err.response?.data?.detail || err.message });
+                      } finally {
+                        setActionLoading(false);
+                        e.target.value = "";
+                      }
+                    }}
+                  />
+                  <button
+                    onClick={() => folderInputRef.current?.click()}
+                    disabled={actionLoading}
+                    className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-cyan-300 text-xs rounded border border-cyan-800/50"
+                  >
+                    Add Folder
+                  </button>
                   <button
                     onClick={async () => {
                       setWorkspaceStatus(await fetchWorkspaceStatus());
@@ -795,6 +942,53 @@ export default function App() {
                     className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs rounded border border-slate-700"
                   >
                     Refresh Workspace
+                  </button>
+                  <input
+                    ref={folderInputRef}
+                    type="file"
+                    webkitdirectory=""
+                    directory=""
+                    multiple
+                    className="hidden"
+                    onChange={async (e) => {
+                      const picked = Array.from(e.target.files || []);
+                      if (!picked.length) return;
+                      try {
+                        setActionLoading(true);
+                        const payload = await Promise.all(
+                          picked.slice(0, 50).map(
+                            (f) =>
+                              new Promise((resolve, reject) => {
+                                const reader = new FileReader();
+                                reader.onload = () => {
+                                  const b64 = String(reader.result || "").split(",")[1] || "";
+                                  resolve({
+                                    relative_path: f.webkitRelativePath || f.name,
+                                    content_base64: b64
+                                  });
+                                };
+                                reader.onerror = reject;
+                                reader.readAsDataURL(f);
+                              })
+                          )
+                        );
+                        const updated = await importWorkspaceFolder(payload);
+                        setWorkspaceStatus(updated);
+                        setStatusBanner({ type: "ok", text: `Imported ${payload.length} file(s) into demo_workspace/.` });
+                      } catch (err) {
+                        setStatusBanner({ type: "error", text: err.response?.data?.detail || err.message });
+                      } finally {
+                        setActionLoading(false);
+                        e.target.value = "";
+                      }
+                    }}
+                  />
+                  <button
+                    onClick={() => folderInputRef.current?.click()}
+                    disabled={actionLoading}
+                    className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-cyan-300 text-xs rounded border border-cyan-800/50"
+                  >
+                    Add Folder
                   </button>
                   <button
                     onClick={async () => {
@@ -857,22 +1051,18 @@ export default function App() {
                   <table className="w-full text-left text-xs">
                     <thead className="text-[10px] text-slate-400 border-b border-slate-800 sticky top-0 bg-slate-950">
                       <tr>
-                        <th className="p-2">Filename</th>
+                        <th className="p-2">Actual Filename</th>
+                        <th className="p-2">Simulated State</th>
                         <th className="p-2">Ext</th>
                         <th className="p-2">Size</th>
-                        <th className="p-2">Last Modified (UTC)</th>
                         <th className="p-2">Observed Activity</th>
-                        <th className="p-2">Simulated Status</th>
+                        <th className="p-2">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-800/50 font-mono text-[11px]">
                       {(workspaceStatus.files || []).map((f) => (
-                        <tr key={f.filename}>
-                          <td className="p-2 text-slate-200">{f.filename}</td>
-                          <td className="p-2 text-slate-400">{f.extension}</td>
-                          <td className="p-2 text-slate-400">{f.size_bytes} B</td>
-                          <td className="p-2 text-slate-500">{f.last_modified.substring(0, 19)}Z</td>
-                          <td className="p-2 text-cyan-300">{f.observed_activity}</td>
+                        <tr key={f.relative_path}>
+                          <td className="p-2 text-slate-200">{f.relative_path}</td>
                           <td className="p-2">
                             <span
                               className={
@@ -885,14 +1075,78 @@ export default function App() {
                                   : "text-emerald-400"
                               }
                             >
-                              {f.simulated_status}
+                              {f.simulated_filename || f.simulated_status}
                             </span>
+                          </td>
+                          <td className="p-2 text-slate-400">{f.extension}</td>
+                          <td className="p-2 text-slate-400">{f.size_bytes} B</td>
+                          <td className="p-2 text-cyan-300">{f.observed_activity}</td>
+                          <td className="p-2 space-x-2 font-sans">
+                            <button
+                              onClick={() => setWsMeta(f)}
+                              className="text-slate-300 hover:text-cyan-300 underline"
+                            >
+                              Meta
+                            </button>
+                            <button
+                              onClick={async () => {
+                                try {
+                                  setWsPreview(await previewWorkspaceFile(f.relative_path));
+                                } catch (err) {
+                                  setStatusBanner({ type: "error", text: err.response?.data?.detail || err.message });
+                                }
+                              }}
+                              className="text-slate-300 hover:text-cyan-300 underline"
+                            >
+                              Preview
+                            </button>
+                            <button
+                              onClick={async () => {
+                                const next = window.prompt("New filename (or new extension):", f.filename);
+                                if (!next || next === f.filename) return;
+                                try {
+                                  setWorkspaceStatus(await renameWorkspaceFile(f.relative_path, next));
+                                } catch (err) {
+                                  setStatusBanner({ type: "error", text: err.response?.data?.detail || err.message });
+                                }
+                              }}
+                              className="text-cyan-400 hover:text-cyan-300 underline"
+                            >
+                              Rename/Ext
+                            </button>
                           </td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
+                {(wsPreview || wsMeta) && (
+                  <div className="p-3 bg-slate-950 border border-slate-800 rounded text-xs space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="font-mono text-cyan-300">
+                        {wsPreview ? `Preview: ${wsPreview.relative_path}` : `Metadata: ${wsMeta.relative_path}`}
+                      </span>
+                      <button
+                        onClick={() => {
+                          setWsPreview(null);
+                          setWsMeta(null);
+                        }}
+                        className="text-slate-400 hover:text-slate-200 underline"
+                      >
+                        Close
+                      </button>
+                    </div>
+                    {wsPreview ? (
+                      <pre className="text-[11px] font-mono text-slate-300 max-h-32 overflow-y-auto whitespace-pre-wrap">
+                        {wsPreview.content}
+                      </pre>
+                    ) : (
+                      <div className="font-mono text-[11px] text-slate-300">
+                        Original: {wsMeta.original_filename} | Current: {wsMeta.filename} | Size: {wsMeta.size_bytes} B | Modified: {wsMeta.last_modified}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Activity Feed & Unavailable Features */}
@@ -1309,6 +1563,53 @@ export default function App() {
                       {s.label}
                     </button>
                   ))}
+                  <input
+                    ref={folderInputRef}
+                    type="file"
+                    webkitdirectory=""
+                    directory=""
+                    multiple
+                    className="hidden"
+                    onChange={async (e) => {
+                      const picked = Array.from(e.target.files || []);
+                      if (!picked.length) return;
+                      try {
+                        setActionLoading(true);
+                        const payload = await Promise.all(
+                          picked.slice(0, 50).map(
+                            (f) =>
+                              new Promise((resolve, reject) => {
+                                const reader = new FileReader();
+                                reader.onload = () => {
+                                  const b64 = String(reader.result || "").split(",")[1] || "";
+                                  resolve({
+                                    relative_path: f.webkitRelativePath || f.name,
+                                    content_base64: b64
+                                  });
+                                };
+                                reader.onerror = reject;
+                                reader.readAsDataURL(f);
+                              })
+                          )
+                        );
+                        const updated = await importWorkspaceFolder(payload);
+                        setWorkspaceStatus(updated);
+                        setStatusBanner({ type: "ok", text: `Imported ${payload.length} file(s) into demo_workspace/.` });
+                      } catch (err) {
+                        setStatusBanner({ type: "error", text: err.response?.data?.detail || err.message });
+                      } finally {
+                        setActionLoading(false);
+                        e.target.value = "";
+                      }
+                    }}
+                  />
+                  <button
+                    onClick={() => folderInputRef.current?.click()}
+                    disabled={actionLoading}
+                    className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-cyan-300 text-xs rounded border border-cyan-800/50"
+                  >
+                    Add Folder
+                  </button>
                   <button
                     onClick={async () => {
                       setActionLoading(true);
@@ -1347,6 +1648,53 @@ export default function App() {
                     onChange={(e) => setBulkCount(Number(e.target.value))}
                     className="w-20 bg-slate-950 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200 font-mono text-xs"
                   />
+                  <input
+                    ref={folderInputRef}
+                    type="file"
+                    webkitdirectory=""
+                    directory=""
+                    multiple
+                    className="hidden"
+                    onChange={async (e) => {
+                      const picked = Array.from(e.target.files || []);
+                      if (!picked.length) return;
+                      try {
+                        setActionLoading(true);
+                        const payload = await Promise.all(
+                          picked.slice(0, 50).map(
+                            (f) =>
+                              new Promise((resolve, reject) => {
+                                const reader = new FileReader();
+                                reader.onload = () => {
+                                  const b64 = String(reader.result || "").split(",")[1] || "";
+                                  resolve({
+                                    relative_path: f.webkitRelativePath || f.name,
+                                    content_base64: b64
+                                  });
+                                };
+                                reader.onerror = reject;
+                                reader.readAsDataURL(f);
+                              })
+                          )
+                        );
+                        const updated = await importWorkspaceFolder(payload);
+                        setWorkspaceStatus(updated);
+                        setStatusBanner({ type: "ok", text: `Imported ${payload.length} file(s) into demo_workspace/.` });
+                      } catch (err) {
+                        setStatusBanner({ type: "error", text: err.response?.data?.detail || err.message });
+                      } finally {
+                        setActionLoading(false);
+                        e.target.value = "";
+                      }
+                    }}
+                  />
+                  <button
+                    onClick={() => folderInputRef.current?.click()}
+                    disabled={actionLoading}
+                    className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-cyan-300 text-xs rounded border border-cyan-800/50"
+                  >
+                    Add Folder
+                  </button>
                   <button
                     onClick={async () => {
                       setActionLoading(true);
