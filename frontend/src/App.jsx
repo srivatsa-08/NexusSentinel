@@ -783,7 +783,7 @@ export default function App() {
                       try {
                         setActionLoading(true);
                         const payload = await Promise.all(
-                          picked.slice(0, 50).map(
+                          picked.slice(0, 100).map(
                             (f) =>
                               new Promise((resolve, reject) => {
                                 const reader = new FileReader();
@@ -801,7 +801,11 @@ export default function App() {
                         );
                         const updated = await importWorkspaceFolder(payload);
                         setWorkspaceStatus(updated);
-                        setStatusBanner({ type: "ok", text: `Imported ${payload.length} file(s) into demo_workspace/.` });
+                        const skippedCount = updated.skipped_files?.length || 0;
+                        setStatusBanner({
+                          type: skippedCount > 0 ? "alert" : "ok",
+                          text: `Imported ${updated.imported_count ?? payload.length} file(s) into demo_workspace/${skippedCount > 0 ? ` (${skippedCount} skipped)` : ""}.`
+                        });
                       } catch (err) {
                         setStatusBanner({ type: "error", text: err.response?.data?.detail || err.message });
                       } finally {
@@ -833,53 +837,6 @@ export default function App() {
                   >
                     Run Test Script
                   </button>
-                  <input
-                    ref={folderInputRef}
-                    type="file"
-                    webkitdirectory=""
-                    directory=""
-                    multiple
-                    className="hidden"
-                    onChange={async (e) => {
-                      const picked = Array.from(e.target.files || []);
-                      if (!picked.length) return;
-                      try {
-                        setActionLoading(true);
-                        const payload = await Promise.all(
-                          picked.slice(0, 50).map(
-                            (f) =>
-                              new Promise((resolve, reject) => {
-                                const reader = new FileReader();
-                                reader.onload = () => {
-                                  const b64 = String(reader.result || "").split(",")[1] || "";
-                                  resolve({
-                                    relative_path: f.webkitRelativePath || f.name,
-                                    content_base64: b64
-                                  });
-                                };
-                                reader.onerror = reject;
-                                reader.readAsDataURL(f);
-                              })
-                          )
-                        );
-                        const updated = await importWorkspaceFolder(payload);
-                        setWorkspaceStatus(updated);
-                        setStatusBanner({ type: "ok", text: `Imported ${payload.length} file(s) into demo_workspace/.` });
-                      } catch (err) {
-                        setStatusBanner({ type: "error", text: err.response?.data?.detail || err.message });
-                      } finally {
-                        setActionLoading(false);
-                        e.target.value = "";
-                      }
-                    }}
-                  />
-                  <button
-                    onClick={() => folderInputRef.current?.click()}
-                    disabled={actionLoading}
-                    className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-cyan-300 text-xs rounded border border-cyan-800/50"
-                  >
-                    Add Folder
-                  </button>
                   <button
                     onClick={async () => {
                       setWorkspaceStatus(await stopWorkspaceTest());
@@ -888,53 +845,6 @@ export default function App() {
                   >
                     Stop Test
                   </button>
-                  <input
-                    ref={folderInputRef}
-                    type="file"
-                    webkitdirectory=""
-                    directory=""
-                    multiple
-                    className="hidden"
-                    onChange={async (e) => {
-                      const picked = Array.from(e.target.files || []);
-                      if (!picked.length) return;
-                      try {
-                        setActionLoading(true);
-                        const payload = await Promise.all(
-                          picked.slice(0, 50).map(
-                            (f) =>
-                              new Promise((resolve, reject) => {
-                                const reader = new FileReader();
-                                reader.onload = () => {
-                                  const b64 = String(reader.result || "").split(",")[1] || "";
-                                  resolve({
-                                    relative_path: f.webkitRelativePath || f.name,
-                                    content_base64: b64
-                                  });
-                                };
-                                reader.onerror = reject;
-                                reader.readAsDataURL(f);
-                              })
-                          )
-                        );
-                        const updated = await importWorkspaceFolder(payload);
-                        setWorkspaceStatus(updated);
-                        setStatusBanner({ type: "ok", text: `Imported ${payload.length} file(s) into demo_workspace/.` });
-                      } catch (err) {
-                        setStatusBanner({ type: "error", text: err.response?.data?.detail || err.message });
-                      } finally {
-                        setActionLoading(false);
-                        e.target.value = "";
-                      }
-                    }}
-                  />
-                  <button
-                    onClick={() => folderInputRef.current?.click()}
-                    disabled={actionLoading}
-                    className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-cyan-300 text-xs rounded border border-cyan-800/50"
-                  >
-                    Add Folder
-                  </button>
                   <button
                     onClick={async () => {
                       setWorkspaceStatus(await fetchWorkspaceStatus());
@@ -942,53 +852,6 @@ export default function App() {
                     className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs rounded border border-slate-700"
                   >
                     Refresh Workspace
-                  </button>
-                  <input
-                    ref={folderInputRef}
-                    type="file"
-                    webkitdirectory=""
-                    directory=""
-                    multiple
-                    className="hidden"
-                    onChange={async (e) => {
-                      const picked = Array.from(e.target.files || []);
-                      if (!picked.length) return;
-                      try {
-                        setActionLoading(true);
-                        const payload = await Promise.all(
-                          picked.slice(0, 50).map(
-                            (f) =>
-                              new Promise((resolve, reject) => {
-                                const reader = new FileReader();
-                                reader.onload = () => {
-                                  const b64 = String(reader.result || "").split(",")[1] || "";
-                                  resolve({
-                                    relative_path: f.webkitRelativePath || f.name,
-                                    content_base64: b64
-                                  });
-                                };
-                                reader.onerror = reject;
-                                reader.readAsDataURL(f);
-                              })
-                          )
-                        );
-                        const updated = await importWorkspaceFolder(payload);
-                        setWorkspaceStatus(updated);
-                        setStatusBanner({ type: "ok", text: `Imported ${payload.length} file(s) into demo_workspace/.` });
-                      } catch (err) {
-                        setStatusBanner({ type: "error", text: err.response?.data?.detail || err.message });
-                      } finally {
-                        setActionLoading(false);
-                        e.target.value = "";
-                      }
-                    }}
-                  />
-                  <button
-                    onClick={() => folderInputRef.current?.click()}
-                    disabled={actionLoading}
-                    className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-cyan-300 text-xs rounded border border-cyan-800/50"
-                  >
-                    Add Folder
                   </button>
                   <button
                     onClick={async () => {
@@ -1576,7 +1439,7 @@ export default function App() {
                       try {
                         setActionLoading(true);
                         const payload = await Promise.all(
-                          picked.slice(0, 50).map(
+                          picked.slice(0, 100).map(
                             (f) =>
                               new Promise((resolve, reject) => {
                                 const reader = new FileReader();
@@ -1594,7 +1457,11 @@ export default function App() {
                         );
                         const updated = await importWorkspaceFolder(payload);
                         setWorkspaceStatus(updated);
-                        setStatusBanner({ type: "ok", text: `Imported ${payload.length} file(s) into demo_workspace/.` });
+                        const skippedCount = updated.skipped_files?.length || 0;
+                        setStatusBanner({
+                          type: skippedCount > 0 ? "alert" : "ok",
+                          text: `Imported ${updated.imported_count ?? payload.length} file(s) into demo_workspace/${skippedCount > 0 ? ` (${skippedCount} skipped)` : ""}.`
+                        });
                       } catch (err) {
                         setStatusBanner({ type: "error", text: err.response?.data?.detail || err.message });
                       } finally {
@@ -1661,7 +1528,7 @@ export default function App() {
                       try {
                         setActionLoading(true);
                         const payload = await Promise.all(
-                          picked.slice(0, 50).map(
+                          picked.slice(0, 100).map(
                             (f) =>
                               new Promise((resolve, reject) => {
                                 const reader = new FileReader();
@@ -1679,7 +1546,11 @@ export default function App() {
                         );
                         const updated = await importWorkspaceFolder(payload);
                         setWorkspaceStatus(updated);
-                        setStatusBanner({ type: "ok", text: `Imported ${payload.length} file(s) into demo_workspace/.` });
+                        const skippedCount = updated.skipped_files?.length || 0;
+                        setStatusBanner({
+                          type: skippedCount > 0 ? "alert" : "ok",
+                          text: `Imported ${updated.imported_count ?? payload.length} file(s) into demo_workspace/${skippedCount > 0 ? ` (${skippedCount} skipped)` : ""}.`
+                        });
                       } catch (err) {
                         setStatusBanner({ type: "error", text: err.response?.data?.detail || err.message });
                       } finally {

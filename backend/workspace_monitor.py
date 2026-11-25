@@ -9,10 +9,11 @@ from pathlib import Path
 from typing import Any
 
 WORKSPACE_DIR = (Path(__file__).resolve().parent.parent / "demo_workspace").resolve()
-ALLOWED_IMPORT_EXTENSIONS = {".txt", ".csv", ".md", ".json", ".log", ".yaml", ".yml", ".pdf", ".docx", ".xlsx"}
+METADATA_ONLY_EXTENSIONS = {".exe", ".dll", ".bat", ".cmd", ".ps1", ".sh", ".msi", ".vbs", ".scr", ".com"}
 PREVIEWABLE_EXTENSIONS = {".txt", ".csv", ".md", ".json", ".log", ".yaml", ".yml"}
-MAX_IMPORT_FILES = 50
-MAX_IMPORT_BYTES = 10 * 1024 * 1024
+MAX_IMPORT_FILES = 100
+MAX_SINGLE_FILE_BYTES = 15 * 1024 * 1024
+MAX_IMPORT_BYTES = 50 * 1024 * 1024
 
 
 class WorkspaceMonitor:
@@ -55,42 +56,56 @@ class WorkspaceMonitor:
         return target
 
     def import_files(self, files: list[dict[str, Any]]) -> dict[str, Any]:
-        if len(files) > MAX_IMPORT_FILES:
-            raise ValueError(f"Too many files ({len(files)} > {MAX_IMPORT_FILES}).")
         total_bytes = 0
-        staged: list[tuple[Path, bytes, str]] = []
-        for item in files:
+        staged: list[tuple[Path, bytes, str, bool]] = []
+        skipped: list[dict[str, str]] = []
+
+        for idx, item in enumerate(files):
             rel = str(item.get("relative_path", "")).replace("\\", "/").lstrip("/")
+            if idx >= MAX_IMPORT_FILES:
+                skipped.append({"relative_path": rel, "reason": f"Exceeds max file count ({MAX_IMPORT_FILES})."})
+                continue
             ext = Path(rel).suffix.lower()
-            if ext not in ALLOWED_IMPORT_EXTENSIONS:
-                raise ValueError(f"Unsupported or executable file type rejected: '{ext or '(none)'}' ({rel})")
+            is_metadata_only = ext in METADATA_ONLY_EXTENSIONS
             raw_b64 = str(item.get("content_base64", ""))
-            data = base64.b64decode(raw_b64)
+            data = b"" if is_metadata_only else base64.b64decode(raw_b64)
+            if len(data) > MAX_SINGLE_FILE_BYTES:
+                skipped.append({"relative_path": rel, "reason": "Exceeds 15 MB single-file limit."})
+                continue
+            if total_bytes + len(data) > MAX_IMPORT_BYTES:
+                skipped.append({"relative_path": rel, "reason": "Exceeds 50 MB total folder limit."})
+                continue
+            try:
+                dest = self._safe_resolve(f"imported/{rel}")
+            except ValueError as exc:
+                skipped.append({"relative_path": rel, "reason": str(exc)})
+                continue
             total_bytes += len(data)
-            if total_bytes > MAX_IMPORT_BYTES:
-                raise ValueError("Total import size exceeds 10 MB limit.")
-            dest = self._safe_resolve(f"imported/{rel}")
-            staged.append((dest, data, f"imported/{rel}"))
+            staged.append((dest, data, f"imported/{rel}", is_metadata_only))
 
         with self._lock:
             now_iso = datetime.now(timezone.utc).isoformat()
-            for dest, data, rel_key in staged:
+            for dest, data, rel_key, is_meta in staged:
                 dest.parent.mkdir(parents=True, exist_ok=True)
                 dest.write_bytes(data)
-                self._file_activity[rel_key] = "imported"
+                self._file_activity[rel_key] = "metadata_only_imported" if is_meta else "imported"
                 self._original_names.setdefault(rel_key, Path(rel_key).name)
                 self.recent_events.insert(
                     0,
                     {
                         "timestamp": now_iso,
-                        "event_type": "imported",
+                        "event_type": "metadata_only_imported" if is_meta else "imported",
                         "filename": rel_key,
                         "telemetry_source": "folder_import",
                     },
                 )
             self.recent_events = self.recent_events[:30]
             self._scan_locked(record_events=False)
-        return self.get_status()
+
+        status_out = self.get_status()
+        status_out["skipped_files"] = skipped
+        status_out["imported_count"] = len(staged)
+        return status_out
 
     def rename_file(self, rel_path: str, new_name: str) -> dict[str, Any]:
         if not new_name or "/" in new_name or "\\" in new_name or ".." in new_name:
@@ -129,9 +144,14 @@ class WorkspaceMonitor:
         if not target.is_file():
             raise FileNotFoundError(f"File not found: {rel_path}")
         if target.suffix.lower() not in PREVIEWABLE_EXTENSIONS:
-            raise ValueError(f"Preview not supported for '{target.suffix}'.")
+            st = target.stat()
+            return {
+                "relative_path": rel_path,
+                "preview_supported": False,
+                "content": f"[Binary or non-text format '{target.suffix or '(none)'}' — {st.st_size} bytes. Metadata only; never executed.]",
+            }
         text = target.read_text(encoding="utf-8", errors="replace")[:4000]
-        return {"relative_path": rel_path, "content": text}
+        return {"relative_path": rel_path, "preview_supported": True, "content": text}
 
     def reset_simulation(self) -> None:
         """Clear virtual extension changes and test state without undoing manual edits or imports."""
