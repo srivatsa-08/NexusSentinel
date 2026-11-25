@@ -34,6 +34,7 @@ import {
 } from "lucide-react";
 import PrismBackground from "./components/PrismBackground";
 import InteractiveCard from "./components/InteractiveCard";
+import AnalyticsSection from "./components/AnalyticsSection";
 import { REPORT_TYPES, buildReportData, downloadFinTechPdf } from "./utils/fintechPdfReport";
 import {
   ResponsiveContainer,
@@ -2230,181 +2231,15 @@ export default function App() {
 
           {/* MODEL ANALYTICS */}
           {activeTab === "analytics" && (
-            <div className="space-y-5">
-              {p2 ? (
-                <>
-                  <div className="interactive-group grid grid-cols-2 lg:grid-cols-6 gap-3">
-                    {[
-                      { label: "Accuracy", val: `${p2Accuracy.toFixed(2)}%`, tip: "Share of all synthetic validation samples classified correctly (Phase 2)." },
-                      { label: "Precision", val: `${(p2.precision * 100).toFixed(2)}%`, tip: "Share of predicted suspicious events that were true attacks." },
-                      { label: "Recall", val: `${(p2.recall * 100).toFixed(2)}%`, tip: "Share of actual synthetic attacks detected by the model." },
-                      { label: "F1 Score", val: `${(p2.f1_score * 100).toFixed(2)}%`, tip: "Harmonic mean of Precision and Recall on val_phase2.csv." },
-                      { label: "False Positive Rate", val: `${(p2.false_positive_rate * 100).toFixed(2)}%`, tip: "Share of benign backup/compression workloads flagged falsely." },
-                      { label: "Inference Latency", val: `${metrics.single_call_latency_ms} ms`, tip: "Measured single-call prediction latency on the local Random Forest model." }
-                    ].map((m) => (
-                      <InteractiveCard key={m.label} noPerspective title={m.tip} className="p-3.5">
-                        <span className="text-[11px] text-[#AD98C5] block">{m.label}</span>
-                        <span className="text-lg font-bold font-mono text-[#E8BB65] mt-0.5 block">{m.val}</span>
-                      </InteractiveCard>
-                    ))}
-                  </div>
-
-                  {/* Live Workspace Monitoring (demo_workspace/ + Independent Harness) */}
-                  {workspaceStatus && (
-                    <div className="ns-card p-4 space-y-3">
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div>
-                          <h3 className="ns-section-title">
-                            Live Workspace Monitoring ({workspaceStatus.workspace_path})
-                          </h3>
-                          <p className="text-[11px] text-[#AD98C5] mt-0.5">
-                            Status: <strong className="text-emerald-400 font-mono uppercase">{workspaceStatus.monitoring_status}</strong> |{" "}
-                            Dummy Files: <strong className="font-mono text-[#F5EDFF]">{workspaceStatus.file_count}</strong> |{" "}
-                            Telemetry: <strong className="font-mono text-[#C084FC]">{workspaceStatus.telemetry_status}</strong>
-                          </p>
-                        </div>
-                        <span className="text-[10px] font-mono text-[#AD98C5]">
-                          Observed Events: {workspaceStatus.measurable_features?.observed_event_count ?? 0} |{" "}
-                          Exts: {workspaceStatus.measurable_features?.unique_ext_count ?? 0}
-                        </span>
-                      </div>
-                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 text-xs">
-                        <div className="p-2.5 bg-[#160D26]/14 border border-purple-300/12 rounded-lg max-h-32 overflow-y-auto">
-                          <span className="text-[10px] font-mono text-[#AD98C5] uppercase block mb-1">
-                            Recent Observed File Activity (workspace_observer)
-                          </span>
-                          {workspaceStatus.recent_events?.length > 0 ? (
-                            workspaceStatus.recent_events.slice(0, 6).map((ev, i) => (
-                              <div key={i} className="font-mono text-[11px] text-[#E9D5FF] flex justify-between">
-                                <span>[{ev.event_type}] {ev.filename}</span>
-                                <span className="text-[#AD98C5]">{ev.timestamp.substring(11, 19)}Z</span>
-                              </div>
-                            ))
-                          ) : (
-                            <span className="text-[11px] text-[#AD98C5]">
-                              No manual edits yet. Edit or rename a file in demo_workspace/ to observe live events.
-                            </span>
-                          )}
-                        </div>
-                        <div className="p-2.5 bg-[#160D26]/14 border border-purple-300/12 rounded-lg">
-                          <span className="text-[10px] font-mono text-amber-300 uppercase block mb-1">
-                            Unavailable Measurements (Not Fabricated)
-                          </span>
-                          <ul className="space-y-0.5 text-[11px] font-mono text-[#AD98C5]">
-                            {(workspaceStatus.unavailable_features || []).map((u, i) => (
-                              <li key={i}>• {u}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-                    <div className="ns-card p-4">
-                      <h3 className="ns-section-title mb-3">
-                        Confusion Matrix (val_phase2.csv, n=600)
-                      </h3>
-                      <div className="interactive-group grid grid-cols-2 gap-3 text-center text-xs">
-                        <InteractiveCard noPerspective title="Benign activity correctly classified as normal" className="p-3">
-                          <span className="text-[#AD98C5]">True Negatives (TN)</span>
-                          <div className="text-xl font-bold font-mono text-emerald-400 mt-1">{p2.confusion_matrix.tn}</div>
-                        </InteractiveCard>
-                        <InteractiveCard noPerspective title="Benign activity incorrectly flagged as suspicious" className="p-3">
-                          <span className="text-[#AD98C5]">False Positives (FP)</span>
-                          <div className="text-xl font-bold font-mono text-rose-400 mt-1">{p2.confusion_matrix.fp}</div>
-                        </InteractiveCard>
-                        <InteractiveCard noPerspective title="Suspicious activity missed by the classifier" className="p-3">
-                          <span className="text-[#AD98C5]">False Negatives (FN)</span>
-                          <div className="text-xl font-bold font-mono text-rose-400 mt-1">{p2.confusion_matrix.fn}</div>
-                        </InteractiveCard>
-                        <InteractiveCard noPerspective title="Suspicious activity correctly detected" className="p-3">
-                          <span className="text-[#AD98C5]">True Positives (TP)</span>
-                          <div className="text-xl font-bold font-mono text-emerald-400 mt-1">{p2.confusion_matrix.tp}</div>
-                        </InteractiveCard>
-                      </div>
-                    </div>
-
-                    <InteractiveCard noPerspective className="p-4">
-                      <h3 className="ns-section-title mb-3">
-                        False-Positive Reduction: Phase 1 (89) vs Phase 2 (4)
-                      </h3>
-                      <div className="h-48">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <BarChart data={fpComparisonData}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#29193E" />
-                            <XAxis dataKey="category" stroke="#AD98C5" fontSize={11} />
-                            <YAxis stroke="#AD98C5" fontSize={11} />
-                            <Tooltip contentStyle={{ backgroundColor: "#10091C", borderColor: "#B88635", fontSize: "11px" }} />
-                            <Legend wrapperStyle={{ fontSize: "11px" }} />
-                            <Bar dataKey="Phase 1 Baseline" fill="#7C3AED" activeBar={{ fill: "#A855F7", stroke: "#E9D5FF", strokeWidth: 1 }} radius={[4, 4, 0, 0]} />
-                            <Bar dataKey="Phase 2 Model" fill="#E8BB65" activeBar={{ fill: "#FFE3A5", stroke: "#FFE3A5", strokeWidth: 1 }} radius={[4, 4, 0, 0]} />
-                          </BarChart>
-                        </ResponsiveContainer>
-                      </div>
-                    </InteractiveCard>
-                  </div>
-
-                  {earlyWarning && (
-                    <div className="ns-card p-4 space-y-3">
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <h3 className="ns-section-title">
-                          Early-Warning Simulation Evaluation ({earlyWarning.total_sequences} Independent Sequences)
-                        </h3>
-                        <span className="text-[11px] font-mono text-[#AD98C5]">
-                          Seed: {earlyWarning.evaluation_seed} | Overlap: {earlyWarning.train_val_exact_overlap}
-                        </span>
-                      </div>
-                      <div className="interactive-group grid grid-cols-2 lg:grid-cols-5 gap-3 text-xs">
-                        <InteractiveCard noPerspective title="Attack sequences detected before simulated encryption completion" className="p-3">
-                          <span className="text-[11px] text-[#AD98C5] block">Attack Outcomes (n={earlyWarning.attack_sequences})</span>
-                          <span className="text-base font-bold font-mono text-emerald-400">
-                            Early {earlyWarning.early_detections}/{earlyWarning.attack_sequences}
-                          </span>
-                          <span className="text-[10px] text-[#AD98C5] block">
-                            Late: {earlyWarning.late_detections} | Missed: {earlyWarning.missed_detections} | Premature: {earlyWarning.premature_alerts}
-                          </span>
-                        </InteractiveCard>
-                        <InteractiveCard noPerspective title="False alarms observed across benign control sequences" className="p-3">
-                          <span className="text-[11px] text-[#AD98C5] block">Benign Control FA (n={earlyWarning.benign_control_sequences})</span>
-                          <span className="text-base font-bold font-mono text-[#E8BB65]">
-                            {earlyWarning.benign_control_false_alarms}/{earlyWarning.benign_control_sequences}
-                          </span>
-                          <span className="text-[10px] text-[#AD98C5] block">
-                            Rate: {(earlyWarning.benign_control_false_alarm_rate * 100).toFixed(2)}%
-                          </span>
-                        </InteractiveCard>
-                        <InteractiveCard noPerspective title="Simulated elapsed time until first alert" className="p-3">
-                          <span className="text-[11px] text-[#AD98C5] block">Time to First Alert (Sim)</span>
-                          <span className="text-base font-bold font-mono text-[#F5EDFF]">
-                            Med {earlyWarning.median_time_to_first_alert_sim_s}s
-                          </span>
-                          <span className="text-[10px] text-[#AD98C5] block">
-                            p95: {earlyWarning.p95_time_to_first_alert_sim_s}s
-                          </span>
-                        </InteractiveCard>
-                        <InteractiveCard noPerspective title="Warm-cache inference latency across 100 calls" className="p-3">
-                          <span className="text-[11px] text-[#AD98C5] block">Warm Latency (100 calls)</span>
-                          <span className="text-base font-bold font-mono text-[#E8BB65]">{earlyWarning.latency_mean_ms} ms</span>
-                          <span className="text-[10px] text-[#AD98C5] block">
-                            Med {earlyWarning.latency_median_ms} | p95 {earlyWarning.latency_p95_ms}
-                          </span>
-                        </InteractiveCard>
-                        <InteractiveCard noPerspective title="Peak Python tracemalloc memory during isolated benchmark" className="p-3">
-                          <span className="text-[11px] text-[#AD98C5] block">Peak Traced Memory</span>
-                          <span className="text-base font-bold font-mono text-[#F5EDFF]">{earlyWarning.peak_traced_memory_mb} MB</span>
-                          <span className="text-[10px] text-[#AD98C5] block">tracemalloc (separate)</span>
-                        </InteractiveCard>
-                      </div>
-                    </div>
-                  )}
-                </>
-              ) : (
-                <div className="ns-card p-8 text-center text-xs text-[#AD98C5] border-dashed">
-                  Evaluation metrics unavailable. Ensure backend is running at http://localhost:8000.
-                </div>
-              )}
-            </div>
+            <AnalyticsSection
+              p2={p2}
+              p1={p1}
+              p2Accuracy={p2Accuracy}
+              metrics={metrics}
+              earlyWarning={earlyWarning}
+              fpComparisonData={fpComparisonData}
+              workspaceStatus={workspaceStatus}
+            />
           )}
         </div>
       </main>
