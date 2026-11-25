@@ -16,6 +16,14 @@ def get_db_connection() -> sqlite3.Connection:
     return conn
 
 
+def _ensure_columns(cursor: sqlite3.Cursor, table: str, columns: dict[str, str]) -> None:
+    """Idempotently add missing columns to an existing SQLite table."""
+    existing = {row[1] for row in cursor.execute(f"PRAGMA table_info({table})").fetchall()}
+    for col_name, col_type in columns.items():
+        if col_name not in existing:
+            cursor.execute(f"ALTER TABLE {table} ADD COLUMN {col_name} {col_type}")
+
+
 def init_db() -> None:
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -68,6 +76,26 @@ def init_db() -> None:
     # Insert default endpoint if not present
     cursor.execute(
         "INSERT OR IGNORE INTO endpoints (endpoint_id, status) VALUES ('demo-01', 'monitoring')"
+    )
+
+    # Backward-compatible migrations for older schemas
+    _ensure_columns(
+        cursor,
+        "assessments",
+        {
+            "model_version": "TEXT",
+            "processing_time_ms": "REAL",
+            "explanations": "TEXT",
+            "timeline": "TEXT",
+        },
+    )
+    _ensure_columns(
+        cursor,
+        "incidents",
+        {
+            "timestamp": "TEXT",
+            "timeline": "TEXT",
+        },
     )
 
     conn.commit()

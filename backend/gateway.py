@@ -121,6 +121,12 @@ class GatewayController:
         self.recent_decisions = self.recent_decisions[:20]
         return record
 
+    def complete_assessments(self, count: int = 1) -> dict[str, Any]:
+        """Release queue capacity when simulated AI assessments complete."""
+        with self._lock:
+            self.queue_depth = max(0, self.queue_depth - max(0, count))
+            return self._status_locked()
+
     def simulate_scenario(self, scenario: str) -> dict[str, Any]:
         sc = scenario.lower().strip()
         with self._lock:
@@ -153,6 +159,9 @@ class GatewayController:
 
             for meta in batch:
                 self._evaluate_locked(meta)
+            # Legitimate normal/bulk assessments complete and release queue capacity
+            if sc in ("normal_upload", "legitimate_bulk"):
+                self.queue_depth = max(0, self.queue_depth - len(batch))
             return self._status_locked()
 
     def _status_locked(self) -> dict[str, Any]:
@@ -190,3 +199,4 @@ class GatewayController:
 
 
 gateway_controller = GatewayController()
+

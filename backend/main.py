@@ -8,6 +8,7 @@ import json
 import threading
 import time
 import uuid
+from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List
@@ -42,10 +43,17 @@ from ml_engine.schema import FEATURE_NAMES, SCHEMA_VERSION
 ROOT_DIR = Path(__file__).resolve().parent.parent
 METRICS_PATH = ROOT_DIR / "ml_engine" / "artifacts" / "metrics_phase2.json"
 
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    init_db()
+    yield
+
+
 app = FastAPI(
     title="Nexus Sentinel API",
     version="1.1.0",
     description="Defensive ransomware early-warning API (synthetic tabular observations only).",
+    lifespan=lifespan,
 )
 
 app.add_middleware(
@@ -62,9 +70,7 @@ app.add_middleware(
 )
 
 
-@app.on_event("startup")
-def startup_event() -> None:
-    init_db()
+# CORS middleware above handles localhost origins
 
 
 @app.get("/api/v1/health", response_model=HealthResponse)
@@ -382,6 +388,7 @@ def post_demo_start(req: DemoStartRequest) -> DemoStartResponse:
 
 @app.post("/api/v1/assessment/batch", response_model=BatchAssessmentSummary)
 def post_batch_assessment(req: BatchAssessmentRequest) -> BatchAssessmentSummary:
+    """Stateless offline batch evaluation; kept separate from live endpoint incident history."""
     t_start = time.perf_counter_ns()
     assessments_list: List[AssessmentRecord] = []
     normal_c = 0

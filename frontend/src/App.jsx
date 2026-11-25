@@ -86,17 +86,27 @@ export default function App() {
     duration_seconds: 0
   });
   const fileInputRef = useRef(null);
+  const isFetchingRef = useRef(false);
+
+  const loadStaticAnalytics = async () => {
+    const [metRes, ewRes] = await Promise.all([
+      fetchMetrics().catch(() => null),
+      fetchEarlyWarningMetrics().catch(() => null)
+    ]);
+    setMetrics(metRes);
+    setEarlyWarning(ewRes);
+  };
 
   const loadAllData = async () => {
+    if (isFetchingRef.current) return;
+    isFetchingRef.current = true;
     try {
-      const [hRes, epRes, asRes, incRes, metRes, monRes, ewRes, gwRes] = await Promise.all([
+      const [hRes, epRes, asRes, incRes, monRes, gwRes] = await Promise.all([
         fetchHealth().catch(() => ({ status: "offline" })),
         fetchEndpoints().catch(() => ({ items: [] })),
         fetchAssessments().catch(() => ({ items: [] })),
         fetchIncidents().catch(() => ({ items: [] })),
-        fetchMetrics().catch(() => null),
         fetchMonitorStatus().catch(() => ({ status: "stopped", processed_count: 0, total_sequence: 6, duration_seconds: 0 })),
-        fetchEarlyWarningMetrics().catch(() => null),
         fetchGatewayStatus().catch(() => null)
       ]);
       setHealth(hRes);
@@ -104,9 +114,7 @@ export default function App() {
       const loadedAssessments = asRes.items || [];
       setAssessments(loadedAssessments);
       setIncidents(incRes.items || []);
-      setMetrics(metRes);
       setMonitorStatus(monRes);
-      setEarlyWarning(ewRes);
       setGateway(gwRes);
 
       if (loadedAssessments.length > 0) {
@@ -127,10 +135,13 @@ export default function App() {
       }
     } catch {
       setStatusBanner({ type: "error", text: "Failed to synchronize with backend." });
+    } finally {
+      isFetchingRef.current = false;
     }
   };
 
   useEffect(() => {
+    loadStaticAnalytics();
     loadAllData();
     const interval = setInterval(loadAllData, 3000);
     return () => clearInterval(interval);
