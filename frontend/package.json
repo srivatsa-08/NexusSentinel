@@ -13,6 +13,8 @@
     "@react-three/drei": "^10.7.9",
     "@react-three/fiber": "^9.8.2",
     "axios": "^1.21.1",
+    "jspdf": "^4.2.1",
+    "jspdf-autotable": "^5.0.9",
     "lucide-react": "^1.80.0",
     "ogl": "^1.0.11",
     "react": "^19.3.1",

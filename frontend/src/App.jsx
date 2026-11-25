@@ -34,6 +34,7 @@ import {
 } from "lucide-react";
 import PrismBackground from "./components/PrismBackground";
 import InteractiveCard from "./components/InteractiveCard";
+import { REPORT_TYPES, buildReportData, downloadFinTechPdf } from "./utils/fintechPdfReport";
 import {
   ResponsiveContainer,
   LineChart,
@@ -139,6 +140,8 @@ export default function App() {
   const [replayPlaying, setReplayPlaying] = useState(false);
   const [replayStep, setReplayStep] = useState(0);
   const [lowPerfMode, setLowPerfMode] = useState(false);
+  const [reportType, setReportType] = useState("comprehensive");
+  const [reportPreviewData, setReportPreviewData] = useState(null);
   const [virtualFiles, setVirtualFiles] = useState(INITIAL_VIRTUAL_FILES);
   const [monitorStatus, setMonitorStatus] = useState({
     status: "stopped",
@@ -1982,13 +1985,70 @@ export default function App() {
                     Select an incident to inspect AI attributions, replay stored timeline, or resolve simulated containment.
                   </p>
                 </div>
-                <input
-                  type="text"
-                  value={incSearch}
-                  onChange={(e) => setIncSearch(e.target.value)}
-                  placeholder="Search incident or endpoint..."
-                  className="ns-input w-56"
-                />
+                <div className="flex flex-wrap items-center gap-2">
+                  <select
+                    value={reportType}
+                    onChange={(e) => setReportType(e.target.value)}
+                    aria-label="Select FinTech PDF Report Type"
+                    className="ns-input text-xs"
+                  >
+                    {REPORT_TYPES.map((rt) => (
+                      <option key={rt.id} value={rt.id}>
+                        {rt.label}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    onClick={() =>
+                      setReportPreviewData(
+                        buildReportData(reportType, {
+                          health,
+                          endpoints,
+                          assessments,
+                          incidents,
+                          activeIncident,
+                          workspaceStatus,
+                          gateway,
+                          metrics,
+                          earlyWarning,
+                        })
+                      )
+                    }
+                    className="ns-btn ns-btn-folder"
+                  >
+                    Preview Report
+                  </button>
+                  <button
+                    onClick={() => {
+                      const rpt = downloadFinTechPdf(reportType, {
+                        health,
+                        endpoints,
+                        assessments,
+                        incidents,
+                        activeIncident,
+                        workspaceStatus,
+                        gateway,
+                        metrics,
+                        earlyWarning,
+                      });
+                      setStatusBanner({
+                        type: "ok",
+                        text: `Generated and downloaded ${rpt.reportId}.pdf (${rpt.title}).`,
+                      });
+                    }}
+                    className="ns-btn ns-btn-primary"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span>Download PDF</span>
+                  </button>
+                  <input
+                    type="text"
+                    value={incSearch}
+                    onChange={(e) => setIncSearch(e.target.value)}
+                    placeholder="Search incident or endpoint..."
+                    className="ns-input w-48"
+                  />
+                </div>
               </div>
 
               {incidents.length === 0 ? (
@@ -2348,6 +2408,82 @@ export default function App() {
           )}
         </div>
       </main>
+
+      {/* FinTech Report Preview Modal */}
+      {reportPreviewData && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white text-[#181026] rounded-xl shadow-2xl max-w-4xl w-full max-h-[88vh] flex flex-col overflow-hidden border border-[#B88635]">
+            <div className="bg-[#2E1065] text-white px-6 py-4 flex items-center justify-between border-b-2 border-[#B88635]">
+              <div>
+                <div className="text-xs font-mono text-[#E8BB65] tracking-wider">
+                  NEXUS SENTINEL · {reportPreviewData.reportId}
+                </div>
+                <h3 className="text-base font-bold">{reportPreviewData.title}</h3>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    downloadFinTechPdf(reportPreviewData.reportType, {
+                      health,
+                      endpoints,
+                      assessments,
+                      incidents,
+                      activeIncident,
+                      workspaceStatus,
+                      gateway,
+                      metrics,
+                      earlyWarning,
+                    });
+                  }}
+                  className="px-3 py-1.5 bg-[#E8BB65] text-[#181026] font-semibold text-xs rounded hover:bg-[#FFE3A5] transition"
+                >
+                  Download PDF
+                </button>
+                <button
+                  onClick={() => setReportPreviewData(null)}
+                  className="px-3 py-1.5 bg-white/15 text-white text-xs rounded hover:bg-white/25 transition"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+            <div className="p-6 overflow-y-auto space-y-5 text-xs leading-relaxed">
+              {reportPreviewData.sections.map((sec, idx) => (
+                <div key={sec.id} className="space-y-2">
+                  <h4 className="text-sm font-bold text-[#2E1065] border-b border-[#B88635]/60 pb-1">
+                    {String(idx + 1).padStart(2, "0")} — {sec.title}
+                  </h4>
+                  {sec.paragraphs?.map((p, i) => (
+                    <p key={i} className="text-[#181026]">{p}</p>
+                  ))}
+                  {sec.table && sec.table.body.length > 0 && (
+                    <div className="overflow-x-auto border border-purple-200 rounded">
+                      <table className="w-full text-left text-[11px]">
+                        <thead className="bg-[#2E1065] text-white">
+                          <tr>
+                            {sec.table.head[0].map((h, hi) => (
+                              <th key={hi} className="p-2">{h}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-purple-100">
+                          {sec.table.body.map((row, ri) => (
+                            <tr key={ri} className={ri % 2 === 1 ? "bg-[#F5F0FF]" : "bg-white"}>
+                              {row.map((cell, ci) => (
+                                <td key={ci} className="p-2">{cell}</td>
+                              ))}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
