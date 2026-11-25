@@ -62,7 +62,8 @@ import {
   resetWorkspaceSimulation,
   importWorkspaceFolder,
   renameWorkspaceFile,
-  previewWorkspaceFile
+  previewWorkspaceFile,
+  clearWorkspace
 } from "./services/api";
 
 const SecurityTopology3D = lazy(() => import("./components/SecurityTopology3D"));
@@ -855,11 +856,27 @@ export default function App() {
                   </button>
                   <button
                     onClick={async () => {
+                      await stopWorkspaceTest().catch(() => null);
+                      setWsPreview(null);
+                      setWsMeta(null);
                       setWorkspaceStatus(await resetWorkspaceSimulation());
+                      setStatusBanner({ type: "ok", text: "Simulation reset; imported and manual files preserved." });
                     }}
                     className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-cyan-300 text-xs rounded border border-cyan-800/50"
                   >
                     Reset Simulation
+                  </button>
+                  <button
+                    onClick={async () => {
+                      if (!window.confirm("Remove all imported files from demo_workspace/imported/? Original source files are untouched.")) return;
+                      setWsPreview(null);
+                      setWsMeta(null);
+                      setWorkspaceStatus(await clearWorkspace());
+                      setStatusBanner({ type: "ok", text: "Imported workspace entries cleared." });
+                    }}
+                    className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-amber-300 text-xs rounded border border-amber-800/50"
+                  >
+                    Clear Workspace
                   </button>
                 </div>
               </div>
@@ -924,7 +941,14 @@ export default function App() {
                     </thead>
                     <tbody className="divide-y divide-slate-800/50 font-mono text-[11px]">
                       {(workspaceStatus.files || []).map((f) => (
-                        <tr key={f.relative_path}>
+                        <tr
+                          key={f.relative_path}
+                          className={
+                            f.simulated_status === "simulated_encrypted" || f.simulated_status === "simulated_altered"
+                              ? "bg-rose-950/30 animate-pulse"
+                              : ""
+                          }
+                        >
                           <td className="p-2 text-slate-200">{f.relative_path}</td>
                           <td className="p-2">
                             <span

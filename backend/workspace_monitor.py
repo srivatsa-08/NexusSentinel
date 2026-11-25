@@ -154,7 +154,7 @@ class WorkspaceMonitor:
         return {"relative_path": rel_path, "preview_supported": True, "content": text}
 
     def reset_simulation(self) -> None:
-        """Clear virtual extension changes and test state without undoing manual edits or imports."""
+        """Stop active test, clear virtual extension changes and test state without deleting imported files."""
         with self._lock:
             self._simulated_status.clear()
             self._simulated_names.clear()
@@ -162,6 +162,27 @@ class WorkspaceMonitor:
             self.recent_events = [
                 e for e in self.recent_events if e.get("telemetry_source") in ("workspace_observer", "folder_import")
             ]
+
+    def clear_imported_workspace(self) -> dict[str, Any]:
+        """Remove imported entries from demo_workspace/imported/ and reset simulation state."""
+        import shutil
+
+        imported_dir = (self.root_dir / "imported").resolve()
+        with self._lock:
+            if imported_dir.is_dir() and str(imported_dir).startswith(str(self.root_dir)):
+                shutil.rmtree(imported_dir)
+            self._simulated_status.clear()
+            self._simulated_names.clear()
+            self._file_activity = {
+                k: v for k, v in self._file_activity.items() if not k.startswith("imported/")
+            }
+            self._original_names = {
+                k: v for k, v in self._original_names.items() if not k.startswith("imported/")
+            }
+            self.harness_state = self._initial_harness_state()
+            self.recent_events = []
+            self._scan_locked(record_events=False)
+        return self.get_status()
 
     def record_harness_event(
         self,

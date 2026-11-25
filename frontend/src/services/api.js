@@ -55,3 +55,4 @@ export const renameWorkspaceFile = async (relativePath, newName) =>
   (await api.post("/workspace/file/rename", { relative_path: relativePath, new_name: newName })).data;
 export const previewWorkspaceFile = async (relativePath) =>
   (await api.get("/workspace/file/preview", { params: { relative_path: relativePath } })).data;
+export const clearWorkspace = async () => (await api.post("/workspace/clear")).data;

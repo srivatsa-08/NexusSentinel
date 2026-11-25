@@ -1020,3 +1020,8 @@ def get_workspace_file_preview(relative_path: str) -> dict[str, Any]:
         raise HTTPException(status_code=404, detail=str(exc))
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
+
+
+@app.post("/api/v1/workspace/clear")
+def post_workspace_clear() -> dict[str, Any]:
+    return workspace_monitor.clear_imported_workspace()
