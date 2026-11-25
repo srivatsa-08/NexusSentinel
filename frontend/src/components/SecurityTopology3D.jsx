@@ -220,15 +220,14 @@ function EndpointNode({
           onSelect(ep.endpoint_id);
         }}
       >
-        {/* Circular Holographic Platform */}
-        <mesh position={[0, -0.2, 0]}>
-          <cylinderGeometry args={[0.44, 0.48, 0.04, 24]} />
-          <meshStandardMaterial
-            color="#160D26"
-            metalness={0.75}
-            roughness={0.25}
+        {/* Lightweight Holographic Platform Ring */}
+        <mesh position={[0, -0.18, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+          <circleGeometry args={[0.44, 24]} />
+          <meshBasicMaterial
+            color="#2E1065"
             transparent
-            opacity={dimmed ? 0.3 : 0.9}
+            opacity={dimmed ? 0.1 : 0.28}
+            side={THREE.DoubleSide}
           />
         </mesh>
         {/* Champagne-Gold Platform Outline Ring */}
@@ -237,7 +236,7 @@ function EndpointNode({
           <meshStandardMaterial
             color={accentColor}
             emissive={accentColor}
-            emissiveIntensity={isHovered || isSelected ? 0.8 : 0.4}
+            emissiveIntensity={isHovered || isSelected ? 0.9 : 0.55}
             transparent
             opacity={dimmed ? 0.25 : 0.95}
           />
@@ -247,19 +246,21 @@ function EndpointNode({
         {isIsolated && (
           <mesh position={[0, -0.15, 0]} rotation={[Math.PI / 2, 0, 0]}>
             <torusGeometry args={[0.62, 0.02, 8, 36]} />
-            <meshStandardMaterial color="#f43f5e" emissive="#f43f5e" emissiveIntensity={0.85} />
+            <meshStandardMaterial color="#f43f5e" emissive="#f43f5e" emissiveIntensity={0.9} />
           </mesh>
         )}
 
-        {/* Workstation / Server Chassis */}
+        {/* Workstation / Server Chassis (Lit Translucent Purple, Never Black) */}
         <mesh position={[-0.12, 0.02, 0]}>
           <boxGeometry args={[0.18, 0.36, 0.26]} />
           <meshStandardMaterial
-            color="#29193E"
-            metalness={0.65}
-            roughness={0.3}
+            color="#7C3AED"
+            emissive="#2E1065"
+            emissiveIntensity={0.45}
+            metalness={0.25}
+            roughness={0.45}
             transparent
-            opacity={dimmed ? 0.35 : 1}
+            opacity={dimmed ? 0.35 : 0.88}
           />
         </mesh>
         {/* Holographic Monitor Screen */}
@@ -406,12 +407,14 @@ export default function SecurityTopology3D({
         style={{ background: "transparent" }}
         frameloop={reducedMotion ? "demand" : "always"}
       >
-        <ambientLight intensity={0.6} />
-        <pointLight position={[5, 6, 5]} intensity={1.25} color="#A855F7" />
-        <pointLight position={[-5, 4, -5]} intensity={0.8} color="#E8BB65" />
+        <ambientLight intensity={0.85} />
+        <hemisphereLight args={["#C084FC", "#29193E", 0.9]} />
+        <directionalLight position={[4, 8, 5]} intensity={1.6} color="#F3E8FF" />
+        <pointLight position={[5, 6, 5]} intensity={1.2} color="#A855F7" />
+        <pointLight position={[-5, 4, -5]} intensity={0.9} color="#E8BB65" />
 
         {/* Subtle Spatial Grid */}
-        <gridHelper args={[12, 16, "#7C3AED", "#29193E"]} position={[0, -0.25, 0]} />
+        <gridHelper args={[12, 16, "#7C3AED", "#29193E"]} position={[0, -0.25, 0]} material-transparent material-opacity={0.18} />
 
         <ProtectionCore hasIncident={hasIncident} reducedMotion={reducedMotion} />
         <GatewayStructure gateway={gateway} reducedMotion={reducedMotion} />
