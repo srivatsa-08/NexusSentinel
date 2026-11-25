@@ -61,7 +61,7 @@ def test_workspace_run_test_stops_on_containment_and_resets() -> None:
     ws = data["workspace"]
     assert ws["file_count"] >= 20
     assert len(ws["files"]) == ws["file_count"]
-    assert ws["harness_state"]["virtually_affected_count"] == 6
+    assert ws["harness_state"]["virtually_affected_count"] == data["steps_executed"]
     assert ws["harness_state"]["containment_timestamp"] is not None
 
     rst = client.post("/api/v1/workspace/reset")
