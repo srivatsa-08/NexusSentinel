@@ -494,7 +494,7 @@ const PrismBackground = React.memo(function PrismBackground({
           width: "100%",
           height: "100%",
           display: "block",
-          opacity: 0.72,
+          opacity: 0.85,
         }}
       />
       {/* Subtle deep-purple vignette so foreground text & charts stay crisp */}
@@ -503,7 +503,7 @@ const PrismBackground = React.memo(function PrismBackground({
           position: "absolute",
           inset: 0,
           background:
-            "radial-gradient(circle at 50% 50%, transparent 25%, rgba(8,5,15,0.62) 100%)",
+            "radial-gradient(circle at 50% 50%, transparent 30%, rgba(9,6,14,0.42) 100%)",
           pointerEvents: "none",
         }}
       />
