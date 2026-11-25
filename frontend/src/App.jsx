@@ -148,6 +148,7 @@ export default function App() {
   });
   const fileInputRef = useRef(null);
   const isFetchingRef = useRef(false);
+  const syncEpochRef = useRef(0);
 
   const loadStaticAnalytics = async () => {
     const [metRes, ewRes] = await Promise.all([
@@ -158,8 +159,9 @@ export default function App() {
     setEarlyWarning(ewRes);
   };
 
-  const loadAllData = async () => {
-    if (isFetchingRef.current) return;
+  const loadAllData = async ({ force = false } = {}) => {
+    if (isFetchingRef.current && !force) return;
+    const myEpoch = syncEpochRef.current;
     isFetchingRef.current = true;
     try {
       const [hRes, epRes, asRes, incRes, monRes, gwRes, wsRes] = await Promise.all([
@@ -171,6 +173,9 @@ export default function App() {
         fetchGatewayStatus().catch(() => null),
         fetchWorkspaceStatus().catch(() => null)
       ]);
+      // Discard stale polling responses if a reset or scenario trigger happened while in-flight
+      if (myEpoch !== syncEpochRef.current) return;
+
       setHealth(hRes);
       setEndpoints(epRes.items || []);
       const loadedAssessments = asRes.items || [];
@@ -183,23 +188,32 @@ export default function App() {
       if (loadedAssessments.length > 0) {
         setSelectedAssessment((prev) => prev || loadedAssessments[0]);
         if (loadedAssessments[0].label === "suspicious") {
-          setVirtualFiles((prev) =>
-            prev.map((f, i) =>
+          setVirtualFiles(
+            INITIAL_VIRTUAL_FILES.map((f, i) =>
               i % 2 === 0
                 ? {
                     ...f,
                     state: "simulated_encrypted",
-                    name: f.name.endsWith(".locked") ? f.name : `${f.name}.locked`
+                    name: `${f.name}.locked`
                   }
                 : { ...f, state: "simulated_altered" }
             )
           );
+        } else {
+          setVirtualFiles(INITIAL_VIRTUAL_FILES);
         }
+      } else {
+        setSelectedAssessment(null);
+        setVirtualFiles(INITIAL_VIRTUAL_FILES);
       }
     } catch {
-      setStatusBanner({ type: "error", text: "Failed to synchronize with backend." });
+      if (myEpoch === syncEpochRef.current) {
+        setStatusBanner({ type: "error", text: "Failed to synchronize with backend." });
+      }
     } finally {
-      isFetchingRef.current = false;
+      if (myEpoch === syncEpochRef.current) {
+        isFetchingRef.current = false;
+      }
     }
   };
 
@@ -242,13 +256,14 @@ export default function App() {
     try {
       setActionLoading(true);
       setStatusBanner(null);
-      const res = await triggerDemoScenario(scenario, selectedEndpointId);
-      await loadAllData();
-      if (res.assessment) setSelectedAssessment(res.assessment);
-      if (res.incident) setSelectedIncidentId(res.incident.incident_id);
+      syncEpochRef.current += 1;
       if (scenario !== "suspicious") {
         setVirtualFiles(INITIAL_VIRTUAL_FILES);
       }
+      const res = await triggerDemoScenario(scenario, selectedEndpointId);
+      if (res.assessment) setSelectedAssessment(res.assessment);
+      if (res.incident) setSelectedIncidentId(res.incident.incident_id);
+      await loadAllData({ force: true });
       setStatusBanner({
         type: res.assessment?.label === "suspicious" ? "alert" : "ok",
         text: `[${selectedEndpointId}] Scenario '${scenario}' assessed: ${res.assessment?.label?.toUpperCase()} (score ${res.assessment?.risk_score}/100)`
@@ -266,12 +281,20 @@ export default function App() {
   const handleReset = async () => {
     try {
       setActionLoading(true);
-      await resetDemo();
+      syncEpochRef.current += 1;
+      await Promise.all([
+        resetDemo(),
+        stopWorkspaceTest().catch(() => null),
+        resetWorkspaceSimulation().catch(() => null)
+      ]);
       setSelectedAssessment(null);
+      setSelectedIncidentId(null);
       setBatchResult(null);
+      setWsPreview(null);
+      setWsMeta(null);
       setVirtualFiles(INITIAL_VIRTUAL_FILES);
       setStatusBanner({ type: "ok", text: "Simulated environment reset to monitoring posture." });
-      await loadAllData();
+      await loadAllData({ force: true });
     } catch (err) {
       setStatusBanner({ type: "error", text: err.message });
     } finally {
@@ -825,10 +848,13 @@ export default function App() {
                   </button>
                   <button
                     onClick={async () => {
+                      syncEpochRef.current += 1;
                       await stopWorkspaceTest().catch(() => null);
                       setWsPreview(null);
                       setWsMeta(null);
+                      setVirtualFiles(INITIAL_VIRTUAL_FILES);
                       setWorkspaceStatus(await resetWorkspaceSimulation());
+                      await loadAllData({ force: true });
                       setStatusBanner({ type: "ok", text: "Simulation reset; imported and manual files preserved." });
                     }}
                     className="ns-btn ns-btn-folder"
@@ -1206,17 +1232,17 @@ export default function App() {
                   <div className="flex items-center justify-between">
                     <h3 className="ns-section-title flex items-center space-x-2">
                       <HardDrive className="w-4 h-4 text-[#C084FC]" />
-                      <span>Virtual In-Memory Workspace (Simulated Host: demo-01)</span>
+                      <span>Virtual In-Memory Workspace (Simulated Host: {activeEndpoint?.endpoint_id || "demo-01"})</span>
                     </h3>
-                    <span className="ns-badge ns-badge-violet">
-                      {endpoints[0]?.status || "monitoring"}
+                    <span className={`ns-badge ${(activeEndpoint?.status || "monitoring") === "simulated_isolated" ? "ns-badge-red" : "ns-badge-violet"}`}>
+                      {activeEndpoint?.status || "monitoring"}
                     </span>
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
                     {virtualFiles.map((file) => (
                       <div
                         key={file.id}
-                        className={`p-2.5 rounded-lg border text-xs transition-colors ${
+                        className={`p-2.5 rounded-lg border text-xs transition-all duration-500 ${
                           file.state === "simulated_encrypted"
                             ? "bg-rose-950/40 border-rose-700/60 text-rose-200"
                             : file.state === "simulated_altered"
