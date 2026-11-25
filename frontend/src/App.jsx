@@ -51,7 +51,11 @@ import {
   fetchGatewayStatus,
   simulateGatewayScenario,
   simulateGatewayBulk,
-  resetGateway
+  resetGateway,
+  toggleEndpointMonitoring,
+  reviewIncident,
+  resolveIncident,
+  getIncidentReportUrl
 } from "./services/api";
 
 const INITIAL_VIRTUAL_FILES = [
@@ -81,6 +85,15 @@ export default function App() {
   const [importedData, setImportedData] = useState("");
   const [batchResult, setBatchResult] = useState(null);
   const [selectedAssessment, setSelectedAssessment] = useState(null);
+  const [selectedEndpointId, setSelectedEndpointId] = useState("FIN-001");
+  const [epSearch, setEpSearch] = useState("");
+  const [epDeptFilter, setEpDeptFilter] = useState("all");
+  const [epStatusFilter, setEpStatusFilter] = useState("all");
+  const [selectedIncidentId, setSelectedIncidentId] = useState(null);
+  const [incSearch, setIncSearch] = useState("");
+  const [adminNotes, setAdminNotes] = useState("");
+  const [replayPlaying, setReplayPlaying] = useState(false);
+  const [replayStep, setReplayStep] = useState(0);
   const [virtualFiles, setVirtualFiles] = useState(INITIAL_VIRTUAL_FILES);
   const [monitorStatus, setMonitorStatus] = useState({
     status: "stopped",
@@ -182,15 +195,16 @@ export default function App() {
     try {
       setActionLoading(true);
       setStatusBanner(null);
-      const res = await triggerDemoScenario(scenario);
+      const res = await triggerDemoScenario(scenario, selectedEndpointId);
       await loadAllData();
       if (res.assessment) setSelectedAssessment(res.assessment);
+      if (res.incident) setSelectedIncidentId(res.incident.incident_id);
       if (scenario !== "suspicious") {
         setVirtualFiles(INITIAL_VIRTUAL_FILES);
       }
       setStatusBanner({
         type: res.assessment?.label === "suspicious" ? "alert" : "ok",
-        text: `Scenario '${scenario}' assessed: ${res.assessment?.label?.toUpperCase()} (score ${res.assessment?.risk_score}/100)`
+        text: `[${selectedEndpointId}] Scenario '${scenario}' assessed: ${res.assessment?.label?.toUpperCase()} (score ${res.assessment?.risk_score}/100)`
       });
     } catch (err) {
       setStatusBanner({
@@ -312,6 +326,22 @@ export default function App() {
       : [];
 
   const assessmentById = Object.fromEntries(assessments.map((a) => [a.assessment_id, a]));
+  const activeEndpoint = endpoints.find((e) => e.endpoint_id === selectedEndpointId) || endpoints[0];
+  const activeIncident = incidents.find((i) => i.incident_id === selectedIncidentId) || incidents[0] || null;
+
+  useEffect(() => {
+    if (!replayPlaying || !activeIncident?.timeline?.length) return;
+    const timer = setInterval(() => {
+      setReplayStep((prev) => {
+        if (prev + 1 >= activeIncident.timeline.length) {
+          setReplayPlaying(false);
+          return prev;
+        }
+        return prev + 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [replayPlaying, activeIncident?.incident_id]);
 
   return (
     <div className="flex h-screen bg-slate-950 text-slate-100 overflow-hidden font-sans">
@@ -1149,122 +1179,369 @@ export default function App() {
             </div>
           )}
 
-          {/* ENDPOINTS */}
+          {/* ENDPOINTS (PHASE 9 MULTI-ENDPOINT VIRTUAL ORGANIZATION) */}
           {activeTab === "endpoints" && (
             <div className="space-y-5">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {endpoints.map((ep) => (
-                  <div key={ep.endpoint_id} className="p-4 bg-slate-900/60 border border-slate-800 rounded-lg flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <Server className="w-5 h-5 text-cyan-400" />
-                      <div>
-                        <div className="text-sm font-bold font-mono text-slate-100">{ep.endpoint_id}</div>
-                        <span className="text-xs text-slate-400">Simulated Endpoint Agent (Tabular Telemetry)</span>
-                      </div>
-                    </div>
-                    <span
-                      className={`px-2.5 py-1 rounded text-xs font-mono uppercase ${
-                        ep.status === "simulated_isolated"
-                          ? "bg-rose-950/60 text-rose-300 border border-rose-800"
-                          : "bg-emerald-950/40 text-emerald-300 border border-emerald-800/40"
-                      }`}
-                    >
-                      {ep.status}
-                    </span>
-                  </div>
-                ))}
+              {/* Organization Summary & Filters */}
+              <div className="p-4 bg-slate-900/70 border border-slate-800 rounded-lg flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-sm font-semibold text-slate-100">Virtual Organization Endpoints (Simulated)</h3>
+                  <p className="text-xs text-slate-400">
+                    {endpoints.filter((e) => e.status === "monitoring").length} monitoring |{" "}
+                    {endpoints.filter((e) => e.status === "simulated_isolated").length} simulated_isolated |{" "}
+                    Target for scenarios: <strong className="font-mono text-cyan-300">{selectedEndpointId}</strong>
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2 text-xs">
+                  <input
+                    type="text"
+                    value={epSearch}
+                    onChange={(e) => setEpSearch(e.target.value)}
+                    placeholder="Search ID or device..."
+                    className="bg-slate-950 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200 text-xs"
+                  />
+                  <select
+                    value={epDeptFilter}
+                    onChange={(e) => setEpDeptFilter(e.target.value)}
+                    className="bg-slate-950 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200 text-xs"
+                  >
+                    <option value="all">All Departments</option>
+                    <option value="Finance">Finance</option>
+                    <option value="Engineering">Engineering</option>
+                    <option value="Human Resources">Human Resources</option>
+                    <option value="IT & Backup">IT & Backup</option>
+                    <option value="Administration">Administration</option>
+                  </select>
+                  <select
+                    value={epStatusFilter}
+                    onChange={(e) => setEpStatusFilter(e.target.value)}
+                    className="bg-slate-950 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200 text-xs"
+                  >
+                    <option value="all">All Statuses</option>
+                    <option value="monitoring">monitoring</option>
+                    <option value="paused">paused</option>
+                    <option value="simulated_isolated">simulated_isolated</option>
+                  </select>
+                </div>
               </div>
 
-              <div className="p-4 bg-slate-900/60 border border-slate-800 rounded-lg">
-                <h3 className="text-xs font-semibold text-slate-200 uppercase tracking-wider mb-3">
-                  Endpoint Assessment History
-                </h3>
-                {assessments.length === 0 ? (
-                  <p className="text-xs text-slate-500">No endpoint assessments recorded yet.</p>
-                ) : (
-                  <div className="space-y-2">
-                    {assessments.slice(0, 8).map((a) => (
-                      <div key={a.assessment_id} className="p-2.5 bg-slate-950 border border-slate-800 rounded flex items-center justify-between text-xs">
-                        <span className="font-mono text-cyan-400">{a.assessment_id}</span>
-                        <span className="font-mono text-slate-400">{a.timestamp.substring(11, 19)}Z</span>
-                        <span className="font-mono">Score: {a.risk_score ?? "null"}</span>
-                        <span className={`font-mono uppercase ${a.label === "suspicious" ? "text-rose-400" : "text-emerald-400"}`}>
-                          {a.label}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
+              {/* Endpoints Table */}
+              <div className="p-4 bg-slate-900/60 border border-slate-800 rounded-lg overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="text-[11px] text-slate-400 border-b border-slate-800">
+                    <tr>
+                      <th className="pb-2">Endpoint ID</th>
+                      <th className="pb-2">Device</th>
+                      <th className="pb-2">Department</th>
+                      <th className="pb-2">Virtual OS</th>
+                      <th className="pb-2">Risk Score</th>
+                      <th className="pb-2">Status</th>
+                      <th className="pb-2">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/60">
+                    {endpoints
+                      .filter((ep) => {
+                        const q = epSearch.toLowerCase();
+                        const matchQ =
+                          !q ||
+                          ep.endpoint_id.toLowerCase().includes(q) ||
+                          (ep.device_name || "").toLowerCase().includes(q);
+                        const matchDept = epDeptFilter === "all" || ep.department === epDeptFilter;
+                        const matchStatus = epStatusFilter === "all" || ep.status === epStatusFilter;
+                        return matchQ && matchDept && matchStatus;
+                      })
+                      .map((ep) => (
+                        <tr
+                          key={ep.endpoint_id}
+                          onClick={() => setSelectedEndpointId(ep.endpoint_id)}
+                          className={`cursor-pointer hover:bg-slate-800/40 ${
+                            selectedEndpointId === ep.endpoint_id ? "bg-cyan-950/20" : ""
+                          }`}
+                        >
+                          <td className="py-2.5 font-mono text-cyan-300 font-semibold">{ep.endpoint_id}</td>
+                          <td className="py-2.5 font-mono text-slate-300">{ep.device_name}</td>
+                          <td className="py-2.5 text-slate-300">{ep.department}</td>
+                          <td className="py-2.5 text-slate-400">{ep.virtual_os}</td>
+                          <td className="py-2.5 font-mono font-bold">
+                            <span className={(ep.current_risk_score || 0) >= 50 ? "text-rose-400" : "text-emerald-400"}>
+                              {ep.current_risk_score ?? 0}/100
+                            </span>
+                          </td>
+                          <td className="py-2.5">
+                            <span
+                              className={`px-2 py-0.5 rounded text-[10px] font-mono uppercase ${
+                                ep.status === "simulated_isolated"
+                                  ? "bg-rose-950/60 text-rose-300 border border-rose-800"
+                                  : ep.status === "paused"
+                                  ? "bg-amber-950/50 text-amber-300 border border-amber-800/50"
+                                  : "bg-emerald-950/40 text-emerald-300 border border-emerald-800/40"
+                              }`}
+                            >
+                              {ep.status}
+                            </span>
+                          </td>
+                          <td className="py-2.5">
+                            <button
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                await toggleEndpointMonitoring(ep.endpoint_id);
+                                await loadAllData();
+                              }}
+                              className="text-[11px] text-cyan-400 hover:text-cyan-300 underline"
+                            >
+                              {ep.status === "monitoring" ? "Pause" : "Resume/Restore"}
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
               </div>
+
+              {/* Selected Endpoint File Explorer */}
+              {activeEndpoint && (
+                <div className="p-4 bg-slate-900/60 border border-slate-800 rounded-lg space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <h3 className="text-xs font-semibold text-slate-200 uppercase tracking-wider">
+                        Virtual Workstation File Explorer — {activeEndpoint.endpoint_id} ({activeEndpoint.department})
+                      </h3>
+                      <p className="text-[11px] text-slate-400">
+                        Harmless metadata records only. Last activity: {activeEndpoint.last_activity || "Baseline"}
+                      </p>
+                    </div>
+                    <span className="text-[11px] font-mono text-cyan-300">
+                      {(activeEndpoint.virtual_files || []).length} virtual files
+                    </span>
+                  </div>
+                  <div className="max-h-64 overflow-y-auto border border-slate-800 rounded bg-slate-950">
+                    <table className="w-full text-left text-xs">
+                      <thead className="text-[10px] text-slate-400 border-b border-slate-800 sticky top-0 bg-slate-950">
+                        <tr>
+                          <th className="p-2">Filename</th>
+                          <th className="p-2">Type</th>
+                          <th className="p-2">Size</th>
+                          <th className="p-2">Last Simulated Activity</th>
+                          <th className="p-2">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-800/50 font-mono text-[11px]">
+                        {(activeEndpoint.virtual_files || []).map((vf) => (
+                          <tr key={vf.file_id}>
+                            <td className="p-2 text-slate-200">{vf.filename}</td>
+                            <td className="p-2 text-slate-400 font-sans">{vf.file_type}</td>
+                            <td className="p-2 text-slate-400">{vf.size}</td>
+                            <td className="p-2 text-slate-400 font-sans">{vf.last_activity}</td>
+                            <td className="p-2">
+                              <span
+                                className={
+                                  vf.status === "simulated_encrypted"
+                                    ? "text-rose-400 font-semibold"
+                                    : vf.status === "simulated_altered"
+                                    ? "text-amber-400"
+                                    : "text-emerald-400"
+                                }
+                              >
+                                {vf.status}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
-          {/* INCIDENTS */}
+          {/* INCIDENTS (PHASE 10 ADVANCED INVESTIGATION CENTER) */}
           {activeTab === "incidents" && (
-            <div className="space-y-4">
+            <div className="space-y-5">
+              <div className="p-4 bg-slate-900/70 border border-slate-800 rounded-lg flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-sm font-semibold text-slate-100">Incident Investigation Center (Simulated)</h3>
+                  <p className="text-xs text-slate-400">
+                    Select an incident to inspect AI attributions, replay stored timeline, or resolve simulated containment.
+                  </p>
+                </div>
+                <input
+                  type="text"
+                  value={incSearch}
+                  onChange={(e) => setIncSearch(e.target.value)}
+                  placeholder="Search incident or endpoint..."
+                  className="bg-slate-950 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200 text-xs"
+                />
+              </div>
+
               {incidents.length === 0 ? (
                 <div className="p-8 text-center bg-slate-900/60 border border-dashed border-slate-800 rounded-lg space-y-2">
-                  <p className="text-xs text-slate-400">No active simulated incidents. Endpoints are in monitoring posture.</p>
+                  <p className="text-xs text-slate-400">No simulated incidents recorded. All 5 virtual endpoints are monitoring.</p>
                   <button
                     onClick={() => handleScenarioTrigger("suspicious")}
                     className="text-xs text-rose-300 hover:text-rose-200 underline"
                   >
-                    Trigger Suspicious Scenario
+                    Trigger Suspicious Scenario on {selectedEndpointId}
                   </button>
                 </div>
               ) : (
-                incidents.map((inc) => {
-                  const linked = assessmentById[inc.assessment_id];
-                  return (
-                    <div key={inc.incident_id} className="p-5 bg-slate-900/60 border border-rose-900/50 rounded-lg space-y-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2">
-                          <AlertTriangle className="w-4 h-4 text-rose-400" />
-                          <span className="font-mono text-sm font-bold text-rose-300">{inc.incident_id}</span>
-                          <span className="text-xs font-mono text-slate-400">({inc.endpoint_id})</span>
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+                  {/* Incident List */}
+                  <div className="p-4 bg-slate-900/60 border border-slate-800 rounded-lg space-y-2 max-h-[600px] overflow-y-auto">
+                    <span className="text-xs font-semibold text-slate-200 uppercase tracking-wider block mb-2">
+                      Recorded Incidents ({incidents.length})
+                    </span>
+                    {incidents
+                      .filter((inc) => {
+                        const q = incSearch.toLowerCase();
+                        return (
+                          !q ||
+                          inc.incident_id.toLowerCase().includes(q) ||
+                          inc.endpoint_id.toLowerCase().includes(q)
+                        );
+                      })
+                      .map((inc) => (
+                        <button
+                          key={inc.incident_id}
+                          onClick={() => {
+                            setSelectedIncidentId(inc.incident_id);
+                            setAdminNotes(inc.admin_notes || "");
+                            setReplayPlaying(false);
+                            setReplayStep(0);
+                          }}
+                          className={`w-full text-left p-3 rounded border transition ${
+                            activeIncident?.incident_id === inc.incident_id
+                              ? "bg-rose-950/30 border-rose-700"
+                              : "bg-slate-950 border-slate-800 hover:border-slate-700"
+                          }`}
+                        >
+                          <div className="flex justify-between items-center text-xs font-mono">
+                            <span className="text-rose-300 font-bold">{inc.incident_id}</span>
+                            <span className="text-[10px] uppercase px-1.5 py-0.5 rounded bg-slate-800 text-slate-300">
+                              {inc.investigation_status || "open"}
+                            </span>
+                          </div>
+                          <div className="flex justify-between text-[11px] text-slate-400 mt-1 font-mono">
+                            <span>{inc.endpoint_id}</span>
+                            <span>Score: {inc.risk_score ?? "--"}/100</span>
+                          </div>
+                        </button>
+                      ))}
+                  </div>
+
+                  {/* Dedicated Investigation Workspace */}
+                  {activeIncident && (
+                    <div className="lg:col-span-2 p-5 bg-slate-900/60 border border-slate-800 rounded-lg space-y-4">
+                      {/* A. Incident Overview */}
+                      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-3">
+                        <div>
+                          <h4 className="text-sm font-bold font-mono text-rose-300">
+                            {activeIncident.incident_id} — {activeIncident.endpoint_id}
+                          </h4>
+                          <p className="text-xs text-slate-400">
+                            Severity: <strong className="uppercase text-rose-300">{activeIncident.severity}</strong> | Model:{" "}
+                            <span className="font-mono">{activeIncident.model_version || "rf-phase2-v1"}</span> | Latency:{" "}
+                            <span className="font-mono">{activeIncident.processing_time_ms ?? "--"} ms</span>
+                          </p>
                         </div>
-                        <span className="text-xs font-mono text-rose-300 uppercase px-2.5 py-0.5 bg-rose-950/60 border border-rose-800 rounded">
-                          {inc.status} (SIMULATED)
-                        </span>
+                        <a
+                          href={getIncidentReportUrl(activeIncident.incident_id)}
+                          download={`${activeIncident.incident_id}_report.md`}
+                          className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-cyan-300 text-xs rounded border border-cyan-800/50 flex items-center space-x-1"
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                          <span>Download Report</span>
+                        </a>
                       </div>
 
-                      {linked && (
-                        <div className="p-3 bg-slate-950 border border-slate-800 rounded space-y-1.5 text-xs">
-                          <div className="flex justify-between font-mono text-slate-300">
-                            <span>Assessment: {linked.assessment_id}</span>
-                            <span>Risk Score: {linked.risk_score}/100</span>
-                          </div>
-                          <div className="text-[11px] font-mono text-cyan-300">
-                            {linked.indicators.slice(0, 3).join(" | ")}
-                          </div>
-                        </div>
-                      )}
-
-                      {inc.timeline && (
-                        <div className="border-l-2 border-rose-900/60 pl-3 space-y-1 text-xs">
-                          {inc.timeline.map((ev, i) => (
-                            <div key={i}>
-                              <span className="text-slate-200">{ev.event}</span>
-                              <span className="text-[11px] font-mono text-slate-500 ml-2">(+{ev.elapsed_ms} ms)</span>
+                      {/* B. Behaviour Timeline & Incident Replay */}
+                      {activeIncident.timeline && activeIncident.timeline.length > 0 && (
+                        <div className="p-3 bg-slate-950 border border-slate-800 rounded space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-semibold text-slate-200 uppercase">
+                              Stored Incident Replay ({replayStep + 1}/{activeIncident.timeline.length})
+                            </span>
+                            <div className="flex items-center space-x-2">
+                              <button
+                                onClick={() => setReplayPlaying((p) => !p)}
+                                className="px-2 py-1 bg-cyan-600 text-slate-950 font-semibold text-[11px] rounded"
+                              >
+                                {replayPlaying ? "Pause" : "Play"}
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setReplayPlaying(false);
+                                  setReplayStep(0);
+                                }}
+                                className="px-2 py-1 bg-slate-800 text-slate-200 text-[11px] rounded border border-slate-700"
+                              >
+                                Restart
+                              </button>
                             </div>
-                          ))}
+                          </div>
+                          <div className="space-y-1 border-l-2 border-rose-800 pl-3 text-xs">
+                            {activeIncident.timeline.slice(0, replayStep + 1).map((ev, i) => (
+                              <div key={i}>
+                                <span className="text-slate-200">{ev.event}</span>
+                                <span className="text-[11px] font-mono text-slate-500 ml-2">(+{ev.elapsed_ms} ms)</span>
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       )}
 
-                      <div>
-                        <span className="text-xs font-medium text-slate-300 block mb-1.5">Simulated Response Checklist:</span>
-                        <ul className="space-y-1">
-                          {inc.checklist.map((item, idx) => (
-                            <li key={idx} className="flex items-center space-x-2 text-xs text-slate-300">
-                              <CheckCircle2 className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-                              <span>{item}</span>
-                            </li>
+                      {/* C. AI Intelligence */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                        <div className="p-3 bg-slate-950 border border-slate-800 rounded space-y-1">
+                          <span className="text-[11px] font-semibold text-cyan-300 uppercase block">Model-Derived Explanations</span>
+                          {(activeIncident.explanations?.model_derived || []).map((m, i) => (
+                            <div key={i} className="font-mono text-[11px] text-slate-300">{m}</div>
                           ))}
-                        </ul>
+                        </div>
+                        <div className="p-3 bg-slate-950 border border-slate-800 rounded space-y-1">
+                          <span className="text-[11px] font-semibold text-amber-300 uppercase block">Heuristic Explanations</span>
+                          {(activeIncident.explanations?.heuristic || []).map((h, i) => (
+                            <div key={i} className="font-mono text-[11px] text-slate-300">{h}</div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* E. Response & Recovery */}
+                      <div className="p-3 bg-slate-950 border border-slate-800 rounded space-y-3">
+                        <span className="text-xs font-semibold text-slate-200 uppercase block">
+                          Simulated Response & Recovery
+                        </span>
+                        <textarea
+                          value={adminNotes}
+                          onChange={(e) => setAdminNotes(e.target.value)}
+                          placeholder="Add administrator investigation notes..."
+                          className="w-full h-16 p-2 bg-slate-900 border border-slate-700 rounded text-xs text-slate-200"
+                        />
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            onClick={async () => {
+                              await reviewIncident(activeIncident.incident_id, adminNotes);
+                              await loadAllData();
+                            }}
+                            className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-cyan-300 text-xs rounded border border-cyan-800/50"
+                          >
+                            Mark as Reviewed
+                          </button>
+                          <button
+                            onClick={async () => {
+                              await resolveIncident(activeIncident.incident_id, adminNotes);
+                              await loadAllData();
+                            }}
+                            className="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-600 text-slate-950 font-semibold text-xs rounded"
+                          >
+                            Resolve & Restore Endpoint Monitoring
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  );
-                })
+                  )}
+                </div>
               )}
             </div>
           )}

@@ -13,6 +13,13 @@ class HealthResponse(BaseModel):
 class EndpointItem(BaseModel):
     endpoint_id: str
     status: str
+    device_name: Optional[str] = None
+    department: Optional[str] = None
+    virtual_os: Optional[str] = None
+    current_risk_score: int = 0
+    last_activity: Optional[str] = None
+    containment_status: str = "none"
+    virtual_files: Optional[List[Dict[str, Any]]] = None
 
 
 class EndpointsResponse(BaseModel):
@@ -57,6 +64,15 @@ class IncidentRecord(BaseModel):
     simulated: bool = True
     timestamp: Optional[str] = None
     timeline: Optional[List[TimelineEvent]] = None
+    severity: str = "high"
+    investigation_status: str = "open"
+    admin_notes: str = ""
+    risk_score: Optional[int] = None
+    model_version: Optional[str] = None
+    detection_reason: Optional[str] = None
+    processing_time_ms: Optional[float] = None
+    explanations: Optional[ExplanationDetails] = None
+    raw_observation: Optional[Dict[str, Any]] = None
 
 
 class IncidentsResponse(BaseModel):
@@ -65,6 +81,7 @@ class IncidentsResponse(BaseModel):
 
 class DemoStartRequest(BaseModel):
     scenario: str = Field(..., description="normal, backup, compression, or suspicious")
+    endpoint_id: str = Field(default="FIN-001", description="Target virtual endpoint ID")
 
 
 class DemoStartResponse(BaseModel):

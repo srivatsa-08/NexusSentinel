@@ -13,8 +13,8 @@ export const fetchAssessments = async () => (await api.get("/assessments")).data
 export const fetchIncidents = async () => (await api.get("/incidents")).data;
 export const fetchMetrics = async () => (await api.get("/metrics")).data;
 
-export const triggerDemoScenario = async (scenario) =>
-  (await api.post("/demo/start", { scenario })).data;
+export const triggerDemoScenario = async (scenario, endpointId = "FIN-001") =>
+  (await api.post("/demo/start", { scenario, endpoint_id: endpointId })).data;
 
 export const resetDemo = async () => (await api.post("/demo/reset")).data;
 
@@ -37,3 +37,10 @@ export const simulateGatewayScenario = async (scenario) =>
 export const resetGateway = async () => (await api.post("/gateway/reset")).data;
 export const simulateGatewayBulk = async (profile, count) =>
   (await api.post("/gateway/bulk", { profile, count })).data;
+export const toggleEndpointMonitoring = async (endpointId) =>
+  (await api.post(`/endpoints/${endpointId}/toggle-monitoring`)).data;
+export const reviewIncident = async (incidentId, adminNotes) =>
+  (await api.post(`/incidents/${incidentId}/review`, { admin_notes: adminNotes })).data;
+export const resolveIncident = async (incidentId, adminNotes) =>
+  (await api.post(`/incidents/${incidentId}/resolve`, { admin_notes: adminNotes })).data;
+export const getIncidentReportUrl = (incidentId) => `${API_BASE}/incidents/${incidentId}/report`;

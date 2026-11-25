@@ -108,9 +108,35 @@ def get_health() -> dict[str, Any]:
 @app.get("/api/v1/endpoints", response_model=EndpointsResponse)
 def get_endpoints() -> EndpointsResponse:
     conn = get_db_connection()
-    rows = conn.execute("SELECT endpoint_id, status FROM endpoints").fetchall()
+    rows = conn.execute(
+        """
+        SELECT endpoint_id, status, device_name, department, virtual_os,
+               current_risk_score, last_activity, containment_status, virtual_files
+        FROM endpoints
+        """
+    ).fetchall()
     conn.close()
-    items = [EndpointItem(endpoint_id=r["endpoint_id"], status=r["status"]) for r in rows]
+    items = []
+    for r in rows:
+        vfiles = None
+        if r["virtual_files"]:
+            try:
+                vfiles = json.loads(r["virtual_files"])
+            except Exception:
+                vfiles = []
+        items.append(
+            EndpointItem(
+                endpoint_id=r["endpoint_id"],
+                status=r["status"],
+                device_name=r["device_name"],
+                department=r["department"],
+                virtual_os=r["virtual_os"],
+                current_risk_score=r["current_risk_score"] or 0,
+                last_activity=r["last_activity"],
+                containment_status=r["containment_status"] or "none",
+                virtual_files=vfiles,
+            )
+        )
     return EndpointsResponse(items=items)
 
 
@@ -169,7 +195,10 @@ def get_incidents() -> IncidentsResponse:
     conn = get_db_connection()
     rows = conn.execute(
         """
-        SELECT incident_id, endpoint_id, assessment_id, status, checklist, simulated, timestamp, timeline
+        SELECT incident_id, endpoint_id, assessment_id, status, checklist, simulated,
+               timestamp, timeline, severity, investigation_status, admin_notes,
+               risk_score, model_version, detection_reason, processing_time_ms,
+               explanations, raw_observation
         FROM incidents ORDER BY incident_id DESC
         """
     ).fetchall()
@@ -179,8 +208,23 @@ def get_incidents() -> IncidentsResponse:
         timeline_list = None
         if r["timeline"]:
             try:
-                raw_tl = json.loads(r["timeline"])
-                timeline_list = [TimelineEvent(**t) for t in raw_tl]
+                timeline_list = [TimelineEvent(**t) for t in json.loads(r["timeline"])]
+            except Exception:
+                pass
+        expl_obj = None
+        if r["explanations"]:
+            try:
+                raw_e = json.loads(r["explanations"])
+                expl_obj = ExplanationDetails(
+                    model_derived=raw_e.get("model_derived", []),
+                    heuristic=raw_e.get("heuristic", []),
+                )
+            except Exception:
+                pass
+        raw_obs = None
+        if r["raw_observation"]:
+            try:
+                raw_obs = json.loads(r["raw_observation"])
             except Exception:
                 pass
 
@@ -194,6 +238,15 @@ def get_incidents() -> IncidentsResponse:
                 simulated=bool(r["simulated"]),
                 timestamp=r["timestamp"],
                 timeline=timeline_list,
+                severity=r["severity"] or "high",
+                investigation_status=r["investigation_status"] or "open",
+                admin_notes=r["admin_notes"] or "",
+                risk_score=r["risk_score"],
+                model_version=r["model_version"],
+                detection_reason=r["detection_reason"],
+                processing_time_ms=r["processing_time_ms"],
+                explanations=expl_obj,
+                raw_observation=raw_obs,
             )
         )
     return IncidentsResponse(items=items)
@@ -306,12 +359,58 @@ def post_demo_start(req: DemoStartRequest) -> DemoStartResponse:
             detail=f"Invalid scenario '{scenario}'. Choose from {valid_scenarios}",
         )
 
-    endpoint_id = "demo-01"
+    endpoint_id = req.endpoint_id.strip() or "FIN-001"
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    ep_row = cursor.execute(
+        "SELECT endpoint_id, virtual_files FROM endpoints WHERE endpoint_id = ?",
+        (endpoint_id,),
+    ).fetchone()
+    if ep_row is None:
+        conn.close()
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Virtual endpoint '{endpoint_id}' not found.",
+        )
+
     observation = SYNTHETIC_INFERENCE_EXAMPLES[scenario]
     assessment_record = _run_single_assessment(observation, endpoint_id=endpoint_id, t0_ns=t0_ns)
 
-    conn = get_db_connection()
-    cursor = conn.cursor()
+    vfiles = json.loads(ep_row["virtual_files"]) if ep_row["virtual_files"] else []
+    if assessment_record.label == "suspicious":
+        for idx, vf in enumerate(vfiles):
+            if idx % 2 == 0:
+                vf["status"] = "simulated_encrypted"
+                if not vf["filename"].endswith(".locked"):
+                    vf["filename"] = f"{vf['filename']}.locked"
+                vf["last_activity"] = "Simulated high-entropy rename"
+                vf["assessment_id"] = assessment_record.assessment_id
+            elif idx < 6:
+                vf["status"] = "simulated_altered"
+                vf["last_activity"] = "Simulated burst write"
+                vf["assessment_id"] = assessment_record.assessment_id
+    else:
+        for vf in vfiles:
+            vf["status"] = "intact"
+            vf["filename"] = vf["filename"].removesuffix(".locked")
+            vf["last_activity"] = f"Verified ({scenario})"
+            vf["assessment_id"] = assessment_record.assessment_id
+
+    cursor.execute(
+        """
+        UPDATE endpoints
+        SET current_risk_score = ?,
+            last_activity = ?,
+            virtual_files = ?
+        WHERE endpoint_id = ?
+        """,
+        (
+            assessment_record.risk_score or 0,
+            f"{scenario} ({assessment_record.label})",
+            json.dumps(vfiles),
+            endpoint_id,
+        ),
+    )
 
     incident_record = None
     if assessment_record.label == "suspicious":
@@ -328,7 +427,7 @@ def post_demo_start(req: DemoStartRequest) -> DemoStartResponse:
         elapsed_alert_ms = round((t_alert_ns - t0_ns) / 1_000_000.0, 3)
 
         cursor.execute(
-            "UPDATE endpoints SET status = 'simulated_isolated' WHERE endpoint_id = ?",
+            "UPDATE endpoints SET status = 'simulated_isolated', containment_status = 'simulated_isolated' WHERE endpoint_id = ?",
             (endpoint_id,),
         )
 
@@ -353,10 +452,17 @@ def post_demo_start(req: DemoStartRequest) -> DemoStartResponse:
         )
 
         incident_timeline = list(assessment_record.timeline)
+        det_reason = "; ".join(assessment_record.indicators[:3])
+        severity = "critical" if (assessment_record.risk_score or 0) >= 85 else "high"
         cursor.execute(
             """
-            INSERT INTO incidents (incident_id, endpoint_id, assessment_id, status, checklist, simulated, timestamp, timeline)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO incidents (
+                incident_id, endpoint_id, assessment_id, status, checklist, simulated,
+                timestamp, timeline, severity, investigation_status, admin_notes,
+                risk_score, model_version, detection_reason, processing_time_ms,
+                explanations, raw_observation
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 incident_id,
@@ -367,6 +473,15 @@ def post_demo_start(req: DemoStartRequest) -> DemoStartResponse:
                 1,
                 t_alert_iso,
                 json.dumps([t.model_dump() for t in incident_timeline]),
+                severity,
+                "open",
+                "",
+                assessment_record.risk_score,
+                assessment_record.model_version,
+                det_reason,
+                assessment_record.processing_time_ms,
+                json.dumps(assessment_record.explanations.model_dump() if assessment_record.explanations else {}),
+                json.dumps(observation),
             ),
         )
         incident_record = IncidentRecord(
@@ -378,6 +493,15 @@ def post_demo_start(req: DemoStartRequest) -> DemoStartResponse:
             simulated=True,
             timestamp=t_alert_iso,
             timeline=incident_timeline,
+            severity=severity,
+            investigation_status="open",
+            admin_notes="",
+            risk_score=assessment_record.risk_score,
+            model_version=assessment_record.model_version,
+            detection_reason=det_reason,
+            processing_time_ms=assessment_record.processing_time_ms,
+            explanations=assessment_record.explanations,
+            raw_observation=observation,
         )
 
     # Store assessment
@@ -601,3 +725,94 @@ def post_gateway_bulk(payload: dict[str, Any]) -> dict[str, Any]:
         return gateway_controller.simulate_custom_bulk(profile=profile, count=count)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
+
+@app.post("/api/v1/endpoints/{endpoint_id}/toggle-monitoring")
+def post_toggle_endpoint_monitoring(endpoint_id: str) -> dict[str, Any]:
+    conn = get_db_connection()
+    row = conn.execute(
+        "SELECT endpoint_id, status FROM endpoints WHERE endpoint_id = ?",
+        (endpoint_id,),
+    ).fetchone()
+    if row is None:
+        conn.close()
+        raise HTTPException(status_code=404, detail=f"Endpoint '{endpoint_id}' not found.")
+    new_status = "paused" if row["status"] == "monitoring" else "monitoring"
+    conn.execute(
+        "UPDATE endpoints SET status = ?, containment_status = 'none' WHERE endpoint_id = ?",
+        (new_status, endpoint_id),
+    )
+    conn.commit()
+    conn.close()
+    return {"endpoint_id": endpoint_id, "status": new_status}
+
+
+@app.post("/api/v1/incidents/{incident_id}/review")
+def post_review_incident(incident_id: str, payload: dict[str, Any]) -> dict[str, Any]:
+    notes = str(payload.get("admin_notes", ""))
+    conn = get_db_connection()
+    row = conn.execute("SELECT incident_id FROM incidents WHERE incident_id = ?", (incident_id,)).fetchone()
+    if row is None:
+        conn.close()
+        raise HTTPException(status_code=404, detail=f"Incident '{incident_id}' not found.")
+    conn.execute(
+        "UPDATE incidents SET investigation_status = 'reviewed', admin_notes = ? WHERE incident_id = ?",
+        (notes, incident_id),
+    )
+    conn.commit()
+    conn.close()
+    return {"incident_id": incident_id, "investigation_status": "reviewed", "admin_notes": notes}
+
+
+@app.post("/api/v1/incidents/{incident_id}/resolve")
+def post_resolve_incident(incident_id: str, payload: dict[str, Any] | None = None) -> dict[str, Any]:
+    notes = str((payload or {}).get("admin_notes", ""))
+    conn = get_db_connection()
+    row = conn.execute(
+        "SELECT incident_id, endpoint_id FROM incidents WHERE incident_id = ?",
+        (incident_id,),
+    ).fetchone()
+    if row is None:
+        conn.close()
+        raise HTTPException(status_code=404, detail=f"Incident '{incident_id}' not found.")
+    ep_id = row["endpoint_id"]
+    conn.execute(
+        "UPDATE incidents SET investigation_status = 'resolved', status = 'simulated_resolved', admin_notes = ? WHERE incident_id = ?",
+        (notes, incident_id),
+    )
+    conn.execute(
+        "UPDATE endpoints SET status = 'monitoring', containment_status = 'restored', current_risk_score = 0 WHERE endpoint_id = ?",
+        (ep_id,),
+    )
+    conn.commit()
+    conn.close()
+    return {"incident_id": incident_id, "investigation_status": "resolved", "endpoint_id": ep_id, "endpoint_status": "monitoring"}
+
+
+@app.get("/api/v1/incidents/{incident_id}/report")
+def get_incident_report(incident_id: str) -> PlainTextResponse:
+    conn = get_db_connection()
+    row = conn.execute("SELECT * FROM incidents WHERE incident_id = ?", (incident_id,)).fetchone()
+    conn.close()
+    if row is None:
+        raise HTTPException(status_code=404, detail=f"Incident '{incident_id}' not found.")
+    report_md = f"""# Nexus Sentinel — Simulated Incident Investigation Report
+- **Incident ID:** {row['incident_id']}
+- **Endpoint ID:** {row['endpoint_id']}
+- **Assessment ID:** {row['assessment_id']}
+- **Timestamp:** {row['timestamp']}
+- **Severity:** {row['severity']}
+- **Investigation Status:** {row['investigation_status']}
+- **Simulated Containment Status:** {row['status']}
+- **Risk Score:** {row['risk_score']}/100 (uncalibrated)
+- **Model Version:** {row['model_version']}
+- **Measured Assessment Latency:** {row['processing_time_ms']} ms
+- **Detection Reason:** {row['detection_reason']}
+- **Administrator Notes:** {row['admin_notes'] or 'None'}
+- **Simulated Notice:** All observations and containment actions are strictly simulated.
+"""
+    return PlainTextResponse(
+        content=report_md,
+        media_type="text/markdown",
+        headers={"Content-Disposition": f"attachment; filename={incident_id}_report.md"},
+    )

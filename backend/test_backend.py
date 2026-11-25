@@ -32,9 +32,10 @@ def test_endpoints_list():
     assert res.status_code == 200
     data = res.json()
     assert "items" in data
-    assert len(data["items"]) >= 1
-    assert data["items"][0]["endpoint_id"] == "demo-01"
-    assert data["items"][0]["status"] == "monitoring"
+    assert len(data["items"]) == 5
+    ids = {item["endpoint_id"] for item in data["items"]}
+    assert ids == {"FIN-001", "DEV-001", "HR-001", "BAK-001", "ADM-001"}
+    assert all(item["status"] == "monitoring" for item in data["items"])
 
 
 def test_metrics_endpoint():
@@ -97,7 +98,8 @@ def test_demo_suspicious_scenario_and_simulated_containment():
     ep_res = client.get("/api/v1/endpoints")
     assert ep_res.status_code == 200
     eps = {e["endpoint_id"]: e["status"] for e in ep_res.json()["items"]}
-    assert eps["demo-01"] == "simulated_isolated"
+    assert eps["FIN-001"] == "simulated_isolated"
+    assert eps["DEV-001"] == "monitoring"
 
     # Verify incidents endpoint
     inc_res = client.get("/api/v1/incidents")
