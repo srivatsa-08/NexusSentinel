@@ -45,3 +45,7 @@ export const resolveIncident = async (incidentId, adminNotes) =>
   (await api.post(`/incidents/${incidentId}/resolve`, { admin_notes: adminNotes })).data;
 export const getIncidentReportUrl = (incidentId) => `${API_BASE}/incidents/${incidentId}/report`;
 export const fetchWorkspaceStatus = async () => (await api.get("/workspace/status")).data;
+export const runWorkspaceTest = async (endpointId = "FIN-001") =>
+  (await api.post("/workspace/run-test", { endpoint_id: endpointId })).data;
+export const stopWorkspaceTest = async () => (await api.post("/workspace/stop-test")).data;
+export const resetWorkspaceSimulation = async () => (await api.post("/workspace/reset")).data;

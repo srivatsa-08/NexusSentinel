@@ -930,9 +930,60 @@ def post_workspace_ingest(payload: dict[str, Any]) -> dict[str, Any]:
     conn.commit()
     conn.close()
 
+    assessment_dict = assessment_record.model_dump()
+    workspace_monitor.record_harness_event(
+        assessment_dict,
+        telemetry_source=telemetry_source,
+        test_start_ts=payload.get("test_start_timestamp"),
+    )
+
     return {
         "status": "ingested",
         "telemetry_source": telemetry_source,
-        "assessment": assessment_record.model_dump(),
+        "assessment": assessment_dict,
         "incident": incident_record,
     }
+
+
+@app.post("/api/v1/workspace/run-test")
+def post_workspace_run_test(payload: dict[str, Any] | None = None) -> dict[str, Any]:
+    """Run the approved progressive synthetic harness sequence, stopping on containment."""
+    endpoint_id = str((payload or {}).get("endpoint_id", "FIN-001")).strip() or "FIN-001"
+    test_start_iso = datetime.now(timezone.utc).isoformat()
+    workspace_monitor.reset_simulation()
+    workspace_monitor.harness_state["status"] = "running"
+    workspace_monitor.harness_state["test_start_timestamp"] = test_start_iso
+
+    results = []
+    for sc in ("normal", "backup", "suspicious"):
+        if workspace_monitor.harness_state["status"] in ("stopped", "contained"):
+            break
+        res = post_workspace_ingest(
+            {
+                "endpoint_id": endpoint_id,
+                "telemetry_source": "approved_test_harness",
+                "test_start_timestamp": test_start_iso,
+                "observation": SYNTHETIC_INFERENCE_EXAMPLES[sc],
+            }
+        )
+        results.append(res)
+        if res["assessment"]["label"] == "suspicious":
+            break
+
+    return {
+        "status": workspace_monitor.harness_state["status"],
+        "steps_executed": len(results),
+        "workspace": workspace_monitor.get_status(),
+    }
+
+
+@app.post("/api/v1/workspace/stop-test")
+def post_workspace_stop_test() -> dict[str, Any]:
+    workspace_monitor.harness_state["status"] = "stopped"
+    return workspace_monitor.get_status()
+
+
+@app.post("/api/v1/workspace/reset")
+def post_workspace_reset() -> dict[str, Any]:
+    workspace_monitor.reset_simulation()
+    return workspace_monitor.get_status()

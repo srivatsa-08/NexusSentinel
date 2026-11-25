@@ -49,3 +49,23 @@ def test_independent_harness_ingest_pipeline() -> None:
 
     # Clean up
     client.post("/api/v1/demo/reset")
+
+
+
+def test_workspace_run_test_stops_on_containment_and_resets() -> None:
+    res = client.post("/api/v1/workspace/run-test", json={"endpoint_id": "FIN-001"})
+    assert res.status_code == 200
+    data = res.json()
+    assert data["status"] == "contained"
+    assert data["steps_executed"] == 3
+    ws = data["workspace"]
+    assert ws["file_count"] >= 20
+    assert len(ws["files"]) == ws["file_count"]
+    assert ws["harness_state"]["virtually_affected_count"] == 6
+    assert ws["harness_state"]["containment_timestamp"] is not None
+
+    rst = client.post("/api/v1/workspace/reset")
+    assert rst.status_code == 200
+    assert rst.json()["harness_state"]["status"] == "idle"
+    assert rst.json()["harness_state"]["virtually_affected_count"] == 0
+    client.post("/api/v1/demo/reset")

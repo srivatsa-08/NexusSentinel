@@ -56,7 +56,10 @@ import {
   reviewIncident,
   resolveIncident,
   getIncidentReportUrl,
-  fetchWorkspaceStatus
+  fetchWorkspaceStatus,
+  runWorkspaceTest,
+  stopWorkspaceTest,
+  resetWorkspaceSimulation
 } from "./services/api";
 
 const SecurityTopology3D = lazy(() => import("./components/SecurityTopology3D"));
@@ -369,6 +372,7 @@ export default function App() {
             {[
               { id: "overview", label: "Overview", icon: Activity },
               { id: "simlab", label: "Simulation Lab", icon: Terminal, badge: "DEMO" },
+              { id: "workspace", label: "Workspace Monitor", icon: HardDrive },
               { id: "gateway", label: "Gateway Protection", icon: Cpu },
               { id: "endpoints", label: "Endpoints", icon: Server, count: endpoints.length },
               { id: "incidents", label: "Incidents", icon: AlertTriangle, count: incidents.length, warn: incidents.length > 0 },
@@ -739,6 +743,186 @@ export default function App() {
                       </table>
                     </div>
                   )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* WORKSPACE PROTECTION CENTER */}
+          {activeTab === "workspace" && workspaceStatus && (
+            <div className="space-y-5">
+              {/* Controls & Status */}
+              <div className="p-4 bg-slate-900/70 border border-slate-800 rounded-lg flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-sm font-semibold text-slate-100">
+                    Workspace Protection Center ({workspaceStatus.workspace_path})
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    Monitor: <strong className="text-emerald-400 font-mono uppercase">{workspaceStatus.monitoring_status}</strong> |{" "}
+                    Harness: <strong className="text-cyan-300 font-mono uppercase">{workspaceStatus.harness_state?.status || "idle"}</strong> |{" "}
+                    Telemetry: <strong className="text-amber-300 font-mono">{workspaceStatus.telemetry_status}</strong>
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    onClick={async () => {
+                      setActionLoading(true);
+                      try {
+                        const res = await runWorkspaceTest(selectedEndpointId);
+                        if (res.workspace) setWorkspaceStatus(res.workspace);
+                        await loadAllData();
+                      } finally {
+                        setActionLoading(false);
+                      }
+                    }}
+                    disabled={actionLoading}
+                    className="px-3 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-semibold text-xs rounded transition disabled:opacity-50"
+                  >
+                    Run Test Script
+                  </button>
+                  <button
+                    onClick={async () => {
+                      setWorkspaceStatus(await stopWorkspaceTest());
+                    }}
+                    className="px-2.5 py-1.5 bg-rose-950/60 hover:bg-rose-900/60 text-rose-200 text-xs rounded border border-rose-800/60"
+                  >
+                    Stop Test
+                  </button>
+                  <button
+                    onClick={async () => {
+                      setWorkspaceStatus(await fetchWorkspaceStatus());
+                    }}
+                    className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs rounded border border-slate-700"
+                  >
+                    Refresh Workspace
+                  </button>
+                  <button
+                    onClick={async () => {
+                      setWorkspaceStatus(await resetWorkspaceSimulation());
+                    }}
+                    className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-cyan-300 text-xs rounded border border-cyan-800/50"
+                  >
+                    Reset Simulation
+                  </button>
+                </div>
+              </div>
+
+              {/* Containment & Latency Summary */}
+              {workspaceStatus.harness_state && (
+                <div className="grid grid-cols-2 lg:grid-cols-6 gap-3 font-mono text-xs">
+                  <div className="p-3 bg-slate-900/60 border border-slate-800 rounded-lg">
+                    <span className="text-[11px] text-slate-400 block font-sans">Observations</span>
+                    <span className="text-lg font-bold text-slate-100">{workspaceStatus.harness_state.observations_processed}</span>
+                  </div>
+                  <div className="p-3 bg-slate-900/60 border border-slate-800 rounded-lg">
+                    <span className="text-[11px] text-slate-400 block font-sans">AI Risk Score</span>
+                    <span className={`text-lg font-bold ${(workspaceStatus.harness_state.latest_assessment?.risk_score ?? 0) >= 50 ? "text-rose-400" : "text-emerald-400"}`}>
+                      {workspaceStatus.harness_state.latest_assessment?.risk_score ?? "--"}/100
+                    </span>
+                  </div>
+                  <div className="p-3 bg-slate-900/60 border border-slate-800 rounded-lg">
+                    <span className="text-[11px] text-slate-400 block font-sans">Detection Latency</span>
+                    <span className="text-lg font-bold text-cyan-300">
+                      {workspaceStatus.harness_state.measured_detection_latency_ms ?? "--"} ms
+                    </span>
+                  </div>
+                  <div className="p-3 bg-slate-900/60 border border-slate-800 rounded-lg">
+                    <span className="text-[11px] text-slate-400 block font-sans">Virtually Affected</span>
+                    <span className="text-lg font-bold text-rose-400">{workspaceStatus.harness_state.virtually_affected_count}</span>
+                  </div>
+                  <div className="p-3 bg-slate-900/60 border border-slate-800 rounded-lg">
+                    <span className="text-[11px] text-slate-400 block font-sans">Unaffected Files</span>
+                    <span className="text-lg font-bold text-emerald-400">{workspaceStatus.harness_state.unaffected_count}</span>
+                  </div>
+                  <div className="p-3 bg-slate-900/60 border border-slate-800 rounded-lg">
+                    <span className="text-[11px] text-slate-400 block font-sans">Containment</span>
+                    <span className="text-sm font-bold text-purple-300 uppercase">
+                      {workspaceStatus.harness_state.containment_timestamp ? "SIM_ISOLATED" : "MONITORING"}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Live File Explorer */}
+              <div className="p-4 bg-slate-900/60 border border-slate-800 rounded-lg space-y-2">
+                <div className="flex justify-between items-center">
+                  <h4 className="text-xs font-semibold text-slate-200 uppercase tracking-wider">
+                    Live File Explorer ({workspaceStatus.file_count} Actual Files in demo_workspace/)
+                  </h4>
+                  <span className="text-[11px] text-slate-400">
+                    Real files on disk are never encrypted or modified.
+                  </span>
+                </div>
+                <div className="max-h-64 overflow-y-auto border border-slate-800 rounded bg-slate-950">
+                  <table className="w-full text-left text-xs">
+                    <thead className="text-[10px] text-slate-400 border-b border-slate-800 sticky top-0 bg-slate-950">
+                      <tr>
+                        <th className="p-2">Filename</th>
+                        <th className="p-2">Ext</th>
+                        <th className="p-2">Size</th>
+                        <th className="p-2">Last Modified (UTC)</th>
+                        <th className="p-2">Observed Activity</th>
+                        <th className="p-2">Simulated Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800/50 font-mono text-[11px]">
+                      {(workspaceStatus.files || []).map((f) => (
+                        <tr key={f.filename}>
+                          <td className="p-2 text-slate-200">{f.filename}</td>
+                          <td className="p-2 text-slate-400">{f.extension}</td>
+                          <td className="p-2 text-slate-400">{f.size_bytes} B</td>
+                          <td className="p-2 text-slate-500">{f.last_modified.substring(0, 19)}Z</td>
+                          <td className="p-2 text-cyan-300">{f.observed_activity}</td>
+                          <td className="p-2">
+                            <span
+                              className={
+                                f.simulated_status === "simulated_encrypted"
+                                  ? "text-rose-400 font-semibold"
+                                  : f.simulated_status === "simulated_altered"
+                                  ? "text-amber-400"
+                                  : f.simulated_status === "simulated_contained"
+                                  ? "text-purple-300"
+                                  : "text-emerald-400"
+                              }
+                            >
+                              {f.simulated_status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Activity Feed & Unavailable Features */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 text-xs">
+                <div className="p-3 bg-slate-900/60 border border-slate-800 rounded-lg max-h-48 overflow-y-auto">
+                  <span className="text-[11px] font-mono text-slate-400 uppercase block mb-2">
+                    Recent Observed & Synthetic Events
+                  </span>
+                  {workspaceStatus.recent_events?.length > 0 ? (
+                    workspaceStatus.recent_events.slice(0, 10).map((ev, i) => (
+                      <div key={i} className="font-mono text-[11px] text-slate-300 flex justify-between py-1 border-b border-slate-800/50">
+                        <span>[{ev.event_type}] {ev.filename}</span>
+                        <span className="text-slate-500">{ev.telemetry_source}</span>
+                      </div>
+                    ))
+                  ) : (
+                    <span className="text-xs text-slate-500">
+                      No events yet. Edit a file in demo_workspace/ or click Run Test Script.
+                    </span>
+                  )}
+                </div>
+                <div className="p-3 bg-slate-900/60 border border-slate-800 rounded-lg">
+                  <span className="text-[11px] font-mono text-amber-300 uppercase block mb-2">
+                    Unavailable Measurements (Not Fabricated)
+                  </span>
+                  <ul className="space-y-1 text-xs font-mono text-slate-400">
+                    {(workspaceStatus.unavailable_features || []).map((u, i) => (
+                      <li key={i}>• {u}</li>
+                    ))}
+                  </ul>
                 </div>
               </div>
             </div>
