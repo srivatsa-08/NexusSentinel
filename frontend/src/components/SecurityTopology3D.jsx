@@ -1,6 +1,6 @@
 import React, { useMemo, useRef, useState, useEffect } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
-import { OrbitControls, Html, Line } from "@react-three/drei";
+import { OrbitControls, Line } from "@react-three/drei";
 import * as THREE from "three";
 
 const STATE_COLORS = {
@@ -105,12 +105,6 @@ function ProtectionCore({ hasIncident, reducedMotion }) {
         <torusGeometry args={[1.38, 0.01, 8, 72]} />
         <meshStandardMaterial color="#7C3AED" emissive="#7C3AED" emissiveIntensity={0.35} transparent opacity={0.65} />
       </mesh>
-
-      <Html position={[0, 1.55, 0]} center distanceFactor={11}>
-        <div className="px-2 py-0.5 rounded bg-[#160D26]/70 border border-[#E8BB65]/40 text-[10px] font-mono text-[#FFE3A5] whitespace-nowrap pointer-events-none">
-          SENTINEL CORE
-        </div>
-      </Html>
     </group>
   );
 }
@@ -147,11 +141,6 @@ function GatewayStructure({ gateway, reducedMotion }) {
         <torusGeometry args={[0.66, 0.018, 8, 48]} />
         <meshStandardMaterial color="#E8BB65" emissive="#B88635" emissiveIntensity={0.5} />
       </mesh>
-      <Html position={[0, 0.66, 0]} center distanceFactor={11}>
-        <div className="px-2 py-0.5 rounded bg-[#160D26]/75 border border-purple-300/25 text-[10px] font-mono text-[#E9D5FF] whitespace-nowrap pointer-events-none">
-          GATEWAY ({gateway?.queue_depth ?? 0}/{gateway?.queue_capacity ?? 10})
-        </div>
-      </Html>
     </group>
   );
 }
@@ -285,26 +274,6 @@ function EndpointNode({
           />
         </mesh>
       </group>
-
-      <Html position={[pos[0], pos[1] + 0.56, pos[2]]} center distanceFactor={11}>
-        <button
-          onMouseEnter={() => onHover(ep.endpoint_id)}
-          onMouseLeave={() => onHover(null)}
-          onClick={() => onSelect(ep.endpoint_id)}
-          className={`px-2 py-0.5 rounded text-[10px] font-mono whitespace-nowrap border transition-all duration-200 ${
-            dimmed ? "opacity-30" : "opacity-100"
-          } ${
-            isIsolated
-              ? "bg-rose-950/85 border-rose-500 text-rose-200"
-              : isHovered || isSelected
-              ? "bg-[#29193E]/90 border-[#E8BB65] text-[#FFE3A5] shadow-[0_0_12px_rgba(232,187,101,0.35)]"
-              : "bg-[#160D26]/80 border-purple-300/20 text-[#F3E8FF]"
-          }`}
-        >
-          {ep.endpoint_id} ({ep.current_risk_score ?? 0})
-          {isHovered && ` · ${ep.department}`}
-        </button>
-      </Html>
     </group>
   );
 }
@@ -397,6 +366,38 @@ export default function SecurityTopology3D({
       >
         Reset View
       </button>
+
+      {/* Safe React HUD Overlay (replaces drei <Html> to prevent React 19 root.unmount race) */}
+      <div className="absolute bottom-2.5 inset-x-3 z-10 flex flex-wrap items-center justify-between gap-2 pointer-events-none">
+        <span className="px-2 py-0.5 rounded bg-[#160D26]/75 border border-purple-300/20 text-[10px] font-mono text-[#E9D5FF]">
+          CORE · GATEWAY ({gateway?.queue_depth ?? 0}/{gateway?.queue_capacity ?? 10})
+        </span>
+        <div className="flex flex-wrap items-center gap-1.5 pointer-events-auto">
+          {endpoints.slice(0, 5).map((ep) => {
+            const isSelected = ep.endpoint_id === selectedEndpointId;
+            const isHovered = ep.endpoint_id === hoveredEndpointId;
+            const isIsolated = ep.status === "simulated_isolated";
+            return (
+              <button
+                key={ep.endpoint_id}
+                type="button"
+                onMouseEnter={() => setHoveredEndpointId(ep.endpoint_id)}
+                onMouseLeave={() => setHoveredEndpointId(null)}
+                onClick={() => onSelectEndpoint(ep.endpoint_id)}
+                className={`px-2 py-0.5 rounded text-[10px] font-mono border transition-all ${
+                  isIsolated
+                    ? "bg-rose-950/85 border-rose-500 text-rose-200"
+                    : isHovered || isSelected
+                    ? "bg-[#29193E]/90 border-[#E8BB65] text-[#FFE3A5]"
+                    : "bg-[#160D26]/75 border-purple-300/20 text-[#F3E8FF]"
+                }`}
+              >
+                {ep.endpoint_id} ({ep.current_risk_score ?? 0})
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
       <Canvas
         dpr={[1, 1.5]}

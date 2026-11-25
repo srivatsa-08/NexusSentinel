@@ -35,6 +35,7 @@ import {
 import PrismBackground from "./components/PrismBackground";
 import InteractiveCard from "./components/InteractiveCard";
 import AnalyticsSection from "./components/AnalyticsSection";
+import ErrorBoundary from "./components/ErrorBoundary";
 import { REPORT_TYPES, buildReportData, downloadFinTechPdf } from "./utils/fintechPdfReport";
 import {
   ResponsiveContainer,
@@ -419,7 +420,9 @@ export default function App() {
 
   return (
     <div className="ns-cursor-spotlight relative flex h-screen bg-[#08050F] text-[#F5EDFF] overflow-hidden font-sans">
-      <PrismBackground />
+      <ErrorBoundary name="PrismBackground" fallback={null}>
+        <PrismBackground />
+      </ErrorBoundary>
       {/* Sidebar */}
       <aside className="relative z-10 w-60 bg-[#160D26]/12 backdrop-blur-[5px] backdrop-saturate-125 border-r border-purple-300/12 flex flex-col justify-between shrink-0">
         <div>
@@ -577,19 +580,21 @@ export default function App() {
                       {health.model_version || "rf-phase2-v1"}
                     </span>
                   </div>
-                  <Suspense
-                    fallback={
-                      <div className="h-[300px] flex flex-col items-center justify-center gap-2 text-xs text-[#E8BB65] font-mono">
-                        <div className="w-7 h-7 rounded-full border-2 border-[#B88635]/30 border-t-[#E8BB65] animate-spin" />
-                        <span>Initializing Sentinel Core...</span>
-                      </div>
-                    }
-                  >
-                    <SentinelIntelligenceCore
-                      hasIncident={incidents.length > 0}
-                      onInspect={() => setActiveTab("analytics")}
-                    />
-                  </Suspense>
+                  <ErrorBoundary name="SentinelIntelligenceCore">
+                    <Suspense
+                      fallback={
+                        <div className="h-[300px] flex flex-col items-center justify-center gap-2 text-xs text-[#E8BB65] font-mono">
+                          <div className="w-7 h-7 rounded-full border-2 border-[#B88635]/30 border-t-[#E8BB65] animate-spin" />
+                          <span>Initializing Sentinel Core...</span>
+                        </div>
+                      }
+                    >
+                      <SentinelIntelligenceCore
+                        hasIncident={incidents.length > 0}
+                        onInspect={() => setActiveTab("analytics")}
+                      />
+                    </Suspense>
+                  </ErrorBoundary>
                   <div className="grid grid-cols-2 gap-2 text-[11px] font-mono text-[#AD98C5] pt-2 border-t border-purple-300/12">
                     <span>Backend: <strong className="text-emerald-400">{health.components?.backend || health.status}</strong></span>
                     <span>DB: <strong className="text-emerald-400">{health.components?.database || "--"}</strong></span>
@@ -1828,21 +1833,23 @@ export default function App() {
                   <span className="ns-section-title">Interactive Endpoint Network Topology</span>
                   <span className="text-[11px] text-[#AD98C5]">Hover a node to highlight connections • Click to inspect</span>
                 </div>
-                <Suspense
-                  fallback={
-                    <div className="h-72 flex items-center justify-center text-xs text-[#C084FC] font-mono">
-                      Loading 3D Topology...
-                    </div>
-                  }
-                >
-                  <SecurityTopology3D
-                    endpoints={endpoints}
-                    selectedEndpointId={selectedEndpointId}
-                    onSelectEndpoint={setSelectedEndpointId}
-                    gateway={gateway}
-                    lowPerfMode={lowPerfMode}
-                  />
-                </Suspense>
+                <ErrorBoundary name="SecurityTopology3D">
+                  <Suspense
+                    fallback={
+                      <div className="h-72 flex items-center justify-center text-xs text-[#C084FC] font-mono">
+                        Loading 3D Topology...
+                      </div>
+                    }
+                  >
+                    <SecurityTopology3D
+                      endpoints={endpoints}
+                      selectedEndpointId={selectedEndpointId}
+                      onSelectEndpoint={setSelectedEndpointId}
+                      gateway={gateway}
+                      lowPerfMode={lowPerfMode}
+                    />
+                  </Suspense>
+                </ErrorBoundary>
               </div>
 
               {/* Endpoints Table */}
@@ -2231,15 +2238,17 @@ export default function App() {
 
           {/* MODEL ANALYTICS */}
           {activeTab === "analytics" && (
-            <AnalyticsSection
-              p2={p2}
-              p1={p1}
-              p2Accuracy={p2Accuracy}
-              metrics={metrics}
-              earlyWarning={earlyWarning}
-              fpComparisonData={fpComparisonData}
-              workspaceStatus={workspaceStatus}
-            />
+            <ErrorBoundary name="AnalyticsSection">
+              <AnalyticsSection
+                p2={p2}
+                p1={p1}
+                p2Accuracy={p2Accuracy}
+                metrics={metrics}
+                earlyWarning={earlyWarning}
+                fpComparisonData={fpComparisonData}
+                workspaceStatus={workspaceStatus}
+              />
+            </ErrorBoundary>
           )}
         </div>
       </main>
