@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, List, Optional
+from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, Field
 
 
@@ -19,6 +19,17 @@ class EndpointsResponse(BaseModel):
     items: List[EndpointItem]
 
 
+class TimelineEvent(BaseModel):
+    event: str
+    timestamp: str
+    elapsed_ms: float
+
+
+class ExplanationDetails(BaseModel):
+    model_derived: List[str] = []
+    heuristic: List[str] = []
+
+
 class AssessmentRecord(BaseModel):
     assessment_id: str
     endpoint_id: str
@@ -27,6 +38,10 @@ class AssessmentRecord(BaseModel):
     label: str
     indicators: List[str]
     simulated: bool = True
+    model_version: Optional[str] = None
+    processing_time_ms: Optional[float] = None
+    explanations: Optional[ExplanationDetails] = None
+    timeline: Optional[List[TimelineEvent]] = None
 
 
 class AssessmentsResponse(BaseModel):
@@ -40,6 +55,8 @@ class IncidentRecord(BaseModel):
     status: str
     checklist: List[str]
     simulated: bool = True
+    timestamp: Optional[str] = None
+    timeline: Optional[List[TimelineEvent]] = None
 
 
 class IncidentsResponse(BaseModel):
@@ -59,3 +76,17 @@ class DemoStartResponse(BaseModel):
 
 class DemoResetResponse(BaseModel):
     status: str = "reset_complete"
+
+
+class BatchAssessmentRequest(BaseModel):
+    records: List[Dict[str, Any]]
+
+
+class BatchAssessmentSummary(BaseModel):
+    total: int
+    normal_count: int
+    suspicious_count: int
+    invalid_count: int
+    total_processing_time_ms: float
+    avg_latency_ms: float
+    assessments: List[AssessmentRecord]

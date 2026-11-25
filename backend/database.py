@@ -11,7 +11,7 @@ DB_PATH = Path(__file__).resolve().parent / "nexus_sentinel.db"
 
 
 def get_db_connection() -> sqlite3.Connection:
-    conn = sqlite3.connect(str(DB_PATH))
+    conn = sqlite3.connect(str(DB_PATH), timeout=30.0)
     conn.row_factory = sqlite3.Row
     return conn
 
@@ -30,7 +30,7 @@ def init_db() -> None:
         """
     )
 
-    # Assessments table
+    # Assessments table with extra columns for explanations, timeline, latency, version
     cursor.execute(
         """
         CREATE TABLE IF NOT EXISTS assessments (
@@ -40,7 +40,11 @@ def init_db() -> None:
             risk_score INTEGER,
             label TEXT NOT NULL,
             indicators TEXT NOT NULL,
-            simulated INTEGER NOT NULL DEFAULT 1
+            simulated INTEGER NOT NULL DEFAULT 1,
+            model_version TEXT,
+            processing_time_ms REAL,
+            explanations TEXT,
+            timeline TEXT
         )
         """
     )
@@ -54,7 +58,9 @@ def init_db() -> None:
             assessment_id TEXT NOT NULL,
             status TEXT NOT NULL,
             checklist TEXT NOT NULL,
-            simulated INTEGER NOT NULL DEFAULT 1
+            simulated INTEGER NOT NULL DEFAULT 1,
+            timestamp TEXT,
+            timeline TEXT
         )
         """
     )

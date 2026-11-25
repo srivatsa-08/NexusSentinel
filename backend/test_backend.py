@@ -126,3 +126,20 @@ def test_invalid_scenario_error_handling():
     res = client.post("/api/v1/demo/start", json={"scenario": "nonexistent"})
     assert res.status_code == 400
     assert "Invalid scenario" in res.json()["detail"]
+
+
+
+def test_batch_assessment():
+    records = [
+        {"file_mod_rate": 10.0, "entropy_delta": 0.2, "rename_ratio": 0.05, "unique_ext_count": 2, "burst_io_score": 0.1, "shadow_copy_access_flag": 0},
+        {"file_mod_rate": 180.0, "entropy_delta": 3.0, "rename_ratio": 0.8, "unique_ext_count": 20, "burst_io_score": 0.9, "shadow_copy_access_flag": 1},
+        {"file_mod_rate": -1.0}  # invalid
+    ]
+    res = client.post("/api/v1/assessment/batch", json={"records": records})
+    assert res.status_code == 200
+    data = res.json()
+    assert data["total"] == 3
+    assert data["normal_count"] == 1
+    assert data["suspicious_count"] == 1
+    assert data["invalid_count"] == 1
+    assert data["total_processing_time_ms"] > 0
