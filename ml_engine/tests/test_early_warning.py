@@ -23,3 +23,19 @@ def test_early_warning_flags_suspicious_and_suspends_stream() -> None:
     assert "model_derived" in incident["explanations"]
     assert "heuristic" in incident["explanations"]
 
+
+
+def test_multi_sequence_early_warning_evaluation() -> None:
+    from ml_engine.early_warning import run_multi_sequence_early_warning_evaluation
+
+    report = run_multi_sequence_early_warning_evaluation(num_sequences=120, seed=424242)
+    assert report["total_sequences"] == 120
+    assert report["attack_sequences"] == 60
+    assert report["benign_control_sequences"] == 60
+    assert report["train_val_exact_overlap"] == 0
+    assert report["ground_truth_excluded_from_inputs"] is True
+    assert report["latency_benchmark_calls"] == 100
+    assert report["latency_mean_ms"] > 0
+    assert report["latency_median_ms"] > 0
+    assert report["latency_p95_ms"] >= report["latency_median_ms"]
+    assert report["peak_traced_memory_mb"] > 0

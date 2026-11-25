@@ -33,7 +33,7 @@ from backend.schemas import (
     IncidentsResponse,
     TimelineEvent,
 )
-from ml_engine.early_warning import run_early_warning_evaluation
+from ml_engine.early_warning import run_multi_sequence_early_warning_evaluation
 from ml_engine.examples import SYNTHETIC_INFERENCE_EXAMPLES
 from ml_engine.predict import predict_assessment_detailed
 from ml_engine.schema import FEATURE_NAMES, SCHEMA_VERSION
@@ -526,7 +526,13 @@ def post_monitor_step() -> dict[str, Any]:
         }
 
 
+_EARLY_WARNING_CACHE: dict[str, Any] | None = None
+
+
 @app.get("/api/v1/monitor/early-warning")
 def get_early_warning_metrics() -> dict[str, Any]:
-    """Return measured early-warning simulation evaluation metrics."""
-    return run_early_warning_evaluation()
+    """Return measured 120-sequence early-warning simulation evaluation metrics."""
+    global _EARLY_WARNING_CACHE
+    if _EARLY_WARNING_CACHE is None:
+        _EARLY_WARNING_CACHE = run_multi_sequence_early_warning_evaluation()
+    return _EARLY_WARNING_CACHE

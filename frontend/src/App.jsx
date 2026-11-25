@@ -1039,29 +1039,53 @@ export default function App() {
 
                   {earlyWarning && (
                     <div className="p-4 bg-slate-900/60 border border-slate-800 rounded-lg space-y-3">
-                      <h3 className="text-xs font-semibold text-slate-200 uppercase tracking-wider">
-                        Early-Warning Simulation Evaluation (Synthetic Sequence)
-                      </h3>
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <h3 className="text-xs font-semibold text-slate-200 uppercase tracking-wider">
+                          Early-Warning Simulation Evaluation ({earlyWarning.total_sequences} Independent Sequences)
+                        </h3>
+                        <span className="text-[11px] font-mono text-slate-400">
+                          Seed: {earlyWarning.evaluation_seed} | Overlap: {earlyWarning.train_val_exact_overlap}
+                        </span>
+                      </div>
                       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 font-mono text-xs">
                         <div className="p-3 bg-slate-950 border border-slate-800 rounded">
-                          <span className="text-[11px] text-slate-400 block font-sans">Time to First Alert</span>
-                          <span className="text-base font-bold text-cyan-300">{earlyWarning.time_to_first_alert_sim_s} s (sim)</span>
+                          <span className="text-[11px] text-slate-400 block font-sans">Early / Late / Missed</span>
+                          <span className="text-base font-bold text-emerald-400">
+                            {earlyWarning.early_detections}/{earlyWarning.attack_sequences}
+                          </span>
+                          <span className="text-[10px] text-slate-500 block">
+                            Late: {earlyWarning.late_detections} | Missed: {earlyWarning.missed_detections}
+                          </span>
                         </div>
                         <div className="p-3 bg-slate-950 border border-slate-800 rounded">
-                          <span className="text-[11px] text-slate-400 block font-sans">Early Detection Rate</span>
-                          <span className="text-base font-bold text-emerald-400">{(earlyWarning.early_detection_rate * 100).toFixed(0)}%</span>
+                          <span className="text-[11px] text-slate-400 block font-sans">False Alarms (Control)</span>
+                          <span className="text-base font-bold text-cyan-300">
+                            {earlyWarning.false_alarms}/{earlyWarning.total_sequences}
+                          </span>
+                          <span className="text-[10px] text-slate-500 block">
+                            Rate: {(earlyWarning.benign_control_false_alarm_rate * 100).toFixed(2)}%
+                          </span>
                         </div>
                         <div className="p-3 bg-slate-950 border border-slate-800 rounded">
-                          <span className="text-[11px] text-slate-400 block font-sans">Avg Assessment Latency</span>
-                          <span className="text-base font-bold text-slate-200">{earlyWarning.avg_assessment_latency_ms} ms</span>
+                          <span className="text-[11px] text-slate-400 block font-sans">Time to First Alert (Sim)</span>
+                          <span className="text-base font-bold text-slate-200">
+                            Med {earlyWarning.median_time_to_first_alert_sim_s}s
+                          </span>
+                          <span className="text-[10px] text-slate-500 block">
+                            p95: {earlyWarning.p95_time_to_first_alert_sim_s}s
+                          </span>
                         </div>
                         <div className="p-3 bg-slate-950 border border-slate-800 rounded">
-                          <span className="text-[11px] text-slate-400 block font-sans">Containment Record</span>
-                          <span className="text-base font-bold text-slate-200">{earlyWarning.containment_recording_latency_ms ?? "--"} ms</span>
+                          <span className="text-[11px] text-slate-400 block font-sans">Warm Latency (100 calls)</span>
+                          <span className="text-base font-bold text-slate-200">{earlyWarning.latency_mean_ms} ms</span>
+                          <span className="text-[10px] text-slate-500 block">
+                            Med {earlyWarning.latency_median_ms} | p95 {earlyWarning.latency_p95_ms}
+                          </span>
                         </div>
                         <div className="p-3 bg-slate-950 border border-slate-800 rounded">
-                          <span className="text-[11px] text-slate-400 block font-sans">Missed / False Alarms</span>
-                          <span className="text-base font-bold text-slate-200">{earlyWarning.missed_detections} / {earlyWarning.false_alarms}</span>
+                          <span className="text-[11px] text-slate-400 block font-sans">Peak Traced Memory</span>
+                          <span className="text-base font-bold text-slate-200">{earlyWarning.peak_traced_memory_mb} MB</span>
+                          <span className="text-[10px] text-slate-500 block">tracemalloc (separate)</span>
                         </div>
                       </div>
                     </div>
