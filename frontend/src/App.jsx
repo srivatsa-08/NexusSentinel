@@ -82,7 +82,7 @@ import {
 } from "./services/api";
 
 const SecurityTopology3D = lazy(() => import("./components/SecurityTopology3D"));
-const SecurityLock3D = lazy(() => import("./components/SecurityLock3D"));
+const SentinelIntelligenceCore = lazy(() => import("./components/SentinelIntelligenceCore"));
 
 function getFileIcon(ext = "") {
   const e = ext.toLowerCase().replace(/^\./, "");
@@ -397,12 +397,14 @@ export default function App() {
       <aside className="relative z-10 w-60 bg-[#10091C]/62 backdrop-blur-md border-r border-purple-900/40 flex flex-col justify-between shrink-0">
         <div>
           <div className="p-4 border-b border-purple-900/40 flex items-center space-x-3">
-            <div className="p-2 bg-gradient-to-br from-[#7C3AED]/40 to-[#2E1065]/80 border border-purple-500/40 rounded-lg shadow-[0_0_16px_-4px_rgba(124,58,237,0.6)]">
-              <ShieldAlert className="w-5 h-5 text-[#E9D5FF]" />
+            <div className="p-2 bg-gradient-to-br from-[#29193E] to-[#160D26] border border-[#E8BB65]/45 rounded-lg shadow-[0_0_16px_-4px_rgba(232,187,101,0.35)]">
+              <ShieldAlert className="w-5 h-5 text-[#E8BB65]" />
             </div>
             <div>
-              <h1 className="font-semibold text-sm tracking-wide text-[#F5EDFF]">Nexus Sentinel</h1>
-              <span className="text-[10px] text-[#C084FC] font-mono tracking-widest">PURPLE COMMAND</span>
+              <h1 className="font-semibold text-sm tracking-wide text-[#F3E8FF]">
+                Nexus <span className="text-[#E8BB65]">Sentinel</span>
+              </h1>
+              <span className="text-[10px] text-[#AD98C5] font-mono tracking-widest">INTELLIGENCE SYSTEM</span>
             </div>
           </div>
 
@@ -428,7 +430,7 @@ export default function App() {
                       : "text-[#AD98C5] hover:text-[#F5EDFF] hover:bg-[#211334]/70 border border-transparent"
                   }`}
                 >
-                  <Icon className={`w-4 h-4 shrink-0 ${active ? "text-[#C084FC]" : ""}`} />
+                  <Icon className={`w-4 h-4 shrink-0 ${active ? "text-[#E8BB65]" : ""}`} />
                   <span>{item.label}</span>
                   {item.badge && (
                     <span className="ml-auto text-[9px] font-mono bg-[#2E1065] text-[#E9D5FF] border border-purple-600/50 px-1.5 py-0.5 rounded">
@@ -539,30 +541,33 @@ export default function App() {
           {/* OVERVIEW (ASYMMETRIC BENTO-GRID COMMAND CENTER) */}
           {activeTab === "overview" && (
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
-              {/* Left 32% (4 cols): Interactive 3D Security Lock + System Health */}
+              {/* Left 32% (4 cols): JARVIS Sentinel Intelligence Core + System Health */}
               <div className="lg:col-span-4 space-y-4">
                 <NsCard noPerspective className="p-4 space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="ns-section-title">3D Protection Core</span>
-                    <span className="ns-badge ns-badge-violet">
+                    <span className="ns-section-title">01 / SENTINEL INTELLIGENCE CORE</span>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#29193E] text-[#FFE3A5] border border-[#E8BB65]/40">
                       {health.model_version || "rf-phase2-v1"}
                     </span>
                   </div>
                   <Suspense
                     fallback={
-                      <div className="h-[300px] flex flex-col items-center justify-center gap-2 text-xs text-[#C084FC] font-mono">
-                        <div className="w-7 h-7 rounded-full border-2 border-purple-500/30 border-t-[#C084FC] animate-spin" />
-                        <span>Initializing 3D Security Lock...</span>
+                      <div className="h-[300px] flex flex-col items-center justify-center gap-2 text-xs text-[#E8BB65] font-mono">
+                        <div className="w-7 h-7 rounded-full border-2 border-[#B88635]/30 border-t-[#E8BB65] animate-spin" />
+                        <span>Initializing Sentinel Core...</span>
                       </div>
                     }
                   >
-                    <SecurityLock3D hasIncident={incidents.length > 0} />
+                    <SentinelIntelligenceCore
+                      hasIncident={incidents.length > 0}
+                      onInspect={() => setActiveTab("analytics")}
+                    />
                   </Suspense>
                   <div className="grid grid-cols-2 gap-2 text-[11px] font-mono text-[#AD98C5] pt-2 border-t border-purple-900/40">
                     <span>Backend: <strong className="text-emerald-400">{health.components?.backend || health.status}</strong></span>
                     <span>DB: <strong className="text-emerald-400">{health.components?.database || "--"}</strong></span>
                     <span>ML: <strong className="text-emerald-400">{health.components?.ml_engine || "--"}</strong></span>
-                    <span>Gateway: <strong className="text-[#C084FC]">{health.components?.gateway || "active"}</strong></span>
+                    <span>Gateway: <strong className="text-[#E8BB65]">{health.components?.gateway || "active"}</strong></span>
                   </div>
                 </NsCard>
               </div>
@@ -573,61 +578,61 @@ export default function App() {
                 <NsCard onClick={() => setActiveTab("workspace")} className="p-4 flex flex-col justify-between">
                   <div className="flex items-center justify-between">
                     <span className="ns-section-title">Workspace</span>
-                    <div className="p-1.5 rounded-lg bg-[#7C3AED]/20 border border-purple-500/30">
-                      <HardDrive className="w-3.5 h-3.5 text-[#C084FC]" />
+                    <div className="p-1.5 rounded-lg bg-[#29193E] border border-[#E8BB65]/35">
+                      <HardDrive className="w-3.5 h-3.5 text-[#E8BB65]" />
                     </div>
                   </div>
-                  <div className="text-2xl font-bold text-[#F5EDFF] mt-2 font-mono">
+                  <div className="text-2xl font-bold text-[#F3E8FF] mt-2 font-mono">
                     {workspaceStatus?.file_count ?? 0} <span className="text-xs font-normal text-[#AD98C5]">Files</span>
                   </div>
                   <p className="text-[11px] text-[#AD98C5] mt-1.5 flex items-center justify-between">
                     <span>Monitor: <strong className="font-mono text-emerald-400">{workspaceStatus?.monitoring_status || "active"}</strong></span>
-                    <ArrowRight className="w-3 h-3 text-[#C084FC]" />
+                    <ArrowRight className="w-3 h-3 text-[#E8BB65]" />
                   </p>
                 </NsCard>
 
                 <NsCard onClick={() => setActiveTab("gateway")} className="p-4 flex flex-col justify-between">
                   <div className="flex items-center justify-between">
                     <span className="ns-section-title">Gateway</span>
-                    <div className="p-1.5 rounded-lg bg-[#A855F7]/20 border border-purple-500/30">
-                      <Zap className="w-3.5 h-3.5 text-[#C084FC]" />
+                    <div className="p-1.5 rounded-lg bg-[#29193E] border border-[#E8BB65]/35">
+                      <Zap className="w-3.5 h-3.5 text-[#E8BB65]" />
                     </div>
                   </div>
-                  <div className="text-2xl font-bold text-[#F5EDFF] mt-2 font-mono">
+                  <div className="text-2xl font-bold text-[#F3E8FF] mt-2 font-mono">
                     {gateway?.avoided_assessments ?? 0} <span className="text-xs font-normal text-[#AD98C5]">Avoided</span>
                   </div>
                   <p className="text-[11px] text-[#AD98C5] mt-1.5 flex items-center justify-between">
-                    <span>Accepted: <strong className="font-mono text-[#E9D5FF]">{gateway?.accepted_requests ?? 0}</strong></span>
-                    <ArrowRight className="w-3 h-3 text-[#C084FC]" />
+                    <span>Accepted: <strong className="font-mono text-[#FFE3A5]">{gateway?.accepted_requests ?? 0}</strong></span>
+                    <ArrowRight className="w-3 h-3 text-[#E8BB65]" />
                   </p>
                 </NsCard>
 
                 <NsCard onClick={() => setActiveTab("incidents")} className="p-4 flex flex-col justify-between">
                   <div className="flex items-center justify-between">
                     <span className="ns-section-title">Incidents</span>
-                    <div className={`p-1.5 rounded-lg border ${incidents.length > 0 ? "bg-rose-500/20 border-rose-500/40" : "bg-[#7C3AED]/20 border-purple-500/30"}`}>
-                      <ShieldCheck className={`w-3.5 h-3.5 ${incidents.length > 0 ? "text-rose-400" : "text-[#C084FC]"}`} />
+                    <div className={`p-1.5 rounded-lg border ${incidents.length > 0 ? "bg-rose-500/20 border-rose-500/40" : "bg-[#29193E] border-[#E8BB65]/35"}`}>
+                      <ShieldCheck className={`w-3.5 h-3.5 ${incidents.length > 0 ? "text-rose-400" : "text-[#E8BB65]"}`} />
                     </div>
                   </div>
-                  <div className={`text-2xl font-bold mt-2 font-mono ${incidents.length > 0 ? "text-amber-300" : "text-[#F5EDFF]"}`}>
+                  <div className={`text-2xl font-bold mt-2 font-mono ${incidents.length > 0 ? "text-amber-300" : "text-[#F3E8FF]"}`}>
                     {incidents.length} <span className="text-xs font-normal text-[#AD98C5]">Active</span>
                   </div>
                   <p className="text-[11px] text-[#AD98C5] mt-1.5 flex items-center justify-between">
-                    <span>Endpoints: <strong className="font-mono text-[#E9D5FF]">{endpoints.length} virtual</strong></span>
-                    <ArrowRight className="w-3 h-3 text-[#C084FC]" />
+                    <span>Endpoints: <strong className="font-mono text-[#FFE3A5]">{endpoints.length} virtual</strong></span>
+                    <ArrowRight className="w-3 h-3 text-[#E8BB65]" />
                   </p>
                 </NsCard>
 
                 {/* Middle Row: Differently sized cards (2 cols + 1 col) */}
                 <NsCard onClick={() => setActiveTab("simlab")} className="md:col-span-2 p-4">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="ns-section-title">Risk Score Trajectory</span>
+                    <span className="ns-section-title">Behavioural Analysis — Risk Trajectory</span>
                     <span className="text-[11px] font-mono text-[#AD98C5]">
                       {assessments.length} assessments
                     </span>
                   </div>
                   {chartData.length === 0 ? (
-                    <div className="h-36 flex flex-col items-center justify-center gap-2 text-xs text-[#AD98C5] border border-dashed border-purple-800/50 rounded-lg bg-[#08050F]/40">
+                    <div className="h-36 flex flex-col items-center justify-center gap-2 text-xs text-[#AD98C5] border border-dashed border-purple-800/50 rounded-lg bg-[#09060E]/45">
                       <span>No telemetry assessments recorded yet.</span>
                       <button
                         type="button"
@@ -644,11 +649,11 @@ export default function App() {
                     <div className="h-36">
                       <ResponsiveContainer width="100%" height="100%">
                         <LineChart data={chartData}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#211334" />
+                          <CartesianGrid strokeDasharray="3 3" stroke="#29193E" />
                           <XAxis dataKey="name" stroke="#AD98C5" fontSize={10} />
                           <YAxis stroke="#AD98C5" domain={[0, 100]} fontSize={10} />
-                          <Tooltip contentStyle={{ backgroundColor: "#10091C", borderColor: "#7C3AED", fontSize: "11px" }} />
-                          <Line type="monotone" dataKey="risk_score" stroke="#A855F7" strokeWidth={2.5} dot={{ r: 3, fill: "#C084FC" }} activeDot={{ r: 5, fill: "#E9D5FF" }} />
+                          <Tooltip contentStyle={{ backgroundColor: "#10091C", borderColor: "#B88635", fontSize: "11px" }} />
+                          <Line type="monotone" dataKey="risk_score" stroke="#E8BB65" strokeWidth={2.5} dot={{ r: 3, fill: "#FFE3A5" }} activeDot={{ r: 5, fill: "#FFE3A5" }} />
                         </LineChart>
                       </ResponsiveContainer>
                     </div>
@@ -658,13 +663,13 @@ export default function App() {
                 <NsCard onClick={() => setActiveTab("analytics")} className="p-4 flex flex-col justify-between">
                   <div>
                     <div className="flex items-center justify-between">
-                      <span className="ns-section-title">Model F1</span>
-                      <BarChart3 className="w-3.5 h-3.5 text-[#C084FC]" />
+                      <span className="ns-section-title">Model</span>
+                      <BarChart3 className="w-3.5 h-3.5 text-[#E8BB65]" />
                     </div>
-                    <div className="text-2xl font-bold text-[#F5EDFF] mt-2 font-mono">
+                    <div className="text-2xl font-bold text-[#E8BB65] mt-2 font-mono">
                       {p2 ? `${(p2.f1_score * 100).toFixed(2)}%` : "--"}
                     </div>
-                    <span className="text-[11px] text-[#AD98C5]">Phase 2 Random Forest</span>
+                    <span className="text-[11px] text-[#AD98C5]">F1 Score (Phase 2 RF)</span>
                   </div>
                   <div className="pt-3 border-t border-purple-900/40 text-[11px] font-mono space-y-1">
                     <div className="flex justify-between">
@@ -673,7 +678,7 @@ export default function App() {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-[#AD98C5]">Early Det:</span>
-                      <strong className="text-[#C084FC]">{earlyWarning ? `${(earlyWarning.early_detection_rate * 100).toFixed(1)}%` : "--"}</strong>
+                      <strong className="text-[#FFE3A5]">{earlyWarning ? `${(earlyWarning.early_detection_rate * 100).toFixed(1)}%` : "--"}</strong>
                     </div>
                   </div>
                 </NsCard>
@@ -681,28 +686,35 @@ export default function App() {
                 {/* Bottom Row: 1 wide card */}
                 <NsCard onClick={() => setActiveTab("endpoints")} className="md:col-span-3 p-4">
                   <div className="flex items-center justify-between mb-3">
-                    <span className="ns-section-title">Virtual Organization Mesh</span>
+                    <span className="ns-section-title">Virtual Organization — Endpoint Network</span>
                     <span className="text-[11px] text-[#AD98C5] flex items-center gap-1">
-                      Inspect Endpoints <ArrowRight className="w-3 h-3 text-[#C084FC]" />
+                      Inspect Endpoints <ArrowRight className="w-3 h-3 text-[#E8BB65]" />
                     </span>
                   </div>
                   <div className="relative">
-                    {/* Subtle SVG connection line behind endpoint mini-cards */}
-                    <svg className="hidden sm:block absolute inset-x-4 top-1/2 -translate-y-1/2 w-[calc(100%-2rem)] h-4 pointer-events-none opacity-40" preserveAspectRatio="none">
-                      <line x1="0%" y1="50%" x2="100%" y2="50%" stroke="#A855F7" strokeWidth="1" strokeDasharray="4 4" />
+                    <svg className="hidden sm:block absolute inset-x-4 top-1/2 -translate-y-1/2 w-[calc(100%-2rem)] h-4 pointer-events-none opacity-55" preserveAspectRatio="none">
+                      <line x1="0%" y1="50%" x2="100%" y2="50%" stroke="#B88635" strokeWidth="1" strokeDasharray="4 4" />
                     </svg>
                     <div className="relative grid grid-cols-2 sm:grid-cols-5 gap-2.5">
-                      {endpoints.map((ep) => (
-                        <div key={ep.endpoint_id} className="p-2.5 rounded-lg bg-[#08050F]/85 border border-purple-900/50 text-xs font-mono hover:border-[#A855F7]/60 transition-colors">
-                          <div className="flex items-center justify-between">
-                            <span className="font-semibold text-[#F5EDFF]">{ep.endpoint_id}</span>
-                            <span className={`w-1.5 h-1.5 rounded-full ${ep.status === "simulated_isolated" ? "bg-rose-400" : "bg-emerald-400"}`} />
+                      {endpoints.map((ep) => {
+                        const isSelected = ep.endpoint_id === selectedEndpointId;
+                        return (
+                          <div
+                            key={ep.endpoint_id}
+                            className={`p-2.5 rounded-lg bg-[#09060E]/85 border text-xs font-mono transition-colors ${
+                              isSelected ? "border-[#E8BB65]/80 shadow-[0_0_14px_-4px_rgba(232,187,101,0.45)]" : "border-purple-900/50 hover:border-[#E8BB65]/50"
+                            }`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className={`font-semibold ${isSelected ? "text-[#FFE3A5]" : "text-[#F3E8FF]"}`}>{ep.endpoint_id}</span>
+                              <span className={`w-1.5 h-1.5 rounded-full ${ep.status === "simulated_isolated" ? "bg-rose-400" : isSelected ? "bg-[#E8BB65]" : "bg-emerald-400"}`} />
+                            </div>
+                            <div className={ep.status === "simulated_isolated" ? "text-rose-400 text-[10px] mt-1" : "text-emerald-400 text-[10px] mt-1"}>
+                              {ep.status} ({ep.current_risk_score ?? 0})
+                            </div>
                           </div>
-                          <div className={ep.status === "simulated_isolated" ? "text-rose-400 text-[10px] mt-1" : "text-emerald-400 text-[10px] mt-1"}>
-                            {ep.status} ({ep.current_risk_score ?? 0})
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 </NsCard>
@@ -1655,11 +1667,11 @@ export default function App() {
                               { name: "Rejected", count: gateway.rejected_requests }
                             ]}
                           >
-                            <CartesianGrid strokeDasharray="3 3" stroke="#211334" />
+                            <CartesianGrid strokeDasharray="3 3" stroke="#29193E" />
                             <XAxis dataKey="name" stroke="#AD98C5" fontSize={11} />
                             <YAxis stroke="#AD98C5" fontSize={11} />
-                            <Tooltip contentStyle={{ backgroundColor: "#10091C", borderColor: "#7C3AED", fontSize: "11px" }} />
-                            <Bar dataKey="count" fill="#A855F7" radius={[4, 4, 0, 0]} />
+                            <Tooltip contentStyle={{ backgroundColor: "#10091C", borderColor: "#B88635", fontSize: "11px" }} />
+                            <Bar dataKey="count" fill="#E8BB65" radius={[4, 4, 0, 0]} />
                           </BarChart>
                         </ResponsiveContainer>
                       </div>
@@ -1989,8 +2001,8 @@ export default function App() {
                           }}
                           className={`w-full text-left p-3 rounded-lg border transition-all ${
                             activeIncident?.incident_id === inc.incident_id
-                              ? "bg-[#2E1065]/40 border-[#A855F7]/70"
-                              : "bg-[#08050F]/80 border-purple-900/40 hover:border-purple-700/60"
+                              ? "bg-[#29193E]/70 border-[#E8BB65]/80 shadow-[0_0_14px_-4px_rgba(232,187,101,0.35)]"
+                              : "bg-[#09060E]/80 border-purple-900/40 hover:border-[#E8BB65]/40"
                           }`}
                         >
                           <div className="flex justify-between items-center text-xs font-mono">
@@ -2142,7 +2154,7 @@ export default function App() {
                     ].map((m) => (
                       <div key={m.label} className="ns-stat">
                         <span className="text-[11px] text-[#AD98C5] block">{m.label}</span>
-                        <span className="text-lg font-bold font-mono text-[#C084FC]">{m.val}</span>
+                        <span className="text-lg font-bold font-mono text-[#E8BB65]">{m.val}</span>
                       </div>
                     ))}
                   </div>
@@ -2230,13 +2242,13 @@ export default function App() {
                       <div className="h-48">
                         <ResponsiveContainer width="100%" height="100%">
                           <BarChart data={fpComparisonData}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#211334" />
+                            <CartesianGrid strokeDasharray="3 3" stroke="#29193E" />
                             <XAxis dataKey="category" stroke="#AD98C5" fontSize={11} />
                             <YAxis stroke="#AD98C5" fontSize={11} />
-                            <Tooltip contentStyle={{ backgroundColor: "#10091C", borderColor: "#7C3AED", fontSize: "11px" }} />
+                            <Tooltip contentStyle={{ backgroundColor: "#10091C", borderColor: "#B88635", fontSize: "11px" }} />
                             <Legend wrapperStyle={{ fontSize: "11px" }} />
-                            <Bar dataKey="Phase 1 Baseline" fill="#f43f5e" radius={[4, 4, 0, 0]} />
-                            <Bar dataKey="Phase 2 Model" fill="#A855F7" radius={[4, 4, 0, 0]} />
+                            <Bar dataKey="Phase 1 Baseline" fill="#7C3AED" radius={[4, 4, 0, 0]} />
+                            <Bar dataKey="Phase 2 Model" fill="#E8BB65" radius={[4, 4, 0, 0]} />
                           </BarChart>
                         </ResponsiveContainer>
                       </div>

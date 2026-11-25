@@ -1,22 +1,39 @@
 @import "tailwindcss";
 
-/* ─── DESIGN TOKENS ──────────────────────────────────────────── */
+/* ─── DESIGN TOKENS (70% Purple / 20% Violet / 10% Gold) ──── */
 :root {
-  --bg-main:       #08050F;
-  --bg-secondary:  #10091C;
-  --surface:       #160D26;
-  --surface-hi:    #211334;
-  --deep-violet:   #2E1065;
-  --violet:        #7C3AED;
-  --purple:        #A855F7;
-  --lavender:      #C084FC;
-  --soft-lav:      #E9D5FF;
-  --text-primary:  #F5EDFF;
-  --text-secondary:#AD98C5;
+  --bg-main:        #09060E;
+  --bg-secondary:   #10091C;
+  --surface:        #160D26;
+  --surface-hi:     #29193E;
+  --deep-violet:    #2E1065;
+  --violet:         #7C3AED;
+  --purple:         #A855F7;
+  --lavender:       #C084FC;
+  --soft-lav:       #E9D5FF;
+  --gold-antique:   #B88635;
+  --gold-champagne: #E8BB65;
+  --gold-highlight: #FFE3A5;
+  --text-primary:   #F3E8FF;
+  --text-secondary: #AD98C5;
 
   /* cursor spotlight vars — updated by JS */
   --mouse-x: 50%;
   --mouse-y: 50%;
+}
+
+/* ─── JARVIS CORE KEYFRAMES ──────────────────────────────────── */
+@keyframes jarvis-cw {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+@keyframes jarvis-ccw {
+  from { transform: rotate(360deg); }
+  to   { transform: rotate(0deg); }
+}
+@keyframes jarvis-pulse {
+  0%, 100% { transform: scale(0.95); opacity: 0.82; }
+  50%      { transform: scale(1.06); opacity: 1; }
 }
 
 /* ─── GLOBAL ─────────────────────────────────────────────────── */
@@ -110,9 +127,10 @@
   pointer-events: none;
   opacity: 0;
   background: radial-gradient(
-    220px circle at var(--card-x, 50%) var(--card-y, 50%),
-    rgba(192, 132, 252, 0.12) 0%,
-    transparent 70%
+    240px circle at var(--card-x, 50%) var(--card-y, 50%),
+    rgba(255, 227, 165, 0.11) 0%,
+    rgba(124, 58, 237, 0.06) 45%,
+    transparent 72%
   );
   transition: opacity 200ms ease;
   border-radius: inherit;
@@ -128,8 +146,8 @@
   content: '';
   position: absolute;
   top: 0; left: 0;
-  width: 60px; height: 60px;
-  background: radial-gradient(circle at 0 0, rgba(124,58,237,0.3), transparent 70%);
+  width: 64px; height: 64px;
+  background: radial-gradient(circle at 0 0, rgba(232, 187, 101, 0.22), transparent 70%);
   pointer-events: none;
   border-radius: inherit;
 }
@@ -137,18 +155,19 @@
 /* sibling fade on group hover */
 .bento-grid:hover .bento-card:not(:hover):not(:focus-within),
 .bento-grid:focus-within .bento-card:not(:hover):not(:focus-within) {
-  opacity: 0.40;
+  opacity: 0.44;
 }
 
 /* active hover state */
 .bento-card:hover,
 .bento-card:focus-within {
-  transform: translateY(-10px) scale(1.015);
-  border-color: rgba(192, 132, 252, 0.72);
-  background-color: rgba(33, 19, 52, 0.74);
+  transform: translateY(-8px) scale(1.015);
+  border-color: rgba(232, 187, 101, 0.72);
+  background-color: rgba(41, 25, 62, 0.78);
   box-shadow:
-    0 20px 48px -12px rgba(124, 58, 237, 0.50),
-    0 0 0 1px rgba(168, 85, 247, 0.20) inset;
+    0 18px 42px -12px rgba(232, 187, 101, 0.26),
+    0 12px 30px -12px rgba(124, 58, 237, 0.42),
+    0 0 0 1px rgba(232, 187, 101, 0.18) inset;
   z-index: 10;
 }
 
@@ -218,13 +237,14 @@
 
 .ns-btn-primary {
   background: linear-gradient(135deg, #7C3AED, #A855F7);
-  color: #F5EDFF;
-  border-color: rgba(192,132,252,0.40);
-  box-shadow: 0 4px 16px -4px rgba(124,58,237,0.50);
+  color: #F3E8FF;
+  border-color: rgba(232, 187, 101, 0.45);
+  box-shadow: 0 4px 16px -4px rgba(124, 58, 237, 0.50);
 }
 .ns-btn-primary:hover:not(:disabled) {
-  background: linear-gradient(135deg, #8B45F5, #C084FC);
-  box-shadow: 0 6px 24px -4px rgba(124,58,237,0.65);
+  background: linear-gradient(135deg, #8B45F5, #A855F7);
+  border-color: rgba(255, 227, 165, 0.75);
+  box-shadow: 0 6px 22px -4px rgba(232, 187, 101, 0.35);
 }
 
 .ns-btn-ghost {
@@ -329,17 +349,17 @@
 .ns-progress-fill {
   height: 100%;
   border-radius: 999px;
-  background: linear-gradient(90deg, #7C3AED, #C084FC);
+  background: linear-gradient(90deg, #7C3AED, #B88635, #E8BB65);
   transition: width 400ms ease;
 }
 
 /* ─── TIMELINE VERTICAL LINE ─────────────────────────────────── */
-.ns-timeline { border-left: 2px solid rgba(124,58,237,0.40); padding-left: 1rem; }
+.ns-timeline { border-left: 2px solid rgba(184, 134, 53, 0.45); padding-left: 1rem; }
 .ns-timeline-dot {
   width: 10px; height: 10px;
   border-radius: 50%;
-  background: #A855F7;
-  box-shadow: 0 0 8px rgba(168,85,247,0.80);
+  background: #E8BB65;
+  box-shadow: 0 0 8px rgba(232, 187, 101, 0.80);
   margin-left: -1.35rem;
   flex-shrink: 0;
   margin-top: 0.1rem;
@@ -360,7 +380,7 @@
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--lavender);
+  color: var(--gold-champagne);
 }
 
 /* ─── SKELETON LOADER ────────────────────────────────────────── */
@@ -385,10 +405,10 @@
 
 /* ─── SIDEBAR ACTIVE ITEM GLOW ───────────────────────────────── */
 .sidebar-active {
-  background: linear-gradient(135deg, rgba(124,58,237,0.25), rgba(168,85,247,0.12));
-  border: 1px solid rgba(168,85,247,0.45);
-  color: #E9D5FF;
-  box-shadow: 0 0 20px -8px rgba(124,58,237,0.50) inset;
+  background: linear-gradient(135deg, rgba(41, 25, 62, 0.85), rgba(184, 134, 53, 0.16));
+  border: 1px solid rgba(232, 187, 101, 0.55);
+  color: #FFE3A5;
+  box-shadow: 0 0 18px -8px rgba(232, 187, 101, 0.42) inset;
 }
 
 /* ─── RECHARTS OVERRIDES ─────────────────────────────────────── */

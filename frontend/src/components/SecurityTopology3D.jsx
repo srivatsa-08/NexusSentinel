@@ -5,7 +5,7 @@ import * as THREE from "three";
 
 const STATE_COLORS = {
   normal: "#10b981",
-  monitoring: "#C084FC",
+  monitoring: "#E8BB65",
   warning: "#f59e0b",
   suspicious: "#f43f5e",
   contained: "#7C3AED",
@@ -93,7 +93,7 @@ function GatewayFlowParticles({ gateway, reducedMotion }) {
         return (
           <mesh key={i} position={[0, 0.1, 5.2 - (i / count) * 5.2]}>
             <sphereGeometry args={[0.06, 8, 8]} />
-            <meshBasicMaterial color={isRestricted ? STATE_COLORS.suspicious : STATE_COLORS.monitoring} />
+            <meshBasicMaterial color={isRestricted ? STATE_COLORS.suspicious : "#E8BB65"} />
           </mesh>
         );
       })}
@@ -218,7 +218,7 @@ export default function SecurityTopology3D({
             <group key={ep.endpoint_id}>
               <Line
                 points={[[0, 0, 0], pos]}
-                color={isHovered ? "#E9D5FF" : color}
+                color={isHovered || isSelected ? "#E8BB65" : color}
                 lineWidth={isHovered || isSelected ? 2.5 : 1}
                 transparent
                 opacity={dimmed ? 0.2 : 0.9}
@@ -237,9 +237,9 @@ export default function SecurityTopology3D({
               >
                 <boxGeometry args={[0.55, 0.45, 0.55]} />
                 <meshStandardMaterial
-                  color={color}
-                  emissive={color}
-                  emissiveIntensity={isHovered ? 0.8 : isSelected ? 0.5 : 0.15}
+                  color={isSelected ? "#E8BB65" : color}
+                  emissive={isSelected ? "#E8BB65" : color}
+                  emissiveIntensity={isHovered ? 0.85 : isSelected ? 0.55 : 0.18}
                   transparent
                   opacity={dimmed ? 0.35 : 1}
                 />
@@ -253,7 +253,7 @@ export default function SecurityTopology3D({
                     dimmed ? "opacity-35" : "opacity-100"
                   } ${
                     isHovered || isSelected
-                      ? "bg-[#211334] border-[#C084FC] text-[#E9D5FF]"
+                      ? "bg-[#29193E] border-[#E8BB65] text-[#FFE3A5]"
                       : "bg-[#10091C]/90 border-purple-800/60 text-[#AD98C5]"
                   }`}
                 >
