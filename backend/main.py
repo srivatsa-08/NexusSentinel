@@ -5,6 +5,7 @@ from __future__ import annotations
 import csv
 import io
 import json
+import threading
 import time
 import uuid
 from datetime import datetime, timezone
@@ -32,6 +33,7 @@ from backend.schemas import (
     IncidentsResponse,
     TimelineEvent,
 )
+from ml_engine.early_warning import run_early_warning_evaluation
 from ml_engine.examples import SYNTHETIC_INFERENCE_EXAMPLES
 from ml_engine.predict import predict_assessment_detailed
 from ml_engine.schema import FEATURE_NAMES, SCHEMA_VERSION
@@ -413,4 +415,118 @@ def post_batch_assessment(req: BatchAssessmentRequest) -> BatchAssessmentSummary
 @app.post("/api/v1/demo/reset", response_model=DemoResetResponse)
 def post_demo_reset() -> DemoResetResponse:
     reset_db()
+    with _MONITOR_LOCK:
+        _MONITOR_STATE["status"] = "stopped"
+        _MONITOR_STATE["index"] = 0
+        _MONITOR_STATE["processed_count"] = 0
+        _MONITOR_STATE["started_at"] = None
+        _MONITOR_STATE["accumulated_s"] = 0.0
     return DemoResetResponse(status="reset_complete")
+
+
+_MONITOR_LOCK = threading.Lock()
+_MONITOR_SEQUENCE: tuple[str, ...] = (
+    "normal",
+    "normal",
+    "backup",
+    "compression",
+    "normal",
+    "suspicious",
+)
+_MONITOR_STATE: dict[str, Any] = {
+    "status": "stopped",
+    "index": 0,
+    "processed_count": 0,
+    "started_at": None,
+    "accumulated_s": 0.0,
+}
+
+
+def _get_monitor_snapshot() -> dict[str, Any]:
+    elapsed = _MONITOR_STATE["accumulated_s"]
+    if _MONITOR_STATE["status"] == "running" and _MONITOR_STATE["started_at"] is not None:
+        elapsed += time.monotonic() - _MONITOR_STATE["started_at"]
+    conn = get_db_connection()
+    row = conn.execute("SELECT status FROM endpoints WHERE endpoint_id = 'demo-01'").fetchone()
+    conn.close()
+    return {
+        "status": _MONITOR_STATE["status"],
+        "processed_count": _MONITOR_STATE["processed_count"],
+        "total_sequence": len(_MONITOR_SEQUENCE),
+        "duration_seconds": round(elapsed, 2),
+        "endpoint_status": row["status"] if row else "monitoring",
+    }
+
+
+@app.get("/api/v1/monitor/status")
+def get_monitor_status() -> dict[str, Any]:
+    with _MONITOR_LOCK:
+        return _get_monitor_snapshot()
+
+
+@app.post("/api/v1/monitor/start")
+def post_monitor_start() -> dict[str, Any]:
+    with _MONITOR_LOCK:
+        if _MONITOR_STATE["status"] == "running":
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Monitoring session is already running.",
+            )
+        _MONITOR_STATE["status"] = "running"
+        _MONITOR_STATE["started_at"] = time.monotonic()
+        return _get_monitor_snapshot()
+
+
+@app.post("/api/v1/monitor/pause")
+def post_monitor_pause() -> dict[str, Any]:
+    with _MONITOR_LOCK:
+        if _MONITOR_STATE["status"] != "running":
+            raise HTTPException(status_code=400, detail="Monitoring is not running.")
+        if _MONITOR_STATE["started_at"] is not None:
+            _MONITOR_STATE["accumulated_s"] += time.monotonic() - _MONITOR_STATE["started_at"]
+        _MONITOR_STATE["started_at"] = None
+        _MONITOR_STATE["status"] = "paused"
+        return _get_monitor_snapshot()
+
+
+@app.post("/api/v1/monitor/resume")
+def post_monitor_resume() -> dict[str, Any]:
+    with _MONITOR_LOCK:
+        if _MONITOR_STATE["status"] != "paused":
+            raise HTTPException(status_code=400, detail="Monitoring is not paused.")
+        _MONITOR_STATE["status"] = "running"
+        _MONITOR_STATE["started_at"] = time.monotonic()
+        return _get_monitor_snapshot()
+
+
+@app.post("/api/v1/monitor/stop")
+def post_monitor_stop() -> dict[str, Any]:
+    with _MONITOR_LOCK:
+        if _MONITOR_STATE["status"] == "running" and _MONITOR_STATE["started_at"] is not None:
+            _MONITOR_STATE["accumulated_s"] += time.monotonic() - _MONITOR_STATE["started_at"]
+        _MONITOR_STATE["started_at"] = None
+        _MONITOR_STATE["status"] = "stopped"
+        return _get_monitor_snapshot()
+
+
+@app.post("/api/v1/monitor/step")
+def post_monitor_step() -> dict[str, Any]:
+    with _MONITOR_LOCK:
+        if _MONITOR_STATE["status"] != "running":
+            raise HTTPException(status_code=400, detail="Monitoring is not running.")
+        idx = _MONITOR_STATE["index"] % len(_MONITOR_SEQUENCE)
+        scenario_key = _MONITOR_SEQUENCE[idx]
+        _MONITOR_STATE["index"] += 1
+        _MONITOR_STATE["processed_count"] += 1
+        res = post_demo_start(DemoStartRequest(scenario=scenario_key))
+        return {
+            "monitor": _get_monitor_snapshot(),
+            "assessment": res.assessment,
+            "incident": res.incident,
+        }
+
+
+@app.get("/api/v1/monitor/early-warning")
+def get_early_warning_metrics() -> dict[str, Any]:
+    """Return measured early-warning simulation evaluation metrics."""
+    return run_early_warning_evaluation()

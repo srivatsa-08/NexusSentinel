@@ -11,7 +11,7 @@ DB_PATH = Path(__file__).resolve().parent / "nexus_sentinel.db"
 
 
 def get_db_connection() -> sqlite3.Connection:
-    conn = sqlite3.connect(str(DB_PATH), timeout=30.0)
+    conn = sqlite3.connect(str(DB_PATH))
     conn.row_factory = sqlite3.Row
     return conn
 

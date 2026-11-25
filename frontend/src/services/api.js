@@ -23,3 +23,11 @@ export const runBatchAssessment = async (records) =>
 
 export const getSampleDatasetUrl = (format) =>
   `${API_BASE}/download/sample-dataset/${format}`;
+
+export const fetchMonitorStatus = async () => (await api.get("/monitor/status")).data;
+export const startMonitor = async () => (await api.post("/monitor/start")).data;
+export const pauseMonitor = async () => (await api.post("/monitor/pause")).data;
+export const resumeMonitor = async () => (await api.post("/monitor/resume")).data;
+export const stopMonitor = async () => (await api.post("/monitor/stop")).data;
+export const stepMonitor = async () => (await api.post("/monitor/step")).data;
+export const fetchEarlyWarningMetrics = async () => (await api.get("/monitor/early-warning")).data;

@@ -143,3 +143,39 @@ def test_batch_assessment():
     assert data["suspicious_count"] == 1
     assert data["invalid_count"] == 1
     assert data["total_processing_time_ms"] > 0
+
+
+def test_continuous_monitoring_lifecycle():
+    # Start monitoring
+    res = client.post("/api/v1/monitor/start")
+    assert res.status_code == 200
+    assert res.json()["status"] == "running"
+
+    # Prevent duplicate start
+    dup = client.post("/api/v1/monitor/start")
+    assert dup.status_code == 409
+
+    # Step sequentially
+    step1 = client.post("/api/v1/monitor/step")
+    assert step1.status_code == 200
+    assert step1.json()["monitor"]["processed_count"] == 1
+
+    # Pause & Resume
+    pause = client.post("/api/v1/monitor/pause")
+    assert pause.status_code == 200
+    assert pause.json()["status"] == "paused"
+
+    resume = client.post("/api/v1/monitor/resume")
+    assert resume.status_code == 200
+    assert resume.json()["status"] == "running"
+
+    # Stop & Reset
+    stop = client.post("/api/v1/monitor/stop")
+    assert stop.status_code == 200
+    assert stop.json()["status"] == "stopped"
+
+    reset = client.post("/api/v1/demo/reset")
+    assert reset.status_code == 200
+    status_after = client.get("/api/v1/monitor/status").json()
+    assert status_after["status"] == "stopped"
+    assert status_after["processed_count"] == 0

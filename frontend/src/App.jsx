@@ -40,7 +40,14 @@ import {
   triggerDemoScenario,
   resetDemo,
   runBatchAssessment,
-  getSampleDatasetUrl
+  getSampleDatasetUrl,
+  fetchMonitorStatus,
+  startMonitor,
+  pauseMonitor,
+  resumeMonitor,
+  stopMonitor,
+  stepMonitor,
+  fetchEarlyWarningMetrics
 } from "./services/api";
 
 const INITIAL_VIRTUAL_FILES = [
@@ -59,6 +66,7 @@ export default function App() {
   const [assessments, setAssessments] = useState([]);
   const [incidents, setIncidents] = useState([]);
   const [metrics, setMetrics] = useState(null);
+  const [earlyWarning, setEarlyWarning] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [statusBanner, setStatusBanner] = useState(null);
 
@@ -67,16 +75,24 @@ export default function App() {
   const [batchResult, setBatchResult] = useState(null);
   const [selectedAssessment, setSelectedAssessment] = useState(null);
   const [virtualFiles, setVirtualFiles] = useState(INITIAL_VIRTUAL_FILES);
+  const [monitorStatus, setMonitorStatus] = useState({
+    status: "stopped",
+    processed_count: 0,
+    total_sequence: 6,
+    duration_seconds: 0
+  });
   const fileInputRef = useRef(null);
 
   const loadAllData = async () => {
     try {
-      const [hRes, epRes, asRes, incRes, metRes] = await Promise.all([
+      const [hRes, epRes, asRes, incRes, metRes, monRes, ewRes] = await Promise.all([
         fetchHealth().catch(() => ({ status: "offline" })),
         fetchEndpoints().catch(() => ({ items: [] })),
         fetchAssessments().catch(() => ({ items: [] })),
         fetchIncidents().catch(() => ({ items: [] })),
-        fetchMetrics().catch(() => null)
+        fetchMetrics().catch(() => null),
+        fetchMonitorStatus().catch(() => ({ status: "stopped", processed_count: 0, total_sequence: 6, duration_seconds: 0 })),
+        fetchEarlyWarningMetrics().catch(() => null)
       ]);
       setHealth(hRes);
       setEndpoints(epRes.items || []);
@@ -84,6 +100,8 @@ export default function App() {
       setAssessments(loadedAssessments);
       setIncidents(incRes.items || []);
       setMetrics(metRes);
+      setMonitorStatus(monRes);
+      setEarlyWarning(ewRes);
 
       if (loadedAssessments.length > 0) {
         setSelectedAssessment((prev) => prev || loadedAssessments[0]);
@@ -111,6 +129,34 @@ export default function App() {
     const interval = setInterval(loadAllData, 3000);
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    if (monitorStatus.status !== "running") return;
+    const stepInterval = setInterval(async () => {
+      try {
+        const res = await stepMonitor();
+        if (res.monitor) setMonitorStatus(res.monitor);
+        if (res.assessment) setSelectedAssessment(res.assessment);
+        await loadAllData();
+      } catch {
+        // Ignore transient step errors if stopped/paused concurrently
+      }
+    }, 2000);
+    return () => clearInterval(stepInterval);
+  }, [monitorStatus.status]);
+
+  const handleMonitorAction = async (actionFn) => {
+    try {
+      setActionLoading(true);
+      const mon = await actionFn();
+      setMonitorStatus(mon);
+      await loadAllData();
+    } catch (err) {
+      setStatusBanner({ type: "error", text: err.response?.data?.detail || err.message });
+    } finally {
+      setActionLoading(false);
+    }
+  };
 
   const handleScenarioTrigger = async (scenario) => {
     try {
@@ -514,6 +560,56 @@ export default function App() {
           {/* SIMULATION LAB */}
           {activeTab === "simlab" && (
             <div className="space-y-5">
+              {/* Continuous Virtual Monitoring Controls */}
+              <div className="p-4 bg-slate-900/70 border border-slate-800 rounded-lg flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-sm font-semibold text-slate-100">Continuous Virtual Monitoring (Synthetic Replay)</h3>
+                  <p className="text-xs text-slate-400">
+                    Sequential replay of harmless synthetic observations. Status:{" "}
+                    <span className="font-mono text-cyan-300 uppercase">{monitorStatus.status}</span> | Processed:{" "}
+                    <span className="font-mono text-slate-200">{monitorStatus.processed_count}</span> | Duration:{" "}
+                    <span className="font-mono text-slate-200">{monitorStatus.duration_seconds}s</span>
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    onClick={() => handleMonitorAction(startMonitor)}
+                    disabled={actionLoading || monitorStatus.status === "running"}
+                    className="px-3 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-semibold text-xs rounded transition disabled:opacity-40"
+                  >
+                    Start
+                  </button>
+                  <button
+                    onClick={() => handleMonitorAction(pauseMonitor)}
+                    disabled={actionLoading || monitorStatus.status !== "running"}
+                    className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs rounded border border-slate-700 transition disabled:opacity-40"
+                  >
+                    Pause
+                  </button>
+                  <button
+                    onClick={() => handleMonitorAction(resumeMonitor)}
+                    disabled={actionLoading || monitorStatus.status !== "paused"}
+                    className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-cyan-300 text-xs rounded border border-cyan-800/50 transition disabled:opacity-40"
+                  >
+                    Resume
+                  </button>
+                  <button
+                    onClick={() => handleMonitorAction(stopMonitor)}
+                    disabled={actionLoading || monitorStatus.status === "stopped"}
+                    className="px-3 py-1.5 bg-rose-950/60 hover:bg-rose-900/60 text-rose-200 text-xs rounded border border-rose-800/60 transition disabled:opacity-40"
+                  >
+                    Stop
+                  </button>
+                  <button
+                    onClick={handleReset}
+                    disabled={actionLoading}
+                    className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs rounded border border-slate-700 transition disabled:opacity-40"
+                  >
+                    Reset
+                  </button>
+                </div>
+              </div>
+
               {/* Scenario Controls & File Picker */}
               <div className="p-4 bg-slate-900/70 border border-slate-800 rounded-lg flex flex-wrap items-center justify-between gap-3">
                 <div>
@@ -940,6 +1036,36 @@ export default function App() {
                       </div>
                     </div>
                   </div>
+
+                  {earlyWarning && (
+                    <div className="p-4 bg-slate-900/60 border border-slate-800 rounded-lg space-y-3">
+                      <h3 className="text-xs font-semibold text-slate-200 uppercase tracking-wider">
+                        Early-Warning Simulation Evaluation (Synthetic Sequence)
+                      </h3>
+                      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 font-mono text-xs">
+                        <div className="p-3 bg-slate-950 border border-slate-800 rounded">
+                          <span className="text-[11px] text-slate-400 block font-sans">Time to First Alert</span>
+                          <span className="text-base font-bold text-cyan-300">{earlyWarning.time_to_first_alert_sim_s} s (sim)</span>
+                        </div>
+                        <div className="p-3 bg-slate-950 border border-slate-800 rounded">
+                          <span className="text-[11px] text-slate-400 block font-sans">Early Detection Rate</span>
+                          <span className="text-base font-bold text-emerald-400">{(earlyWarning.early_detection_rate * 100).toFixed(0)}%</span>
+                        </div>
+                        <div className="p-3 bg-slate-950 border border-slate-800 rounded">
+                          <span className="text-[11px] text-slate-400 block font-sans">Avg Assessment Latency</span>
+                          <span className="text-base font-bold text-slate-200">{earlyWarning.avg_assessment_latency_ms} ms</span>
+                        </div>
+                        <div className="p-3 bg-slate-950 border border-slate-800 rounded">
+                          <span className="text-[11px] text-slate-400 block font-sans">Containment Record</span>
+                          <span className="text-base font-bold text-slate-200">{earlyWarning.containment_recording_latency_ms ?? "--"} ms</span>
+                        </div>
+                        <div className="p-3 bg-slate-950 border border-slate-800 rounded">
+                          <span className="text-[11px] text-slate-400 block font-sans">Missed / False Alarms</span>
+                          <span className="text-base font-bold text-slate-200">{earlyWarning.missed_detections} / {earlyWarning.false_alarms}</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </>
               ) : (
                 <div className="p-8 text-center text-xs text-slate-500 border border-dashed border-slate-800 rounded-lg">
