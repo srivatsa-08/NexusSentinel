@@ -31,3 +31,7 @@ export const resumeMonitor = async () => (await api.post("/monitor/resume")).dat
 export const stopMonitor = async () => (await api.post("/monitor/stop")).data;
 export const stepMonitor = async () => (await api.post("/monitor/step")).data;
 export const fetchEarlyWarningMetrics = async () => (await api.get("/monitor/early-warning")).data;
+export const fetchGatewayStatus = async () => (await api.get("/gateway/status")).data;
+export const simulateGatewayScenario = async (scenario) =>
+  (await api.post("/gateway/simulate", { scenario })).data;
+export const resetGateway = async () => (await api.post("/gateway/reset")).data;

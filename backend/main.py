@@ -17,6 +17,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse
 
 from backend.database import get_db_connection, init_db, reset_db
+from backend.gateway import gateway_controller
 from backend.schemas import (
     AssessmentRecord,
     AssessmentsResponse,
@@ -415,6 +416,7 @@ def post_batch_assessment(req: BatchAssessmentRequest) -> BatchAssessmentSummary
 @app.post("/api/v1/demo/reset", response_model=DemoResetResponse)
 def post_demo_reset() -> DemoResetResponse:
     reset_db()
+    gateway_controller.reset()
     with _MONITOR_LOCK:
         _MONITOR_STATE["status"] = "stopped"
         _MONITOR_STATE["index"] = 0
@@ -536,3 +538,22 @@ def get_early_warning_metrics() -> dict[str, Any]:
     if _EARLY_WARNING_CACHE is None:
         _EARLY_WARNING_CACHE = run_multi_sequence_early_warning_evaluation()
     return _EARLY_WARNING_CACHE
+
+
+@app.get("/api/v1/gateway/status")
+def get_gateway_status() -> dict[str, Any]:
+    return gateway_controller.get_status()
+
+
+@app.post("/api/v1/gateway/simulate")
+def post_gateway_simulate(req: DemoStartRequest) -> dict[str, Any]:
+    try:
+        return gateway_controller.simulate_scenario(req.scenario)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
+
+@app.post("/api/v1/gateway/reset")
+def post_gateway_reset() -> dict[str, Any]:
+    gateway_controller.reset()
+    return gateway_controller.get_status()

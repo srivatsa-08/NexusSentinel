@@ -47,7 +47,10 @@ import {
   resumeMonitor,
   stopMonitor,
   stepMonitor,
-  fetchEarlyWarningMetrics
+  fetchEarlyWarningMetrics,
+  fetchGatewayStatus,
+  simulateGatewayScenario,
+  resetGateway
 } from "./services/api";
 
 const INITIAL_VIRTUAL_FILES = [
@@ -67,6 +70,7 @@ export default function App() {
   const [incidents, setIncidents] = useState([]);
   const [metrics, setMetrics] = useState(null);
   const [earlyWarning, setEarlyWarning] = useState(null);
+  const [gateway, setGateway] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [statusBanner, setStatusBanner] = useState(null);
 
@@ -85,14 +89,15 @@ export default function App() {
 
   const loadAllData = async () => {
     try {
-      const [hRes, epRes, asRes, incRes, metRes, monRes, ewRes] = await Promise.all([
+      const [hRes, epRes, asRes, incRes, metRes, monRes, ewRes, gwRes] = await Promise.all([
         fetchHealth().catch(() => ({ status: "offline" })),
         fetchEndpoints().catch(() => ({ items: [] })),
         fetchAssessments().catch(() => ({ items: [] })),
         fetchIncidents().catch(() => ({ items: [] })),
         fetchMetrics().catch(() => null),
         fetchMonitorStatus().catch(() => ({ status: "stopped", processed_count: 0, total_sequence: 6, duration_seconds: 0 })),
-        fetchEarlyWarningMetrics().catch(() => null)
+        fetchEarlyWarningMetrics().catch(() => null),
+        fetchGatewayStatus().catch(() => null)
       ]);
       setHealth(hRes);
       setEndpoints(epRes.items || []);
@@ -102,6 +107,7 @@ export default function App() {
       setMetrics(metRes);
       setMonitorStatus(monRes);
       setEarlyWarning(ewRes);
+      setGateway(gwRes);
 
       if (loadedAssessments.length > 0) {
         setSelectedAssessment((prev) => prev || loadedAssessments[0]);
@@ -312,6 +318,7 @@ export default function App() {
             {[
               { id: "overview", label: "Overview", icon: Activity },
               { id: "simlab", label: "Simulation Lab", icon: Terminal, badge: "DEMO" },
+              { id: "gateway", label: "Gateway Protection", icon: Cpu },
               { id: "endpoints", label: "Endpoints", icon: Server, count: endpoints.length },
               { id: "incidents", label: "Incidents", icon: AlertTriangle, count: incidents.length, warn: incidents.length > 0 },
               { id: "analytics", label: "Model Analytics", icon: BarChart3 }
@@ -851,6 +858,195 @@ export default function App() {
             </div>
           )}
 
+          {/* GATEWAY PROTECTION */}
+          {activeTab === "gateway" && (
+            <div className="space-y-5">
+              <div className="p-4 bg-slate-900/70 border border-slate-800 rounded-lg flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-sm font-semibold text-slate-100">
+                    Gateway Protection (Simulated Pre-AI Admission Control)
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    Lightweight request quotas and bounded queue before local AI assessment. Decisions are separate from ransomware classification.
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  {[
+                    { id: "normal_upload", label: "Normal Upload" },
+                    { id: "legitimate_bulk", label: "Legitimate Bulk" },
+                    { id: "excessive_requests", label: "Excessive Requests" },
+                    { id: "recover", label: "Recover" }
+                  ].map((s) => (
+                    <button
+                      key={s.id}
+                      onClick={async () => {
+                        setActionLoading(true);
+                        try {
+                          const res = await simulateGatewayScenario(s.id);
+                          setGateway(res);
+                        } finally {
+                          setActionLoading(false);
+                        }
+                      }}
+                      disabled={actionLoading}
+                      className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs rounded border border-slate-700 transition disabled:opacity-50"
+                    >
+                      {s.label}
+                    </button>
+                  ))}
+                  <button
+                    onClick={async () => {
+                      setActionLoading(true);
+                      try {
+                        setGateway(await resetGateway());
+                      } finally {
+                        setActionLoading(false);
+                      }
+                    }}
+                    disabled={actionLoading}
+                    className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-cyan-300 text-xs rounded border border-cyan-800/50 transition disabled:opacity-50"
+                  >
+                    Reset
+                  </button>
+                </div>
+              </div>
+
+              {gateway ? (
+                <>
+                  <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+                    <div className="p-3 bg-slate-900/60 border border-slate-800 rounded-lg">
+                      <span className="text-[11px] text-slate-400 block">Total Requests</span>
+                      <span className="text-xl font-bold font-mono text-slate-100">{gateway.total_requests}</span>
+                    </div>
+                    <div className="p-3 bg-slate-900/60 border border-slate-800 rounded-lg">
+                      <span className="text-[11px] text-slate-400 block">Accepted</span>
+                      <span className="text-xl font-bold font-mono text-emerald-400">{gateway.accepted_requests}</span>
+                    </div>
+                    <div className="p-3 bg-slate-900/60 border border-slate-800 rounded-lg">
+                      <span className="text-[11px] text-slate-400 block">Restricted (Throttled/Rejected)</span>
+                      <span className="text-xl font-bold font-mono text-rose-400">
+                        {gateway.throttled_requests + gateway.rejected_requests}
+                      </span>
+                    </div>
+                    <div className="p-3 bg-slate-900/60 border border-slate-800 rounded-lg">
+                      <span className="text-[11px] text-slate-400 block">AI Assessments Avoided</span>
+                      <span className="text-xl font-bold font-mono text-cyan-300">{gateway.avoided_assessments}</span>
+                    </div>
+                    <div className="p-3 bg-slate-900/60 border border-slate-800 rounded-lg">
+                      <span className="text-[11px] text-slate-400 block">Est. CPU Saved (Local RF)</span>
+                      <span className="text-xl font-bold font-mono text-cyan-300">{gateway.estimated_cpu_saved_ms} ms</span>
+                      <span className="text-[10px] text-slate-500 block font-mono">
+                        GW: {gateway.measured_avg_gateway_latency_ms} ms/req
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="p-4 bg-slate-900/60 border border-slate-800 rounded-lg space-y-2">
+                    <div className="flex justify-between text-xs">
+                      <span className="font-semibold text-slate-200 uppercase tracking-wider">
+                        Bounded Processing Queue Utilization
+                      </span>
+                      <span className="font-mono text-cyan-300">
+                        {gateway.queue_depth} / {gateway.queue_capacity} ({gateway.queue_utilization_pct}%)
+                      </span>
+                    </div>
+                    <div className="w-full h-2.5 bg-slate-950 rounded-full overflow-hidden border border-slate-800">
+                      <div
+                        className="h-full bg-cyan-500 transition-all"
+                        style={{ width: `${gateway.queue_utilization_pct}%` }}
+                      />
+                    </div>
+                    <p className="text-[11px] text-slate-400">{gateway.estimation_note}</p>
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                    <div className="p-4 bg-slate-900/60 border border-slate-800 rounded-lg">
+                      <h3 className="text-xs font-semibold text-slate-200 uppercase tracking-wider mb-3">
+                        Request Volume Breakdown
+                      </h3>
+                      <div className="h-44">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart
+                            data={[
+                              { name: "Accepted", count: gateway.accepted_requests },
+                              { name: "Throttled", count: gateway.throttled_requests },
+                              { name: "Rejected", count: gateway.rejected_requests }
+                            ]}
+                          >
+                            <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                            <XAxis dataKey="name" stroke="#64748b" fontSize={11} />
+                            <YAxis stroke="#64748b" fontSize={11} />
+                            <Tooltip contentStyle={{ backgroundColor: "#0f172a", borderColor: "#334155", fontSize: "11px" }} />
+                            <Bar dataKey="count" fill="#22d3ee" radius={[3, 3, 0, 0]} />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
+
+                    <div className="p-4 bg-slate-900/60 border border-slate-800 rounded-lg">
+                      <h3 className="text-xs font-semibold text-slate-200 uppercase tracking-wider mb-3">
+                        Simulated Uploader Activity
+                      </h3>
+                      {gateway.uploaders.length === 0 ? (
+                        <div className="h-44 flex items-center justify-center text-xs text-slate-500 border border-dashed border-slate-800 rounded">
+                          No simulated uploaders yet. Trigger a gateway scenario above.
+                        </div>
+                      ) : (
+                        <div className="space-y-2 max-h-44 overflow-y-auto">
+                          {gateway.uploaders.map((u) => (
+                            <div key={u.uploader_id} className="p-2.5 bg-slate-950 border border-slate-800 rounded flex items-center justify-between text-xs font-mono">
+                              <div>
+                                <span className="text-cyan-300 font-semibold">{u.uploader_id}</span>
+                                <span className="text-slate-500 ml-2">({u.fictional_ip})</span>
+                              </div>
+                              <span className="text-slate-300">
+                                Req: {u.request_count} | Rest: {u.restricted_count}
+                              </span>
+                              <span className={u.status === "simulated_restricted" ? "text-rose-400" : "text-emerald-400"}>
+                                {u.status}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="p-4 bg-slate-900/60 border border-slate-800 rounded-lg">
+                    <h3 className="text-xs font-semibold text-slate-200 uppercase tracking-wider mb-3">
+                      Recent Gateway Decision Explanations
+                    </h3>
+                    {gateway.recent_decisions.length === 0 ? (
+                      <p className="text-xs text-slate-500">No gateway decisions recorded yet.</p>
+                    ) : (
+                      <div className="space-y-1.5 max-h-44 overflow-y-auto">
+                        {gateway.recent_decisions.slice(0, 8).map((d, idx) => (
+                          <div key={idx} className="p-2 bg-slate-950 border border-slate-800 rounded flex items-center justify-between text-xs">
+                            <span className="font-mono text-cyan-400">{d.uploader_id}</span>
+                            <span className="text-slate-300 truncate max-w-lg">{d.reason}</span>
+                            <span
+                              className={`font-mono uppercase text-[10px] px-2 py-0.5 rounded ${
+                                d.decision === "accepted"
+                                  ? "bg-emerald-950/50 text-emerald-300"
+                                  : "bg-rose-950/50 text-rose-300"
+                              }`}
+                            >
+                              {d.decision}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <div className="p-8 text-center text-xs text-slate-500 border border-dashed border-slate-800 rounded-lg">
+                  Gateway status unavailable. Ensure backend is running.
+                </div>
+              )}
+            </div>
+          )}
+
           {/* ENDPOINTS */}
           {activeTab === "endpoints" && (
             <div className="space-y-5">
@@ -1049,18 +1245,18 @@ export default function App() {
                       </div>
                       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 font-mono text-xs">
                         <div className="p-3 bg-slate-950 border border-slate-800 rounded">
-                          <span className="text-[11px] text-slate-400 block font-sans">Early / Late / Missed</span>
+                          <span className="text-[11px] text-slate-400 block font-sans">Attack Outcomes (n={earlyWarning.attack_sequences})</span>
                           <span className="text-base font-bold text-emerald-400">
-                            {earlyWarning.early_detections}/{earlyWarning.attack_sequences}
+                            Early {earlyWarning.early_detections}/{earlyWarning.attack_sequences}
                           </span>
                           <span className="text-[10px] text-slate-500 block">
-                            Late: {earlyWarning.late_detections} | Missed: {earlyWarning.missed_detections}
+                            Late: {earlyWarning.late_detections} | Missed: {earlyWarning.missed_detections} | Premature: {earlyWarning.premature_alerts}
                           </span>
                         </div>
                         <div className="p-3 bg-slate-950 border border-slate-800 rounded">
-                          <span className="text-[11px] text-slate-400 block font-sans">False Alarms (Control)</span>
+                          <span className="text-[11px] text-slate-400 block font-sans">Benign Control FA (n={earlyWarning.benign_control_sequences})</span>
                           <span className="text-base font-bold text-cyan-300">
-                            {earlyWarning.false_alarms}/{earlyWarning.total_sequences}
+                            {earlyWarning.benign_control_false_alarms}/{earlyWarning.benign_control_sequences}
                           </span>
                           <span className="text-[10px] text-slate-500 block">
                             Rate: {(earlyWarning.benign_control_false_alarm_rate * 100).toFixed(2)}%
