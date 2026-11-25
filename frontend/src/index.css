@@ -1,49 +1,411 @@
 @import "tailwindcss";
 
+/* ─── DESIGN TOKENS ──────────────────────────────────────────── */
+:root {
+  --bg-main:       #08050F;
+  --bg-secondary:  #10091C;
+  --surface:       #160D26;
+  --surface-hi:    #211334;
+  --deep-violet:   #2E1065;
+  --violet:        #7C3AED;
+  --purple:        #A855F7;
+  --lavender:      #C084FC;
+  --soft-lav:      #E9D5FF;
+  --text-primary:  #F5EDFF;
+  --text-secondary:#AD98C5;
+
+  /* cursor spotlight vars — updated by JS */
+  --mouse-x: 50%;
+  --mouse-y: 50%;
+}
+
+/* ─── GLOBAL ─────────────────────────────────────────────────── */
 @layer base {
+  * { box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
   body {
-    background-color: #090610;
-    color: #F3E8FF;
-    @apply antialiased font-sans;
+    font-family: 'Inter', system-ui, sans-serif;
+    background-color: var(--bg-main);
+    color: var(--text-primary);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    min-height: 100vh;
+    overflow: hidden;
+    /* ambient purple radial glows */
     background-image:
-      radial-gradient(circle at 18% 30%, rgba(124, 58, 237, 0.14) 0%, transparent 45%),
-      radial-gradient(circle at 82% 75%, rgba(168, 85, 247, 0.10) 0%, transparent 50%);
+      radial-gradient(ellipse 60% 40% at 15% 25%, rgba(124,58,237,0.18) 0%, transparent 60%),
+      radial-gradient(ellipse 50% 50% at 85% 70%, rgba(168,85,247,0.12) 0%, transparent 55%),
+      radial-gradient(ellipse 30% 30% at 50% 100%, rgba(46,16,101,0.3) 0%, transparent 60%);
     background-attachment: fixed;
+  }
+
+  code, .font-mono, pre {
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
   }
 }
 
+/* ─── ATMOSPHERIC BACKGROUND PARTICLES ──────────────────────── */
+@keyframes float-particle {
+  0%   { transform: translateY(0px) translateX(0px); opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 0.6; }
+  100% { transform: translateY(-120px) translateX(30px); opacity: 0; }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.4; transform: scale(1); }
+  50%       { opacity: 0.9; transform: scale(1.08); }
+}
+
+@keyframes shimmer-line {
+  0%   { transform: scaleX(0); opacity: 0; }
+  50%  { transform: scaleX(1); opacity: 0.6; }
+  100% { transform: scaleX(0); opacity: 0; }
+}
+
+/* ─── GLOBAL CURSOR SPOTLIGHT ────────────────────────────────── */
+.ns-cursor-spotlight::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  background: radial-gradient(
+    600px circle at var(--mouse-x) var(--mouse-y),
+    rgba(124,58,237,0.07) 0%,
+    transparent 70%
+  );
+}
+
+/* ─── DOT GRID PATTERN ───────────────────────────────────────── */
+.ns-dot-grid {
+  background-image: radial-gradient(circle, rgba(168,85,247,0.15) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+/* ─── BENTO CARDS ────────────────────────────────────────────── */
 .bento-card {
+  position: relative;
+  overflow: hidden;
   background-color: rgba(22, 13, 38, 0.88);
   border: 1px solid rgba(124, 58, 237, 0.28);
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   transition:
-    transform 300ms cubic-bezier(0.22, 1, 0.36, 1),
-    opacity 300ms ease,
-    box-shadow 300ms ease,
-    border-color 300ms ease,
-    background-color 300ms ease;
+    transform 320ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity   280ms ease,
+    box-shadow 280ms ease,
+    border-color 280ms ease,
+    background-color 280ms ease;
+  will-change: transform, opacity;
 }
 
+/* internal cursor-driven radial highlight */
+.bento-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(
+    220px circle at var(--card-x, 50%) var(--card-y, 50%),
+    rgba(192, 132, 252, 0.12) 0%,
+    transparent 70%
+  );
+  transition: opacity 200ms ease;
+  border-radius: inherit;
+}
+
+.bento-card:hover::before,
+.bento-card:focus-within::before {
+  opacity: 1;
+}
+
+/* corner accent glow */
+.bento-card::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 60px; height: 60px;
+  background: radial-gradient(circle at 0 0, rgba(124,58,237,0.3), transparent 70%);
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+/* sibling fade on group hover */
 .bento-grid:hover .bento-card:not(:hover):not(:focus-within),
 .bento-grid:focus-within .bento-card:not(:hover):not(:focus-within) {
-  opacity: 0.42;
+  opacity: 0.40;
 }
 
+/* active hover state */
 .bento-card:hover,
 .bento-card:focus-within {
-  transform: translateY(-8px) scale(1.012);
-  border-color: rgba(216, 180, 254, 0.75);
-  background-color: rgba(36, 20, 56, 0.94);
-  box-shadow: 0 18px 40px -12px rgba(124, 58, 237, 0.45);
+  transform: translateY(-10px) scale(1.015);
+  border-color: rgba(192, 132, 252, 0.70);
+  background-color: rgba(33, 19, 52, 0.95);
+  box-shadow:
+    0 20px 48px -12px rgba(124, 58, 237, 0.50),
+    0 0 0 1px rgba(168, 85, 247, 0.20) inset;
   z-index: 10;
 }
 
+/* ─── NS GLASS CARD (non-bento panels) ───────────────────────── */
+.ns-card {
+  background: rgba(16, 9, 28, 0.80);
+  border: 1px solid rgba(124, 58, 237, 0.22);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: 0.75rem;
+}
+
+/* ─── NS BADGE ───────────────────────────────────────────────── */
+.ns-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  font-family: 'JetBrains Mono', monospace;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.ns-badge-violet {
+  background: rgba(124, 58, 237, 0.20);
+  border: 1px solid rgba(124, 58, 237, 0.50);
+  color: #C084FC;
+}
+
+.ns-badge-green {
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  color: #34D399;
+}
+
+.ns-badge-red {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: #F87171;
+}
+
+.ns-badge-amber {
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.30);
+  color: #FBBF24;
+}
+
+/* ─── BUTTONS ────────────────────────────────────────────────── */
+.ns-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.875rem;
+  border-radius: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  transition: all 180ms ease;
+  cursor: pointer;
+  border: 1px solid transparent;
+  line-height: 1;
+}
+.ns-btn:active { transform: scale(0.95); filter: brightness(0.88); }
+.ns-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.ns-btn-primary {
+  background: linear-gradient(135deg, #7C3AED, #A855F7);
+  color: #F5EDFF;
+  border-color: rgba(192,132,252,0.40);
+  box-shadow: 0 4px 16px -4px rgba(124,58,237,0.50);
+}
+.ns-btn-primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, #8B45F5, #C084FC);
+  box-shadow: 0 6px 24px -4px rgba(124,58,237,0.65);
+}
+
+.ns-btn-ghost {
+  background: rgba(22,13,38,0.70);
+  color: var(--text-secondary);
+  border-color: rgba(124,58,237,0.25);
+}
+.ns-btn-ghost:hover:not(:disabled) {
+  background: rgba(46,16,101,0.40);
+  color: var(--text-primary);
+  border-color: rgba(168,85,247,0.50);
+}
+
+.ns-btn-danger {
+  background: rgba(127, 29, 29, 0.50);
+  color: #FCA5A5;
+  border-color: rgba(239,68,68,0.35);
+}
+.ns-btn-danger:hover:not(:disabled) {
+  background: rgba(185, 28, 28, 0.50);
+  border-color: rgba(239,68,68,0.60);
+}
+
+.ns-btn-folder {
+  background: rgba(46,16,101,0.40);
+  color: #C084FC;
+  border-color: rgba(168,85,247,0.40);
+}
+.ns-btn-folder:hover:not(:disabled) {
+  background: rgba(124,58,237,0.30);
+  border-color: rgba(192,132,252,0.60);
+}
+
+/* ─── TABLE ──────────────────────────────────────────────────── */
+.ns-table {
+  width: 100%;
+  text-align: left;
+  font-size: 0.7rem;
+  border-collapse: collapse;
+}
+.ns-table thead tr {
+  position: sticky; top: 0;
+  background: rgba(8,5,15,0.95);
+  backdrop-filter: blur(8px);
+}
+.ns-table th {
+  padding: 0.5rem 0.75rem;
+  color: var(--text-secondary);
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border-bottom: 1px solid rgba(124,58,237,0.20);
+}
+.ns-table td {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid rgba(46,16,101,0.25);
+  transition: background 150ms ease;
+}
+.ns-table tbody tr:hover td { background: rgba(46,16,101,0.18); }
+
+/* ─── SCROLLBAR ──────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: rgba(124,58,237,0.35);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover { background: rgba(168,85,247,0.55); }
+
+/* ─── INPUT / SELECT ─────────────────────────────────────────── */
+.ns-input {
+  background: rgba(8,5,15,0.80);
+  border: 1px solid rgba(124,58,237,0.25);
+  border-radius: 0.5rem;
+  padding: 0.375rem 0.75rem;
+  font-size: 0.75rem;
+  color: var(--text-primary);
+  outline: none;
+  transition: border-color 180ms ease;
+  font-family: inherit;
+}
+.ns-input:focus { border-color: rgba(168,85,247,0.60); }
+.ns-input::placeholder { color: rgba(173,152,197,0.45); }
+
+/* ─── STAT CARD ──────────────────────────────────────────────── */
+.ns-stat {
+  background: rgba(16,9,28,0.75);
+  border: 1px solid rgba(46,16,101,0.50);
+  border-radius: 0.625rem;
+  padding: 0.75rem 1rem;
+}
+
+/* ─── PROGRESS BAR ───────────────────────────────────────────── */
+.ns-progress-track {
+  width: 100%;
+  height: 6px;
+  background: rgba(46,16,101,0.40);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.ns-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #7C3AED, #C084FC);
+  transition: width 400ms ease;
+}
+
+/* ─── TIMELINE VERTICAL LINE ─────────────────────────────────── */
+.ns-timeline { border-left: 2px solid rgba(124,58,237,0.40); padding-left: 1rem; }
+.ns-timeline-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: #A855F7;
+  box-shadow: 0 0 8px rgba(168,85,247,0.80);
+  margin-left: -1.35rem;
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+}
+
+/* ─── ANOMALY ROW HIGHLIGHT ──────────────────────────────────── */
+@keyframes row-flash {
+  0%  { background-color: rgba(239,68,68,0.25); }
+  60% { background-color: rgba(239,68,68,0.10); }
+  100%{ background-color: transparent; }
+}
+.ns-row-threat { animation: row-flash 2.4s ease forwards; }
+.ns-row-safe   { background-color: rgba(16,185,129,0.06); }
+
+/* ─── SECTION HEADING ────────────────────────────────────────── */
+.ns-section-title {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--lavender);
+}
+
+/* ─── SKELETON LOADER ────────────────────────────────────────── */
+@keyframes skeleton-shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+.ns-skeleton {
+  background: linear-gradient(90deg, rgba(46,16,101,0.3) 25%, rgba(124,58,237,0.15) 50%, rgba(46,16,101,0.3) 75%);
+  background-size: 800px 100%;
+  animation: skeleton-shimmer 1.6s infinite;
+  border-radius: 0.375rem;
+}
+
+/* ─── GLASSMORPHISM PANEL ────────────────────────────────────── */
+.ns-glass {
+  background: rgba(22, 13, 38, 0.65);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(124,58,237,0.20);
+}
+
+/* ─── SIDEBAR ACTIVE ITEM GLOW ───────────────────────────────── */
+.sidebar-active {
+  background: linear-gradient(135deg, rgba(124,58,237,0.25), rgba(168,85,247,0.12));
+  border: 1px solid rgba(168,85,247,0.45);
+  color: #E9D5FF;
+  box-shadow: 0 0 20px -8px rgba(124,58,237,0.50) inset;
+}
+
+/* ─── RECHARTS OVERRIDES ─────────────────────────────────────── */
+.recharts-tooltip-wrapper .recharts-default-tooltip {
+  background: rgba(16,9,28,0.95) !important;
+  border-color: rgba(124,58,237,0.40) !important;
+  font-size: 11px;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* ─── MOTION REDUCTION ───────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
-  .bento-card {
-    transition: opacity 200ms ease, border-color 200ms ease;
-  }
+  .bento-card,
+  .ns-btn,
+  .bento-card::before { transition-duration: 50ms !important; }
   .bento-card:hover,
-  .bento-card:focus-within {
-    transform: none;
-  }
+  .bento-card:focus-within { transform: none !important; }
+  @keyframes float-particle { 0%,100% { opacity: 0; } }
+  @keyframes pulse-glow     { 0%,100% { opacity: 0.4; } }
 }

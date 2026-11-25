@@ -11,14 +11,29 @@ import {
   AlertCircle,
   Terminal,
   FileCode,
+  FileText,
+  FileImage,
+  FileVideo,
+  FileAudio,
+  FileArchive,
+  FileSpreadsheet,
+  File,
+  FolderPlus,
+  Search,
+  ChevronDown,
+  ChevronUp,
   HardDrive,
   Lock,
   Upload,
   Download,
   ArrowRight,
   Clock,
-  Cpu
+  Cpu,
+  ShieldCheck,
+  Zap
 } from "lucide-react";
+import AtmosphericBackground from "./components/AtmosphericBackground";
+import NsCard from "./components/NsCard";
 import {
   ResponsiveContainer,
   LineChart,
@@ -69,6 +84,18 @@ import {
 const SecurityTopology3D = lazy(() => import("./components/SecurityTopology3D"));
 const SecurityLock3D = lazy(() => import("./components/SecurityLock3D"));
 
+function getFileIcon(ext = "") {
+  const e = ext.toLowerCase().replace(/^\./, "");
+  if (["png", "jpg", "jpeg", "webp", "gif", "svg", "bmp"].includes(e)) return FileImage;
+  if (["mp4", "mkv", "avi", "mov", "webm"].includes(e)) return FileVideo;
+  if (["mp3", "wav", "flac", "ogg", "aac"].includes(e)) return FileAudio;
+  if (["zip", "rar", "7z", "tar", "gz"].includes(e)) return FileArchive;
+  if (["xlsx", "xls", "ods", "csv"].includes(e)) return FileSpreadsheet;
+  if (["py", "js", "jsx", "ts", "tsx", "json", "yaml", "yml", "html", "css", "sh"].includes(e)) return FileCode;
+  if (["pdf", "doc", "docx", "odt", "ppt", "pptx", "odp", "txt", "md"].includes(e)) return FileText;
+  return File;
+}
+
 const INITIAL_VIRTUAL_FILES = [
   { id: 1, name: "financial_ledger_2026.xlsx", state: "intact", entropy: 0.22 },
   { id: 2, name: "customer_contracts.pdf", state: "intact", entropy: 0.35 },
@@ -90,6 +117,8 @@ export default function App() {
   const [workspaceStatus, setWorkspaceStatus] = useState(null);
   const [wsPreview, setWsPreview] = useState(null);
   const [wsMeta, setWsMeta] = useState(null);
+  const [wsSearch, setWsSearch] = useState("");
+  const [wsShowExplain, setWsShowExplain] = useState(false);
   const folderInputRef = useRef(null);
   const [bulkProfile, setBulkProfile] = useState("excessive_requests");
   const [bulkCount, setBulkCount] = useState(12);
@@ -362,17 +391,18 @@ export default function App() {
   }, [replayPlaying, activeIncident?.incident_id]);
 
   return (
-    <div className="flex h-screen bg-[#090610] text-[#F3E8FF] overflow-hidden font-sans">
+    <div className="ns-cursor-spotlight relative flex h-screen bg-[#08050F] text-[#F5EDFF] overflow-hidden font-sans">
+      <AtmosphericBackground />
       {/* Sidebar */}
-      <aside className="w-60 bg-[#160D26] border-r border-purple-900/40 flex flex-col justify-between shrink-0">
+      <aside className="relative z-10 w-60 bg-[#10091C]/90 backdrop-blur-xl border-r border-purple-900/40 flex flex-col justify-between shrink-0">
         <div>
           <div className="p-4 border-b border-purple-900/40 flex items-center space-x-3">
-            <div className="p-2 bg-[#2E1065]/70 border border-purple-500/40 rounded-lg">
-              <ShieldAlert className="w-5 h-5 text-[#D8B4FE]" />
+            <div className="p-2 bg-gradient-to-br from-[#7C3AED]/40 to-[#2E1065]/80 border border-purple-500/40 rounded-lg shadow-[0_0_16px_-4px_rgba(124,58,237,0.6)]">
+              <ShieldAlert className="w-5 h-5 text-[#E9D5FF]" />
             </div>
             <div>
-              <h1 className="font-semibold text-sm tracking-wide text-[#F3E8FF]">Nexus Sentinel</h1>
-              <span className="text-[10px] text-[#A855F7] font-mono">PURPLE COMMAND</span>
+              <h1 className="font-semibold text-sm tracking-wide text-[#F5EDFF]">Nexus Sentinel</h1>
+              <span className="text-[10px] text-[#C084FC] font-mono tracking-widest">PURPLE COMMAND</span>
             </div>
           </div>
 
@@ -392,16 +422,16 @@ export default function App() {
                 <button
                   key={item.id}
                   onClick={() => setActiveTab(item.id)}
-                  className={`w-full flex items-center space-x-2.5 px-3 py-2 rounded-md text-xs font-medium transition-colors ${
+                  className={`w-full flex items-center space-x-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200 active:scale-[0.98] ${
                     active
-                      ? "bg-[#7C3AED]/20 text-[#D8B4FE] border border-[#A855F7]/50"
-                      : "text-purple-300/70 hover:text-[#F3E8FF] hover:bg-[#241438]/70"
+                      ? "sidebar-active"
+                      : "text-[#AD98C5] hover:text-[#F5EDFF] hover:bg-[#211334]/70 border border-transparent"
                   }`}
                 >
-                  <Icon className="w-4 h-4 shrink-0" />
+                  <Icon className={`w-4 h-4 shrink-0 ${active ? "text-[#C084FC]" : ""}`} />
                   <span>{item.label}</span>
                   {item.badge && (
-                    <span className="ml-auto text-[9px] font-mono bg-[#2E1065] text-[#D8B4FE] border border-purple-600/50 px-1.5 py-0.5 rounded">
+                    <span className="ml-auto text-[9px] font-mono bg-[#2E1065] text-[#E9D5FF] border border-purple-600/50 px-1.5 py-0.5 rounded">
                       {item.badge}
                     </span>
                   )}
@@ -410,7 +440,7 @@ export default function App() {
                       className={`ml-auto text-[10px] font-mono px-1.5 py-0.5 rounded ${
                         item.warn
                           ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
-                          : "bg-[#241438] text-purple-200"
+                          : "bg-[#211334] text-[#C084FC]"
                       }`}
                     >
                       {item.count}
@@ -422,28 +452,28 @@ export default function App() {
           </nav>
         </div>
 
-        <div className="p-4 border-t border-purple-900/40 bg-[#160D26]">
-          <div className="flex items-center space-x-2 text-[11px] text-[#D8B4FE] mb-1">
-            <span className="w-2 h-2 rounded-full bg-[#A855F7]"></span>
-            <span className="font-mono uppercase font-semibold">Simulation Mode</span>
+        <div className="p-4 border-t border-purple-900/40 bg-[#10091C]/80">
+          <div className="flex items-center space-x-2 text-[11px] text-[#E9D5FF] mb-1">
+            <span className="w-2 h-2 rounded-full bg-[#A855F7] animate-pulse"></span>
+            <span className="font-mono uppercase font-semibold tracking-wider">Simulation Mode</span>
           </div>
-          <p className="text-[11px] text-purple-300/70 leading-snug">
+          <p className="text-[11px] text-[#AD98C5] leading-snug">
             Synthetic tabular observations only. Endpoint isolation and containment are simulated.
           </p>
         </div>
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col min-w-0 overflow-y-auto">
-        <header className="h-14 border-b border-purple-900/40 bg-[#160D26]/60 px-6 flex items-center justify-between shrink-0">
+      <main className="relative z-10 flex-1 flex flex-col min-w-0 overflow-y-auto">
+        <header className="h-14 border-b border-purple-900/40 bg-[#10091C]/70 backdrop-blur-md px-6 flex items-center justify-between shrink-0 sticky top-0 z-20">
           <div className="flex items-center space-x-3">
-            <h2 className="text-sm font-semibold text-[#F3E8FF]">
+            <h2 className="text-sm font-semibold text-[#F5EDFF] tracking-tight">
               {activeTab === "overview" ? "Command Center" : activeTab === "simlab" ? "Simulation Lab" : activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
             </h2>
             <span className="text-purple-800">|</span>
             <div className="flex items-center space-x-1.5">
-              <span className={`w-2 h-2 rounded-full ${health.status === "ok" ? "bg-emerald-400" : "bg-rose-500"}`} />
-              <span className="text-[11px] font-mono text-purple-300/80">
+              <span className={`w-2 h-2 rounded-full ${health.status === "ok" ? "bg-emerald-400 shadow-[0_0_8px_#34d399]" : "bg-rose-500"}`} />
+              <span className="text-[11px] font-mono text-[#AD98C5]">
                 API {health.status === "ok" ? "ONLINE (:8000)" : "OFFLINE"}
               </span>
             </div>
@@ -455,7 +485,7 @@ export default function App() {
                 key={sc}
                 onClick={() => handleScenarioTrigger(sc)}
                 disabled={actionLoading}
-                className="text-xs bg-[#241438] hover:bg-[#2E1065] text-[#F3E8FF] px-2.5 py-1.5 rounded border border-purple-700/40 transition capitalize disabled:opacity-50"
+                className="ns-btn ns-btn-ghost capitalize"
               >
                 {sc}
               </button>
@@ -463,14 +493,14 @@ export default function App() {
             <button
               onClick={() => handleScenarioTrigger("suspicious")}
               disabled={actionLoading}
-              className="text-xs bg-rose-950/60 hover:bg-rose-900/60 text-rose-200 px-2.5 py-1.5 rounded border border-rose-800/60 transition font-medium disabled:opacity-50"
+              className="ns-btn ns-btn-danger font-medium"
             >
               Suspicious
             </button>
             <button
               onClick={handleReset}
               disabled={actionLoading}
-              className="text-xs bg-[#241438] hover:bg-[#2E1065] text-[#D8B4FE] px-2.5 py-1.5 rounded border border-[#7C3AED]/50 transition flex items-center space-x-1 disabled:opacity-50"
+              className="ns-btn ns-btn-folder"
             >
               <RotateCcw className="w-3 h-3" />
               <span>Reset</span>
@@ -478,29 +508,29 @@ export default function App() {
           </div>
         </header>
 
-        <div className="p-6 space-y-5 max-w-7xl w-full mx-auto">
+        <div key={activeTab} className="p-6 space-y-5 max-w-7xl w-full mx-auto transition-opacity duration-200">
           {health.status !== "ok" && (
-            <div className="p-3.5 bg-rose-950/20 border border-rose-800/50 rounded-lg flex items-center space-x-3 text-rose-200 text-xs">
+            <div className="p-3.5 bg-rose-950/30 border border-rose-800/50 rounded-xl flex items-center space-x-3 text-rose-200 text-xs backdrop-blur-md">
               <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
               <span>
-                Backend offline at <code className="font-mono text-cyan-300">http://localhost:8000</code>. Start with{" "}
-                <code className="font-mono text-cyan-300">uvicorn backend.main:app --port 8000</code>.
+                Backend offline at <code className="font-mono text-[#C084FC]">http://localhost:8000</code>. Start with{" "}
+                <code className="font-mono text-[#C084FC]">uvicorn backend.main:app --port 8000</code>.
               </span>
             </div>
           )}
 
           {statusBanner && (
             <div
-              className={`px-3.5 py-2 rounded-md border text-xs flex items-center justify-between ${
+              className={`px-4 py-2.5 rounded-xl border text-xs flex items-center justify-between backdrop-blur-md ${
                 statusBanner.type === "error"
-                  ? "bg-rose-950/30 border-rose-800/50 text-rose-200"
+                  ? "bg-rose-950/35 border-rose-800/50 text-rose-200"
                   : statusBanner.type === "alert"
-                  ? "bg-amber-950/30 border-amber-800/50 text-amber-200"
-                  : "bg-cyan-950/30 border-cyan-800/50 text-cyan-200"
+                  ? "bg-amber-950/35 border-amber-800/50 text-amber-200"
+                  : "bg-[#2E1065]/40 border-purple-500/40 text-[#E9D5FF]"
               }`}
             >
               <span>{statusBanner.text}</span>
-              <button onClick={() => setStatusBanner(null)} className="text-[11px] opacity-70 hover:opacity-100">
+              <button onClick={() => setStatusBanner(null)} className="text-[11px] opacity-70 hover:opacity-100 underline ml-4">
                 Dismiss
               </button>
             </div>
@@ -511,158 +541,171 @@ export default function App() {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
               {/* Left 32% (4 cols): Interactive 3D Security Lock + System Health */}
               <div className="lg:col-span-4 space-y-4">
-                <div className="p-4 rounded-xl bg-[#160D26]/90 border border-purple-900/50 space-y-2">
+                <NsCard noPerspective className="p-4 space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold uppercase tracking-wider text-[#D8B4FE]">
-                      3D Protection Core
-                    </span>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#2E1065] text-[#D8B4FE] border border-purple-600/40">
+                    <span className="ns-section-title">3D Protection Core</span>
+                    <span className="ns-badge ns-badge-violet">
                       {health.model_version || "rf-phase2-v1"}
                     </span>
                   </div>
                   <Suspense
                     fallback={
-                      <div className="h-80 flex items-center justify-center text-xs text-purple-300 font-mono">
-                        Loading 3D Security Lock...
+                      <div className="h-[300px] flex flex-col items-center justify-center gap-2 text-xs text-[#C084FC] font-mono">
+                        <div className="w-7 h-7 rounded-full border-2 border-purple-500/30 border-t-[#C084FC] animate-spin" />
+                        <span>Initializing 3D Security Lock...</span>
                       </div>
                     }
                   >
                     <SecurityLock3D hasIncident={incidents.length > 0} />
                   </Suspense>
-                  <div className="grid grid-cols-2 gap-2 text-[11px] font-mono text-purple-200/80 pt-1 border-t border-purple-900/40">
+                  <div className="grid grid-cols-2 gap-2 text-[11px] font-mono text-[#AD98C5] pt-2 border-t border-purple-900/40">
                     <span>Backend: <strong className="text-emerald-400">{health.components?.backend || health.status}</strong></span>
                     <span>DB: <strong className="text-emerald-400">{health.components?.database || "--"}</strong></span>
                     <span>ML: <strong className="text-emerald-400">{health.components?.ml_engine || "--"}</strong></span>
-                    <span>Gateway: <strong className="text-[#D8B4FE]">{health.components?.gateway || "active"}</strong></span>
+                    <span>Gateway: <strong className="text-[#C084FC]">{health.components?.gateway || "active"}</strong></span>
                   </div>
-                </div>
+                </NsCard>
               </div>
 
               {/* Right 68% (8 cols): Asymmetric Bento Grid */}
               <div className="lg:col-span-8 bento-grid grid grid-cols-1 md:grid-cols-3 gap-4">
                 {/* Top Row: 3 compact cards */}
-                <div
-                  tabIndex={0}
-                  onClick={() => setActiveTab("workspace")}
-                  onKeyDown={(e) => e.key === "Enter" && setActiveTab("workspace")}
-                  className="bento-card rounded-xl p-4 cursor-pointer"
-                >
-                  <span className="text-[11px] font-mono uppercase text-[#A855F7]">Workspace Protection</span>
-                  <div className="text-xl font-bold text-[#F3E8FF] mt-1 font-mono">
-                    {workspaceStatus?.file_count ?? 20} Files
+                <NsCard onClick={() => setActiveTab("workspace")} className="p-4 flex flex-col justify-between">
+                  <div className="flex items-center justify-between">
+                    <span className="ns-section-title">Workspace</span>
+                    <div className="p-1.5 rounded-lg bg-[#7C3AED]/20 border border-purple-500/30">
+                      <HardDrive className="w-3.5 h-3.5 text-[#C084FC]" />
+                    </div>
                   </div>
-                  <p className="text-xs text-purple-300/75 mt-1">
-                    Status: <span className="font-mono text-emerald-400">{workspaceStatus?.monitoring_status || "active"}</span>
+                  <div className="text-2xl font-bold text-[#F5EDFF] mt-2 font-mono">
+                    {workspaceStatus?.file_count ?? 0} <span className="text-xs font-normal text-[#AD98C5]">Files</span>
+                  </div>
+                  <p className="text-[11px] text-[#AD98C5] mt-1.5 flex items-center justify-between">
+                    <span>Monitor: <strong className="font-mono text-emerald-400">{workspaceStatus?.monitoring_status || "active"}</strong></span>
+                    <ArrowRight className="w-3 h-3 text-[#C084FC]" />
                   </p>
-                </div>
+                </NsCard>
 
-                <div
-                  tabIndex={0}
-                  onClick={() => setActiveTab("gateway")}
-                  onKeyDown={(e) => e.key === "Enter" && setActiveTab("gateway")}
-                  className="bento-card rounded-xl p-4 cursor-pointer"
-                >
-                  <span className="text-[11px] font-mono uppercase text-[#A855F7]">Gateway Protection</span>
-                  <div className="text-xl font-bold text-[#F3E8FF] mt-1 font-mono">
-                    {gateway?.avoided_assessments ?? 0} Avoided
+                <NsCard onClick={() => setActiveTab("gateway")} className="p-4 flex flex-col justify-between">
+                  <div className="flex items-center justify-between">
+                    <span className="ns-section-title">Gateway</span>
+                    <div className="p-1.5 rounded-lg bg-[#A855F7]/20 border border-purple-500/30">
+                      <Zap className="w-3.5 h-3.5 text-[#C084FC]" />
+                    </div>
                   </div>
-                  <p className="text-xs text-purple-300/75 mt-1">
-                    Accepted: <span className="font-mono text-[#D8B4FE]">{gateway?.accepted_requests ?? 0}</span>
+                  <div className="text-2xl font-bold text-[#F5EDFF] mt-2 font-mono">
+                    {gateway?.avoided_assessments ?? 0} <span className="text-xs font-normal text-[#AD98C5]">Avoided</span>
+                  </div>
+                  <p className="text-[11px] text-[#AD98C5] mt-1.5 flex items-center justify-between">
+                    <span>Accepted: <strong className="font-mono text-[#E9D5FF]">{gateway?.accepted_requests ?? 0}</strong></span>
+                    <ArrowRight className="w-3 h-3 text-[#C084FC]" />
                   </p>
-                </div>
+                </NsCard>
 
-                <div
-                  tabIndex={0}
-                  onClick={() => setActiveTab("incidents")}
-                  onKeyDown={(e) => e.key === "Enter" && setActiveTab("incidents")}
-                  className="bento-card rounded-xl p-4 cursor-pointer"
-                >
-                  <span className="text-[11px] font-mono uppercase text-[#A855F7]">Incidents & Containment</span>
-                  <div className="text-xl font-bold text-amber-300 mt-1 font-mono">
-                    {incidents.length} Active
+                <NsCard onClick={() => setActiveTab("incidents")} className="p-4 flex flex-col justify-between">
+                  <div className="flex items-center justify-between">
+                    <span className="ns-section-title">Incidents</span>
+                    <div className={`p-1.5 rounded-lg border ${incidents.length > 0 ? "bg-rose-500/20 border-rose-500/40" : "bg-[#7C3AED]/20 border-purple-500/30"}`}>
+                      <ShieldCheck className={`w-3.5 h-3.5 ${incidents.length > 0 ? "text-rose-400" : "text-[#C084FC]"}`} />
+                    </div>
                   </div>
-                  <p className="text-xs text-purple-300/75 mt-1">
-                    Endpoints: <span className="font-mono text-[#D8B4FE]">{endpoints.length} virtual</span>
+                  <div className={`text-2xl font-bold mt-2 font-mono ${incidents.length > 0 ? "text-amber-300" : "text-[#F5EDFF]"}`}>
+                    {incidents.length} <span className="text-xs font-normal text-[#AD98C5]">Active</span>
+                  </div>
+                  <p className="text-[11px] text-[#AD98C5] mt-1.5 flex items-center justify-between">
+                    <span>Endpoints: <strong className="font-mono text-[#E9D5FF]">{endpoints.length} virtual</strong></span>
+                    <ArrowRight className="w-3 h-3 text-[#C084FC]" />
                   </p>
-                </div>
+                </NsCard>
 
                 {/* Middle Row: Differently sized cards (2 cols + 1 col) */}
-                <div
-                  tabIndex={0}
-                  onClick={() => setActiveTab("simlab")}
-                  onKeyDown={(e) => e.key === "Enter" && setActiveTab("simlab")}
-                  className="bento-card md:col-span-2 rounded-xl p-4 cursor-pointer"
-                >
+                <NsCard onClick={() => setActiveTab("simlab")} className="md:col-span-2 p-4">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-semibold uppercase tracking-wider text-[#D8B4FE]">
-                      Risk Score Trajectory
-                    </span>
-                    <span className="text-[11px] font-mono text-purple-300/75">
+                    <span className="ns-section-title">Risk Score Trajectory</span>
+                    <span className="text-[11px] font-mono text-[#AD98C5]">
                       {assessments.length} assessments
                     </span>
                   </div>
                   {chartData.length === 0 ? (
-                    <div className="h-36 flex items-center justify-center text-xs text-purple-300/60 border border-dashed border-purple-800/50 rounded">
-                      Trigger a scenario above or open Simulation Lab.
+                    <div className="h-36 flex flex-col items-center justify-center gap-2 text-xs text-[#AD98C5] border border-dashed border-purple-800/50 rounded-lg bg-[#08050F]/40">
+                      <span>No telemetry assessments recorded yet.</span>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleScenarioTrigger("normal");
+                        }}
+                        className="ns-btn ns-btn-primary text-[11px]"
+                      >
+                        Run Baseline Sample
+                      </button>
                     </div>
                   ) : (
                     <div className="h-36">
                       <ResponsiveContainer width="100%" height="100%">
                         <LineChart data={chartData}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#2E1065" />
-                          <XAxis dataKey="name" stroke="#A855F7" fontSize={10} />
-                          <YAxis stroke="#A855F7" domain={[0, 100]} fontSize={10} />
-                          <Tooltip contentStyle={{ backgroundColor: "#160D26", borderColor: "#7C3AED", fontSize: "11px" }} />
-                          <Line type="monotone" dataKey="risk_score" stroke="#D8B4FE" strokeWidth={2} dot={{ r: 3 }} />
+                          <CartesianGrid strokeDasharray="3 3" stroke="#211334" />
+                          <XAxis dataKey="name" stroke="#AD98C5" fontSize={10} />
+                          <YAxis stroke="#AD98C5" domain={[0, 100]} fontSize={10} />
+                          <Tooltip contentStyle={{ backgroundColor: "#10091C", borderColor: "#7C3AED", fontSize: "11px" }} />
+                          <Line type="monotone" dataKey="risk_score" stroke="#A855F7" strokeWidth={2.5} dot={{ r: 3, fill: "#C084FC" }} activeDot={{ r: 5, fill: "#E9D5FF" }} />
                         </LineChart>
                       </ResponsiveContainer>
                     </div>
                   )}
-                </div>
+                </NsCard>
 
-                <div
-                  tabIndex={0}
-                  onClick={() => setActiveTab("analytics")}
-                  onKeyDown={(e) => e.key === "Enter" && setActiveTab("analytics")}
-                  className="bento-card rounded-xl p-4 cursor-pointer flex flex-col justify-between"
-                >
+                <NsCard onClick={() => setActiveTab("analytics")} className="p-4 flex flex-col justify-between">
                   <div>
-                    <span className="text-[11px] font-mono uppercase text-[#A855F7]">Model Analytics</span>
-                    <div className="text-2xl font-bold text-[#F3E8FF] mt-2 font-mono">
+                    <div className="flex items-center justify-between">
+                      <span className="ns-section-title">Model F1</span>
+                      <BarChart3 className="w-3.5 h-3.5 text-[#C084FC]" />
+                    </div>
+                    <div className="text-2xl font-bold text-[#F5EDFF] mt-2 font-mono">
                       {p2 ? `${(p2.f1_score * 100).toFixed(2)}%` : "--"}
                     </div>
-                    <span className="text-xs text-purple-300/75">Phase 2 F1 Score</span>
+                    <span className="text-[11px] text-[#AD98C5]">Phase 2 Random Forest</span>
                   </div>
                   <div className="pt-3 border-t border-purple-900/40 text-[11px] font-mono space-y-1">
-                    <div>Obs FPR: <strong className="text-emerald-400">{p2 ? `${(p2.false_positive_rate * 100).toFixed(2)}%` : "--"}</strong></div>
-                    <div>Early Det: <strong className="text-[#D8B4FE]">{earlyWarning ? `${(earlyWarning.early_detection_rate * 100).toFixed(1)}%` : "--"}</strong></div>
+                    <div className="flex justify-between">
+                      <span className="text-[#AD98C5]">Obs FPR:</span>
+                      <strong className="text-emerald-400">{p2 ? `${(p2.false_positive_rate * 100).toFixed(2)}%` : "--"}</strong>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-[#AD98C5]">Early Det:</span>
+                      <strong className="text-[#C084FC]">{earlyWarning ? `${(earlyWarning.early_detection_rate * 100).toFixed(1)}%` : "--"}</strong>
+                    </div>
                   </div>
-                </div>
+                </NsCard>
 
                 {/* Bottom Row: 1 wide card */}
-                <div
-                  tabIndex={0}
-                  onClick={() => setActiveTab("endpoints")}
-                  onKeyDown={(e) => e.key === "Enter" && setActiveTab("endpoints")}
-                  className="bento-card md:col-span-3 rounded-xl p-4 cursor-pointer"
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-semibold uppercase tracking-wider text-[#D8B4FE]">
-                      Virtual Organization & Recent Assessments
+                <NsCard onClick={() => setActiveTab("endpoints")} className="md:col-span-3 p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="ns-section-title">Virtual Organization Mesh</span>
+                    <span className="text-[11px] text-[#AD98C5] flex items-center gap-1">
+                      Inspect Endpoints <ArrowRight className="w-3 h-3 text-[#C084FC]" />
                     </span>
-                    <span className="text-[11px] text-purple-300/75">Click to open Endpoints</span>
                   </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-                    {endpoints.map((ep) => (
-                      <div key={ep.endpoint_id} className="p-2 rounded bg-[#090610]/70 border border-purple-900/40 text-xs font-mono">
-                        <div className="font-semibold text-[#F3E8FF]">{ep.endpoint_id}</div>
-                        <div className={ep.status === "simulated_isolated" ? "text-rose-400 text-[10px]" : "text-emerald-400 text-[10px]"}>
-                          {ep.status} ({ep.current_risk_score ?? 0})
+                  <div className="relative">
+                    {/* Subtle SVG connection line behind endpoint mini-cards */}
+                    <svg className="hidden sm:block absolute inset-x-4 top-1/2 -translate-y-1/2 w-[calc(100%-2rem)] h-4 pointer-events-none opacity-40" preserveAspectRatio="none">
+                      <line x1="0%" y1="50%" x2="100%" y2="50%" stroke="#A855F7" strokeWidth="1" strokeDasharray="4 4" />
+                    </svg>
+                    <div className="relative grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+                      {endpoints.map((ep) => (
+                        <div key={ep.endpoint_id} className="p-2.5 rounded-lg bg-[#08050F]/85 border border-purple-900/50 text-xs font-mono hover:border-[#A855F7]/60 transition-colors">
+                          <div className="flex items-center justify-between">
+                            <span className="font-semibold text-[#F5EDFF]">{ep.endpoint_id}</span>
+                            <span className={`w-1.5 h-1.5 rounded-full ${ep.status === "simulated_isolated" ? "bg-rose-400" : "bg-emerald-400"}`} />
+                          </div>
+                          <div className={ep.status === "simulated_isolated" ? "text-rose-400 text-[10px] mt-1" : "text-emerald-400 text-[10px] mt-1"}>
+                            {ep.status} ({ep.current_risk_score ?? 0})
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
-                </div>
+                </NsCard>
               </div>
             </div>
           )}
@@ -671,14 +714,14 @@ export default function App() {
           {activeTab === "workspace" && workspaceStatus && (
             <div className="space-y-5">
               {/* Controls & Status */}
-              <div className="p-4 bg-slate-900/70 border border-slate-800 rounded-lg flex flex-wrap items-center justify-between gap-3">
+              <div className="ns-card p-4 flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <h3 className="text-sm font-semibold text-slate-100">
+                  <h3 className="text-sm font-semibold text-[#F5EDFF]">
                     Workspace Protection Center ({workspaceStatus.workspace_path})
                   </h3>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-[#AD98C5] mt-0.5">
                     Monitor: <strong className="text-emerald-400 font-mono uppercase">{workspaceStatus.monitoring_status}</strong> |{" "}
-                    Harness: <strong className="text-cyan-300 font-mono uppercase">{workspaceStatus.harness_state?.status || "idle"}</strong> |{" "}
+                    Harness: <strong className="text-[#C084FC] font-mono uppercase">{workspaceStatus.harness_state?.status || "idle"}</strong> |{" "}
                     Telemetry: <strong className="text-amber-300 font-mono">{workspaceStatus.telemetry_status}</strong>
                   </p>
                 </div>
@@ -730,9 +773,10 @@ export default function App() {
                   <button
                     onClick={() => folderInputRef.current?.click()}
                     disabled={actionLoading}
-                    className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-cyan-300 text-xs rounded border border-cyan-800/50"
+                    className="ns-btn ns-btn-folder"
                   >
-                    Add Folder
+                    <FolderPlus className="w-3.5 h-3.5" />
+                    <span>Add Folder</span>
                   </button>
                   <button
                     onClick={async () => {
@@ -746,15 +790,16 @@ export default function App() {
                       }
                     }}
                     disabled={actionLoading}
-                    className="px-3 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-semibold text-xs rounded transition disabled:opacity-50"
+                    className="ns-btn ns-btn-primary"
                   >
-                    Run Test Script
+                    <Play className="w-3.5 h-3.5" />
+                    <span>Run Test Script</span>
                   </button>
                   <button
                     onClick={async () => {
                       setWorkspaceStatus(await stopWorkspaceTest());
                     }}
-                    className="px-2.5 py-1.5 bg-rose-950/60 hover:bg-rose-900/60 text-rose-200 text-xs rounded border border-rose-800/60"
+                    className="ns-btn ns-btn-danger"
                   >
                     Stop Test
                   </button>
@@ -762,7 +807,7 @@ export default function App() {
                     onClick={async () => {
                       setWorkspaceStatus(await fetchWorkspaceStatus());
                     }}
-                    className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs rounded border border-slate-700"
+                    className="ns-btn ns-btn-ghost"
                   >
                     Refresh Workspace
                   </button>
@@ -774,7 +819,7 @@ export default function App() {
                       setWorkspaceStatus(await resetWorkspaceSimulation());
                       setStatusBanner({ type: "ok", text: "Simulation reset; imported and manual files preserved." });
                     }}
-                    className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-cyan-300 text-xs rounded border border-cyan-800/50"
+                    className="ns-btn ns-btn-folder"
                   >
                     Reset Simulation
                   </button>
@@ -786,7 +831,7 @@ export default function App() {
                       setWorkspaceStatus(await clearWorkspace());
                       setStatusBanner({ type: "ok", text: "Imported workspace entries cleared." });
                     }}
-                    className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-amber-300 text-xs rounded border border-amber-800/50"
+                    className="ns-btn ns-btn-ghost text-amber-300 border-amber-700/40"
                   >
                     Clear Workspace
                   </button>
@@ -796,33 +841,33 @@ export default function App() {
               {/* Containment & Latency Summary */}
               {workspaceStatus.harness_state && (
                 <div className="grid grid-cols-2 lg:grid-cols-6 gap-3 font-mono text-xs">
-                  <div className="p-3 bg-slate-900/60 border border-slate-800 rounded-lg">
-                    <span className="text-[11px] text-slate-400 block font-sans">Observations</span>
-                    <span className="text-lg font-bold text-slate-100">{workspaceStatus.harness_state.observations_processed}</span>
+                  <div className="ns-stat">
+                    <span className="text-[11px] text-[#AD98C5] block font-sans">Observations</span>
+                    <span className="text-lg font-bold text-[#F5EDFF]">{workspaceStatus.harness_state.observations_processed}</span>
                   </div>
-                  <div className="p-3 bg-slate-900/60 border border-slate-800 rounded-lg">
-                    <span className="text-[11px] text-slate-400 block font-sans">AI Risk Score</span>
+                  <div className="ns-stat">
+                    <span className="text-[11px] text-[#AD98C5] block font-sans">AI Risk Score</span>
                     <span className={`text-lg font-bold ${(workspaceStatus.harness_state.latest_assessment?.risk_score ?? 0) >= 50 ? "text-rose-400" : "text-emerald-400"}`}>
                       {workspaceStatus.harness_state.latest_assessment?.risk_score ?? "--"}/100
                     </span>
                   </div>
-                  <div className="p-3 bg-slate-900/60 border border-slate-800 rounded-lg">
-                    <span className="text-[11px] text-slate-400 block font-sans">Detection Latency</span>
-                    <span className="text-lg font-bold text-cyan-300">
+                  <div className="ns-stat">
+                    <span className="text-[11px] text-[#AD98C5] block font-sans">Detection Latency</span>
+                    <span className="text-lg font-bold text-[#C084FC]">
                       {workspaceStatus.harness_state.measured_detection_latency_ms ?? "--"} ms
                     </span>
                   </div>
-                  <div className="p-3 bg-slate-900/60 border border-slate-800 rounded-lg">
-                    <span className="text-[11px] text-slate-400 block font-sans">Virtually Affected</span>
+                  <div className="ns-stat">
+                    <span className="text-[11px] text-[#AD98C5] block font-sans">Virtually Affected</span>
                     <span className="text-lg font-bold text-rose-400">{workspaceStatus.harness_state.virtually_affected_count}</span>
                   </div>
-                  <div className="p-3 bg-slate-900/60 border border-slate-800 rounded-lg">
-                    <span className="text-[11px] text-slate-400 block font-sans">Unaffected Files</span>
+                  <div className="ns-stat">
+                    <span className="text-[11px] text-[#AD98C5] block font-sans">Unaffected Files</span>
                     <span className="text-lg font-bold text-emerald-400">{workspaceStatus.harness_state.unaffected_count}</span>
                   </div>
-                  <div className="p-3 bg-slate-900/60 border border-slate-800 rounded-lg">
-                    <span className="text-[11px] text-slate-400 block font-sans">Containment</span>
-                    <span className="text-sm font-bold text-purple-300 uppercase">
+                  <div className="ns-stat">
+                    <span className="text-[11px] text-[#AD98C5] block font-sans">Containment</span>
+                    <span className="text-sm font-bold text-[#E9D5FF] uppercase">
                       {workspaceStatus.harness_state.containment_timestamp ? "SIM_ISOLATED" : "MONITORING"}
                     </span>
                   </div>
@@ -830,99 +875,128 @@ export default function App() {
               )}
 
               {/* Live File Explorer */}
-              <div className="p-4 bg-slate-900/60 border border-slate-800 rounded-lg space-y-2">
-                <div className="flex justify-between items-center">
-                  <h4 className="text-xs font-semibold text-slate-200 uppercase tracking-wider">
-                    Live File Explorer ({workspaceStatus.file_count} Actual Files in demo_workspace/)
-                  </h4>
-                  <span className="text-[11px] text-slate-400">
-                    Real files on disk are never encrypted or modified.
-                  </span>
+              <div className="ns-card p-4 space-y-3">
+                <div className="flex flex-wrap justify-between items-center gap-2">
+                  <div>
+                    <h4 className="ns-section-title">
+                      Live File Explorer ({workspaceStatus.file_count} Actual Files in demo_workspace/)
+                    </h4>
+                    <span className="text-[11px] text-[#AD98C5]">
+                      Real files on disk are never encrypted or modified during automated tests.
+                    </span>
+                  </div>
+                  <div className="relative">
+                    <Search className="w-3.5 h-3.5 text-[#AD98C5] absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <input
+                      type="text"
+                      value={wsSearch}
+                      onChange={(e) => setWsSearch(e.target.value)}
+                      placeholder="Filter files or ext..."
+                      className="ns-input pl-8 w-52"
+                    />
+                  </div>
                 </div>
-                <div className="max-h-64 overflow-y-auto border border-slate-800 rounded bg-slate-950">
-                  <table className="w-full text-left text-xs">
-                    <thead className="text-[10px] text-slate-400 border-b border-slate-800 sticky top-0 bg-slate-950">
+                <div className="max-h-72 overflow-y-auto border border-purple-900/40 rounded-lg bg-[#08050F]/80">
+                  <table className="ns-table">
+                    <thead>
                       <tr>
-                        <th className="p-2">Actual Filename</th>
-                        <th className="p-2">Simulated State</th>
-                        <th className="p-2">Ext</th>
-                        <th className="p-2">Size</th>
-                        <th className="p-2">Observed Activity</th>
-                        <th className="p-2">Actions</th>
+                        <th>Actual Filename</th>
+                        <th>Simulated State</th>
+                        <th>Ext</th>
+                        <th>Size</th>
+                        <th>Observed Activity</th>
+                        <th>Actions</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-800/50 font-mono text-[11px]">
-                      {(workspaceStatus.files || []).map((f) => (
-                        <tr
-                          key={f.relative_path}
-                          className={
-                            f.simulated_status === "simulated_encrypted" || f.simulated_status === "simulated_altered"
-                              ? "bg-rose-950/30 animate-pulse"
-                              : ""
-                          }
-                        >
-                          <td className="p-2 text-slate-200">{f.relative_path}</td>
-                          <td className="p-2">
-                            <span
-                              className={
-                                f.simulated_status === "simulated_encrypted"
-                                  ? "text-rose-400 font-semibold"
-                                  : f.simulated_status === "simulated_altered"
-                                  ? "text-amber-400"
-                                  : f.simulated_status === "simulated_contained"
-                                  ? "text-purple-300"
-                                  : "text-emerald-400"
-                              }
+                    <tbody className="font-mono text-[11px]">
+                      {(workspaceStatus.files || [])
+                        .filter((f) => {
+                          const q = wsSearch.trim().toLowerCase();
+                          return (
+                            !q ||
+                            f.relative_path.toLowerCase().includes(q) ||
+                            (f.extension || "").toLowerCase().includes(q) ||
+                            (f.simulated_status || "").toLowerCase().includes(q)
+                          );
+                        })
+                        .map((f) => {
+                          const Icon = getFileIcon(f.extension);
+                          const isThreat =
+                            f.simulated_status === "simulated_encrypted" ||
+                            f.simulated_status === "simulated_altered";
+                          return (
+                            <tr
+                              key={f.relative_path}
+                              className={isThreat ? "ns-row-threat" : "ns-row-safe"}
                             >
-                              {f.simulated_filename || f.simulated_status}
-                            </span>
-                          </td>
-                          <td className="p-2 text-slate-400">{f.extension}</td>
-                          <td className="p-2 text-slate-400">{f.size_bytes} B</td>
-                          <td className="p-2 text-cyan-300">{f.observed_activity}</td>
-                          <td className="p-2 space-x-2 font-sans">
-                            <button
-                              onClick={() => setWsMeta(f)}
-                              className="text-slate-300 hover:text-cyan-300 underline"
-                            >
-                              Meta
-                            </button>
-                            <button
-                              onClick={async () => {
-                                try {
-                                  setWsPreview(await previewWorkspaceFile(f.relative_path));
-                                } catch (err) {
-                                  setStatusBanner({ type: "error", text: err.response?.data?.detail || err.message });
-                                }
-                              }}
-                              className="text-slate-300 hover:text-cyan-300 underline"
-                            >
-                              Preview
-                            </button>
-                            <button
-                              onClick={async () => {
-                                const next = window.prompt("New filename (or new extension):", f.filename);
-                                if (!next || next === f.filename) return;
-                                try {
-                                  setWorkspaceStatus(await renameWorkspaceFile(f.relative_path, next));
-                                } catch (err) {
-                                  setStatusBanner({ type: "error", text: err.response?.data?.detail || err.message });
-                                }
-                              }}
-                              className="text-cyan-400 hover:text-cyan-300 underline"
-                            >
-                              Rename/Ext
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
+                              <td className="text-[#F5EDFF]">
+                                <div className="flex items-center gap-2">
+                                  <Icon className="w-3.5 h-3.5 text-[#C084FC] shrink-0" />
+                                  <span>{f.relative_path}</span>
+                                </div>
+                              </td>
+                              <td>
+                                <span
+                                  className={
+                                    f.simulated_status === "simulated_encrypted"
+                                      ? "text-rose-400 font-semibold"
+                                      : f.simulated_status === "simulated_altered"
+                                      ? "text-amber-400"
+                                      : f.simulated_status === "simulated_contained"
+                                      ? "text-[#C084FC]"
+                                      : "text-emerald-400"
+                                  }
+                                >
+                                  {f.simulated_filename || f.simulated_status}
+                                </span>
+                              </td>
+                              <td className="text-[#AD98C5]">{f.extension}</td>
+                              <td className="text-[#AD98C5]">{f.size_bytes} B</td>
+                              <td className="text-[#C084FC]">{f.observed_activity}</td>
+                              <td className="space-x-2.5 font-sans">
+                                <button
+                                  onClick={() => setWsMeta(f)}
+                                  className="text-[#AD98C5] hover:text-[#E9D5FF] underline"
+                                >
+                                  Meta
+                                </button>
+                                <button
+                                  onClick={async () => {
+                                    try {
+                                      setWsPreview(await previewWorkspaceFile(f.relative_path));
+                                    } catch (err) {
+                                      setStatusBanner({ type: "error", text: err.response?.data?.detail || err.message });
+                                    }
+                                  }}
+                                  className="text-[#AD98C5] hover:text-[#E9D5FF] underline"
+                                >
+                                  Preview
+                                </button>
+                                <button
+                                  onClick={async () => {
+                                    const next = window.prompt("New filename (or new extension):", f.filename);
+                                    if (!next || next === f.filename) return;
+                                    try {
+                                      setWorkspaceStatus(await renameWorkspaceFile(f.relative_path, next));
+                                    } catch (err) {
+                                      setStatusBanner({ type: "error", text: err.response?.data?.detail || err.message });
+                                    }
+                                  }}
+                                  className="text-[#C084FC] hover:text-[#E9D5FF] underline"
+                                >
+                                  Rename/Ext
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
                     </tbody>
                   </table>
                 </div>
                 {(wsPreview || wsMeta) && (
-                  <div className="p-3 bg-slate-950 border border-slate-800 rounded text-xs space-y-2">
+                  <div className="p-3 bg-[#08050F]/90 border border-purple-800/50 rounded-lg text-xs space-y-2">
                     <div className="flex justify-between items-center">
-                      <span className="font-mono text-cyan-300">
+                      <span className="font-mono text-[#C084FC]">
                         {wsPreview ? `Preview: ${wsPreview.relative_path}` : `Metadata: ${wsMeta.relative_path}`}
                       </span>
                       <button
@@ -930,17 +1004,17 @@ export default function App() {
                           setWsPreview(null);
                           setWsMeta(null);
                         }}
-                        className="text-slate-400 hover:text-slate-200 underline"
+                        className="text-[#AD98C5] hover:text-[#F5EDFF] underline"
                       >
                         Close
                       </button>
                     </div>
                     {wsPreview ? (
-                      <pre className="text-[11px] font-mono text-slate-300 max-h-32 overflow-y-auto whitespace-pre-wrap">
+                      <pre className="text-[11px] font-mono text-[#E9D5FF] max-h-32 overflow-y-auto whitespace-pre-wrap">
                         {wsPreview.content}
                       </pre>
                     ) : (
-                      <div className="font-mono text-[11px] text-slate-300">
+                      <div className="font-mono text-[11px] text-[#E9D5FF]">
                         Original: {wsMeta.original_filename} | Current: {wsMeta.filename} | Size: {wsMeta.size_bytes} B | Modified: {wsMeta.last_modified}
                       </div>
                     )}
@@ -948,34 +1022,72 @@ export default function App() {
                 )}
               </div>
 
-              {/* Activity Feed & Unavailable Features */}
+              {/* Activity Feed & Collapsible Detection / Unavailable Measurements */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 text-xs">
-                <div className="p-3 bg-slate-900/60 border border-slate-800 rounded-lg max-h-48 overflow-y-auto">
-                  <span className="text-[11px] font-mono text-slate-400 uppercase block mb-2">
+                <div className="ns-card p-3.5 max-h-56 overflow-y-auto">
+                  <span className="ns-section-title block mb-2">
                     Recent Observed & Synthetic Events
                   </span>
                   {workspaceStatus.recent_events?.length > 0 ? (
                     workspaceStatus.recent_events.slice(0, 10).map((ev, i) => (
-                      <div key={i} className="font-mono text-[11px] text-slate-300 flex justify-between py-1 border-b border-slate-800/50">
+                      <div key={i} className="font-mono text-[11px] text-[#E9D5FF] flex justify-between py-1.5 border-b border-purple-900/30">
                         <span>[{ev.event_type}] {ev.filename}</span>
-                        <span className="text-slate-500">{ev.telemetry_source}</span>
+                        <span className="text-[#AD98C5]">{ev.telemetry_source}</span>
                       </div>
                     ))
                   ) : (
-                    <span className="text-xs text-slate-500">
+                    <span className="text-xs text-[#AD98C5]">
                       No events yet. Edit a file in demo_workspace/ or click Run Test Script.
                     </span>
                   )}
                 </div>
-                <div className="p-3 bg-slate-900/60 border border-slate-800 rounded-lg">
-                  <span className="text-[11px] font-mono text-amber-300 uppercase block mb-2">
-                    Unavailable Measurements (Not Fabricated)
-                  </span>
-                  <ul className="space-y-1 text-xs font-mono text-slate-400">
-                    {(workspaceStatus.unavailable_features || []).map((u, i) => (
-                      <li key={i}>• {u}</li>
-                    ))}
-                  </ul>
+                <div className="ns-card p-3.5 space-y-2">
+                  <button
+                    type="button"
+                    onClick={() => setWsShowExplain((v) => !v)}
+                    className="w-full flex items-center justify-between text-left"
+                  >
+                    <span className="ns-section-title text-amber-300">
+                      Detection & Measurement Scope ({(workspaceStatus.unavailable_features || []).length} Unavailable)
+                    </span>
+                    {wsShowExplain ? (
+                      <ChevronUp className="w-4 h-4 text-[#C084FC]" />
+                    ) : (
+                      <ChevronDown className="w-4 h-4 text-[#C084FC]" />
+                    )}
+                  </button>
+                  {wsShowExplain ? (
+                    <div className="space-y-2 pt-1 border-t border-purple-900/40">
+                      {workspaceStatus.harness_state?.latest_assessment?.indicators?.length > 0 && (
+                        <div>
+                          <span className="text-[10px] font-mono uppercase text-[#C084FC] block mb-1">
+                            Model vs Heuristic Indicators
+                          </span>
+                          <div className="space-y-1">
+                            {workspaceStatus.harness_state.latest_assessment.indicators.map((ind, idx) => (
+                              <div key={idx} className="text-[11px] font-mono text-[#E9D5FF] bg-[#08050F]/80 px-2 py-1 rounded border border-purple-900/40">
+                                {ind}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      <div>
+                        <span className="text-[10px] font-mono uppercase text-amber-300 block mb-1">
+                          Unavailable Measurements (Not Fabricated)
+                        </span>
+                        <ul className="space-y-1 text-xs font-mono text-[#AD98C5]">
+                          {(workspaceStatus.unavailable_features || []).map((u, i) => (
+                            <li key={i}>• {u}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-[11px] text-[#AD98C5]">
+                      Click to inspect live model vs heuristic indicators and unmeasured OS-level features.
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -985,49 +1097,49 @@ export default function App() {
           {activeTab === "simlab" && (
             <div className="space-y-5">
               {/* Continuous Virtual Monitoring Controls */}
-              <div className="p-4 bg-slate-900/70 border border-slate-800 rounded-lg flex flex-wrap items-center justify-between gap-3">
+              <div className="ns-card p-4 flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <h3 className="text-sm font-semibold text-slate-100">Continuous Virtual Monitoring (Synthetic Replay)</h3>
-                  <p className="text-xs text-slate-400">
+                  <h3 className="text-sm font-semibold text-[#F5EDFF]">Continuous Virtual Monitoring (Synthetic Replay)</h3>
+                  <p className="text-xs text-[#AD98C5] mt-0.5">
                     Sequential replay of harmless synthetic observations. Status:{" "}
-                    <span className="font-mono text-cyan-300 uppercase">{monitorStatus.status}</span> | Processed:{" "}
-                    <span className="font-mono text-slate-200">{monitorStatus.processed_count}</span> | Duration:{" "}
-                    <span className="font-mono text-slate-200">{monitorStatus.duration_seconds}s</span>
+                    <span className="ns-badge ns-badge-violet ml-1">{monitorStatus.status}</span>{" "}
+                    <span className="ml-2">Processed: <span className="font-mono text-[#F5EDFF]">{monitorStatus.processed_count}</span></span>{" "}
+                    <span className="ml-2">Duration: <span className="font-mono text-[#F5EDFF]">{monitorStatus.duration_seconds}s</span></span>
                   </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <button
                     onClick={() => handleMonitorAction(startMonitor)}
                     disabled={actionLoading || monitorStatus.status === "running"}
-                    className="px-3 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-semibold text-xs rounded transition disabled:opacity-40"
+                    className="ns-btn ns-btn-primary"
                   >
                     Start
                   </button>
                   <button
                     onClick={() => handleMonitorAction(pauseMonitor)}
                     disabled={actionLoading || monitorStatus.status !== "running"}
-                    className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs rounded border border-slate-700 transition disabled:opacity-40"
+                    className="ns-btn ns-btn-ghost"
                   >
                     Pause
                   </button>
                   <button
                     onClick={() => handleMonitorAction(resumeMonitor)}
                     disabled={actionLoading || monitorStatus.status !== "paused"}
-                    className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-cyan-300 text-xs rounded border border-cyan-800/50 transition disabled:opacity-40"
+                    className="ns-btn ns-btn-folder"
                   >
                     Resume
                   </button>
                   <button
                     onClick={() => handleMonitorAction(stopMonitor)}
                     disabled={actionLoading || monitorStatus.status === "stopped"}
-                    className="px-3 py-1.5 bg-rose-950/60 hover:bg-rose-900/60 text-rose-200 text-xs rounded border border-rose-800/60 transition disabled:opacity-40"
+                    className="ns-btn ns-btn-danger"
                   >
                     Stop
                   </button>
                   <button
                     onClick={handleReset}
                     disabled={actionLoading}
-                    className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs rounded border border-slate-700 transition disabled:opacity-40"
+                    className="ns-btn ns-btn-ghost"
                   >
                     Reset
                   </button>
@@ -1035,10 +1147,10 @@ export default function App() {
               </div>
 
               {/* Scenario Controls & File Picker */}
-              <div className="p-4 bg-slate-900/70 border border-slate-800 rounded-lg flex flex-wrap items-center justify-between gap-3">
+              <div className="ns-card p-4 flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <h3 className="text-sm font-semibold text-slate-100">Synthetic Telemetry & Scenario Runner</h3>
-                  <p className="text-xs text-slate-400">
+                  <h3 className="text-sm font-semibold text-[#F5EDFF]">Synthetic Telemetry & Scenario Runner</h3>
+                  <p className="text-xs text-[#AD98C5]">
                     Upload synthetic CSV/JSON telemetry or trigger built-in scenarios. No executable files or real system changes.
                   </p>
                 </div>
@@ -1052,7 +1164,7 @@ export default function App() {
                   />
                   <button
                     onClick={() => fileInputRef.current?.click()}
-                    className="flex items-center space-x-1.5 px-3 py-1.5 bg-cyan-950/60 hover:bg-cyan-900/60 text-cyan-300 text-xs rounded border border-cyan-800/50 transition"
+                    className="ns-btn ns-btn-folder"
                   >
                     <Upload className="w-3.5 h-3.5" />
                     <span>Upload CSV/JSON</span>
@@ -1060,7 +1172,7 @@ export default function App() {
                   <a
                     href={getSampleDatasetUrl("csv")}
                     download="synthetic_telemetry_sample.csv"
-                    className="flex items-center space-x-1 px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs rounded border border-slate-700 transition"
+                    className="ns-btn ns-btn-ghost"
                   >
                     <Download className="w-3.5 h-3.5" />
                     <span>Sample CSV</span>
@@ -1068,7 +1180,7 @@ export default function App() {
                   <a
                     href={getSampleDatasetUrl("json")}
                     download="synthetic_telemetry_sample.json"
-                    className="flex items-center space-x-1 px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs rounded border border-slate-700 transition"
+                    className="ns-btn ns-btn-ghost"
                   >
                     <Download className="w-3.5 h-3.5" />
                     <span>Sample JSON</span>
@@ -1078,13 +1190,13 @@ export default function App() {
 
               {/* Virtual Workspace + Prominent Assessment Result */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-                <div className="lg:col-span-2 p-4 bg-slate-900/60 border border-slate-800 rounded-lg space-y-3">
+                <div className="lg:col-span-2 ns-card p-4 space-y-3">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-xs font-semibold text-slate-200 uppercase tracking-wider flex items-center space-x-2">
-                      <HardDrive className="w-4 h-4 text-cyan-400" />
+                    <h3 className="ns-section-title flex items-center space-x-2">
+                      <HardDrive className="w-4 h-4 text-[#C084FC]" />
                       <span>Virtual In-Memory Workspace (Simulated Host: demo-01)</span>
                     </h3>
-                    <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-slate-800 text-cyan-300 border border-slate-700">
+                    <span className="ns-badge ns-badge-violet">
                       {endpoints[0]?.status || "monitoring"}
                     </span>
                   </div>
@@ -1092,25 +1204,27 @@ export default function App() {
                     {virtualFiles.map((file) => (
                       <div
                         key={file.id}
-                        className={`p-2.5 rounded border text-xs transition-colors ${
+                        className={`p-2.5 rounded-lg border text-xs transition-colors ${
                           file.state === "simulated_encrypted"
-                            ? "bg-rose-950/40 border-rose-800/60 text-rose-200"
+                            ? "bg-rose-950/40 border-rose-700/60 text-rose-200"
                             : file.state === "simulated_altered"
-                            ? "bg-amber-950/30 border-amber-800/50 text-amber-200"
-                            : "bg-slate-950 border-slate-800 text-slate-300"
+                            ? "bg-amber-950/30 border-amber-700/50 text-amber-200"
+                            : "bg-[#08050F]/80 border-purple-900/50 text-[#E9D5FF]"
                         }`}
                       >
                         <div className="flex items-center space-x-1.5 truncate font-mono text-[11px]">
                           {file.state === "simulated_encrypted" ? (
                             <Lock className="w-3.5 h-3.5 text-rose-400 shrink-0" />
                           ) : (
-                            <FileCode className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                            <FileCode className="w-3.5 h-3.5 text-[#C084FC] shrink-0" />
                           )}
                           <span className="truncate">{file.name}</span>
                         </div>
-                        <div className="flex justify-between text-[10px] font-mono text-slate-500 mt-1.5">
+                        <div className="flex justify-between text-[10px] font-mono text-[#AD98C5] mt-1.5">
                           <span>ΔH: {file.entropy}</span>
-                          <span>{file.state === "simulated_encrypted" ? "SIM_LOCKED" : "INTACT"}</span>
+                          <span className={file.state === "simulated_encrypted" ? "text-rose-400" : "text-emerald-400"}>
+                            {file.state === "simulated_encrypted" ? "SIM_LOCKED" : "INTACT"}
+                          </span>
                         </div>
                       </div>
                     ))}
@@ -1118,20 +1232,18 @@ export default function App() {
                 </div>
 
                 {/* Prominent Detection Result */}
-                <div className="p-4 bg-slate-900/60 border border-slate-800 rounded-lg space-y-3">
-                  <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-                    <span className="text-xs font-semibold text-slate-200 uppercase tracking-wider">
-                      Latest Assessment
-                    </span>
+                <div className="ns-card p-4 space-y-3">
+                  <div className="flex items-center justify-between border-b border-purple-900/40 pb-2">
+                    <span className="ns-section-title">Latest Assessment</span>
                     {selectedAssessment && (
-                      <span className="text-[11px] font-mono text-cyan-400">{selectedAssessment.assessment_id}</span>
+                      <span className="text-[11px] font-mono text-[#C084FC]">{selectedAssessment.assessment_id}</span>
                     )}
                   </div>
                   {selectedAssessment ? (
                     <div className="space-y-3 text-xs">
                       <div className="flex items-center justify-between">
                         <div>
-                          <span className="text-slate-400 block text-[11px]">Risk Score</span>
+                          <span className="text-[#AD98C5] block text-[11px]">Risk Score</span>
                           <span
                             className={`text-2xl font-bold font-mono ${
                               selectedAssessment.risk_score >= 50 ? "text-rose-400" : "text-emerald-400"
@@ -1141,42 +1253,43 @@ export default function App() {
                           </span>
                         </div>
                         <span
-                          className={`px-2.5 py-1 rounded text-xs font-mono uppercase font-semibold ${
-                            selectedAssessment.label === "suspicious"
-                              ? "bg-rose-950/60 text-rose-300 border border-rose-800"
-                              : "bg-emerald-950/40 text-emerald-300 border border-emerald-800/40"
+                          className={`ns-badge ${
+                            selectedAssessment.label === "suspicious" ? "ns-badge-red" : "ns-badge-green"
                           }`}
                         >
                           {selectedAssessment.label}
                         </span>
                       </div>
-                      <div className="flex justify-between text-[11px] font-mono text-slate-400 bg-slate-950 p-2 rounded border border-slate-800">
+                      <div className="flex justify-between text-[11px] font-mono text-[#AD98C5] bg-[#08050F]/80 p-2 rounded border border-purple-900/40">
                         <span>Model: {selectedAssessment.model_version || "rf-phase2-v1"}</span>
                         <span>Time: {selectedAssessment.processing_time_ms ?? "--"} ms</span>
                       </div>
                       <div className="space-y-1">
-                        <span className="text-[11px] text-slate-400 font-medium">Model & Heuristic Explanations:</span>
+                        <span className="text-[11px] text-[#AD98C5] font-medium">Model & Heuristic Explanations:</span>
                         <div className="max-h-28 overflow-y-auto space-y-1">
                           {selectedAssessment.indicators.map((ind, i) => (
-                            <div key={i} className="text-[11px] font-mono text-cyan-300 bg-slate-950 px-2 py-1 rounded border border-slate-800">
+                            <div key={i} className="text-[11px] font-mono text-[#E9D5FF] bg-[#08050F]/80 px-2 py-1 rounded border border-purple-900/40">
                               {ind}
                             </div>
                           ))}
                         </div>
                       </div>
                       {selectedAssessment.timeline && (
-                        <div className="border-l-2 border-slate-800 pl-2.5 space-y-1">
+                        <div className="ns-timeline space-y-1">
                           {selectedAssessment.timeline.map((ev, i) => (
-                            <div key={i} className="text-[11px]">
-                              <span className="text-slate-300">{ev.event}</span>
-                              <span className="text-slate-500 font-mono ml-1.5">(+{ev.elapsed_ms} ms)</span>
+                            <div key={i} className="text-[11px] flex items-start gap-2">
+                              <span className="ns-timeline-dot" />
+                              <div>
+                                <span className="text-[#E9D5FF]">{ev.event}</span>
+                                <span className="text-[#AD98C5] font-mono ml-1.5">(+{ev.elapsed_ms} ms)</span>
+                              </div>
                             </div>
                           ))}
                         </div>
                       )}
                     </div>
                   ) : (
-                    <div className="py-10 text-center text-xs text-slate-500">
+                    <div className="py-10 text-center text-xs text-[#AD98C5]">
                       Trigger a scenario above to inspect live model scoring and timeline.
                     </div>
                   )}
@@ -1236,9 +1349,9 @@ export default function App() {
               )}
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-                <div className="p-4 bg-slate-900/60 border border-slate-800 rounded-lg space-y-3">
+                <div className="ns-card p-4 space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold text-slate-200 uppercase tracking-wider">
+                    <span className="ns-section-title">
                       Batch Telemetry Buffer (CSV / JSON)
                     </span>
                     <button
@@ -1255,7 +1368,7 @@ export default function App() {
                           )
                         )
                       }
-                      className="text-xs text-cyan-400 hover:text-cyan-300 underline"
+                      className="text-xs text-[#C084FC] hover:text-[#E9D5FF] underline"
                     >
                       Fill Example Batch
                     </button>
@@ -1264,52 +1377,52 @@ export default function App() {
                     value={importedData}
                     onChange={(e) => setImportedData(e.target.value)}
                     placeholder="Paste synthetic CSV or JSON records, or use Upload CSV/JSON above..."
-                    className="w-full h-36 p-2.5 bg-slate-950 border border-slate-800 rounded font-mono text-xs text-slate-200 focus:outline-none focus:border-cyan-500/50 resize-none"
+                    className="ns-input w-full h-36 p-2.5 font-mono text-xs resize-none"
                   />
                   <button
                     onClick={handleBatchImport}
                     disabled={actionLoading}
-                    className="w-full py-2 bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-semibold text-xs rounded transition flex items-center justify-center space-x-1.5 disabled:opacity-50"
+                    className="ns-btn ns-btn-primary w-full py-2 justify-center"
                   >
                     <Play className="w-3.5 h-3.5" />
                     <span>Run Batch Assessment</span>
                   </button>
                 </div>
 
-                <div className="p-4 bg-slate-900/60 border border-slate-800 rounded-lg space-y-3">
-                  <span className="text-xs font-semibold text-slate-200 uppercase tracking-wider block">
+                <div className="ns-card p-4 space-y-3">
+                  <span className="ns-section-title block">
                     Batch Assessment Summary
                   </span>
                   {batchResult ? (
                     <div className="space-y-3">
                       <div className="grid grid-cols-4 gap-2 text-center font-mono">
-                        <div className="p-2 bg-slate-950 border border-slate-800 rounded">
-                          <span className="text-[10px] text-slate-400 block">TOTAL</span>
-                          <span className="text-sm font-bold">{batchResult.total}</span>
+                        <div className="ns-stat p-2">
+                          <span className="text-[10px] text-[#AD98C5] block">TOTAL</span>
+                          <span className="text-sm font-bold text-[#F5EDFF]">{batchResult.total}</span>
                         </div>
-                        <div className="p-2 bg-slate-950 border border-slate-800 rounded">
+                        <div className="ns-stat p-2">
                           <span className="text-[10px] text-emerald-400 block">NORMAL</span>
                           <span className="text-sm font-bold text-emerald-400">{batchResult.normal_count}</span>
                         </div>
-                        <div className="p-2 bg-slate-950 border border-slate-800 rounded">
+                        <div className="ns-stat p-2">
                           <span className="text-[10px] text-rose-400 block">SUSPICIOUS</span>
                           <span className="text-sm font-bold text-rose-400">{batchResult.suspicious_count}</span>
                         </div>
-                        <div className="p-2 bg-slate-950 border border-slate-800 rounded">
-                          <span className="text-[10px] text-slate-400 block">INVALID</span>
-                          <span className="text-sm font-bold text-slate-400">{batchResult.invalid_count}</span>
+                        <div className="ns-stat p-2">
+                          <span className="text-[10px] text-[#AD98C5] block">INVALID</span>
+                          <span className="text-sm font-bold text-[#AD98C5]">{batchResult.invalid_count}</span>
                         </div>
                       </div>
-                      <div className="text-[11px] font-mono text-slate-400 flex justify-between">
+                      <div className="text-[11px] font-mono text-[#AD98C5] flex justify-between">
                         <span>Total: {batchResult.total_processing_time_ms} ms</span>
                         <span>Avg: {batchResult.avg_latency_ms} ms/record</span>
                       </div>
-                      <div className="max-h-32 overflow-y-auto divide-y divide-slate-800 border border-slate-800 rounded bg-slate-950">
+                      <div className="max-h-32 overflow-y-auto divide-y divide-purple-900/30 border border-purple-900/40 rounded-lg bg-[#08050F]/80">
                         {batchResult.assessments.map((item, idx) => (
                           <div key={idx} className="px-2.5 py-1.5 flex justify-between text-xs font-mono">
-                            <span className="text-slate-400">#{idx + 1}</span>
+                            <span className="text-[#AD98C5]">#{idx + 1}</span>
                             <span>Score: {item.risk_score !== null ? item.risk_score : "null"}</span>
-                            <span className={item.label === "suspicious" ? "text-rose-400" : item.label === "normal" ? "text-emerald-400" : "text-slate-500"}>
+                            <span className={item.label === "suspicious" ? "text-rose-400" : item.label === "normal" ? "text-emerald-400" : "text-[#AD98C5]"}>
                               {item.label.toUpperCase()}
                             </span>
                           </div>
@@ -1317,7 +1430,7 @@ export default function App() {
                       </div>
                     </div>
                   ) : (
-                    <div className="h-44 flex items-center justify-center text-xs text-slate-500 border border-dashed border-slate-800 rounded">
+                    <div className="h-44 flex items-center justify-center text-xs text-[#AD98C5] border border-dashed border-purple-900/50 rounded-lg">
                       Run a batch assessment to inspect normal, suspicious, and invalid counts.
                     </div>
                   )}
@@ -1329,12 +1442,12 @@ export default function App() {
           {/* GATEWAY PROTECTION */}
           {activeTab === "gateway" && (
             <div className="space-y-5">
-              <div className="p-4 bg-slate-900/70 border border-slate-800 rounded-lg flex flex-wrap items-center justify-between gap-3">
+              <div className="ns-card p-4 flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <h3 className="text-sm font-semibold text-slate-100">
+                  <h3 className="text-sm font-semibold text-[#F5EDFF]">
                     Gateway Protection (Simulated Pre-AI Admission Control)
                   </h3>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-[#AD98C5]">
                     Lightweight request quotas and bounded queue before local AI assessment. Decisions are separate from ransomware classification.
                   </p>
                 </div>
@@ -1357,62 +1470,11 @@ export default function App() {
                         }
                       }}
                       disabled={actionLoading}
-                      className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs rounded border border-slate-700 transition disabled:opacity-50"
+                      className="ns-btn ns-btn-ghost"
                     >
                       {s.label}
                     </button>
                   ))}
-                  <input
-                    ref={folderInputRef}
-                    type="file"
-                    webkitdirectory=""
-                    directory=""
-                    multiple
-                    className="hidden"
-                    onChange={async (e) => {
-                      const picked = Array.from(e.target.files || []);
-                      if (!picked.length) return;
-                      try {
-                        setActionLoading(true);
-                        const payload = await Promise.all(
-                          picked.slice(0, 100).map(
-                            (f) =>
-                              new Promise((resolve, reject) => {
-                                const reader = new FileReader();
-                                reader.onload = () => {
-                                  const b64 = String(reader.result || "").split(",")[1] || "";
-                                  resolve({
-                                    relative_path: f.webkitRelativePath || f.name,
-                                    content_base64: b64
-                                  });
-                                };
-                                reader.onerror = reject;
-                                reader.readAsDataURL(f);
-                              })
-                          )
-                        );
-                        const updated = await importWorkspaceFolder(payload);
-                        setWorkspaceStatus(updated);
-                        const skippedCount = updated.skipped_files?.length || 0;
-                        setStatusBanner({
-                          type: skippedCount > 0 ? "alert" : "ok",
-                          text: `Imported ${updated.imported_count ?? payload.length} file(s) into demo_workspace/${skippedCount > 0 ? ` (${skippedCount} skipped)` : ""}.`
-                        });
-                      } catch (err) {
-                        setStatusBanner({ type: "error", text: err.response?.data?.detail || err.message });
-                      } finally {
-                        setActionLoading(false);
-                        e.target.value = "";
-                      }
-                    }}
-                  />
-                  <button
-                    onClick={() => folderInputRef.current?.click()}
-                    disabled={actionLoading}
-                    className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-cyan-300 text-xs rounded border border-cyan-800/50"
-                  >
-                    Add Folder
-                  </button>
                   <button
                     onClick={async () => {
                       setActionLoading(true);
@@ -1423,21 +1485,21 @@ export default function App() {
                       }
                     }}
                     disabled={actionLoading}
-                    className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-cyan-300 text-xs rounded border border-cyan-800/50 transition disabled:opacity-50"
+                    className="ns-btn ns-btn-folder"
                   >
-                    Reset
+                    Reset Gateway
                   </button>
                 </div>
               </div>
 
               {/* Custom Bulk Simulation Controls */}
-              <div className="p-4 bg-slate-900/60 border border-slate-800 rounded-lg flex flex-wrap items-center justify-between gap-3">
+              <div className="ns-card p-4 flex flex-wrap items-center justify-between gap-3">
                 <div className="flex flex-wrap items-center gap-3 text-xs">
-                  <span className="font-semibold text-slate-200 uppercase tracking-wider">Custom Bulk Simulation:</span>
+                  <span className="ns-section-title">Custom Bulk Simulation:</span>
                   <select
                     value={bulkProfile}
                     onChange={(e) => setBulkProfile(e.target.value)}
-                    className="bg-slate-950 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200 font-mono text-xs"
+                    className="ns-input font-mono text-xs"
                   >
                     <option value="normal_upload">normal_upload</option>
                     <option value="legitimate_bulk">legitimate_bulk</option>
@@ -1449,59 +1511,8 @@ export default function App() {
                     max={100}
                     value={bulkCount}
                     onChange={(e) => setBulkCount(Number(e.target.value))}
-                    className="w-20 bg-slate-950 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200 font-mono text-xs"
+                    className="ns-input w-20 font-mono text-xs"
                   />
-                  <input
-                    ref={folderInputRef}
-                    type="file"
-                    webkitdirectory=""
-                    directory=""
-                    multiple
-                    className="hidden"
-                    onChange={async (e) => {
-                      const picked = Array.from(e.target.files || []);
-                      if (!picked.length) return;
-                      try {
-                        setActionLoading(true);
-                        const payload = await Promise.all(
-                          picked.slice(0, 100).map(
-                            (f) =>
-                              new Promise((resolve, reject) => {
-                                const reader = new FileReader();
-                                reader.onload = () => {
-                                  const b64 = String(reader.result || "").split(",")[1] || "";
-                                  resolve({
-                                    relative_path: f.webkitRelativePath || f.name,
-                                    content_base64: b64
-                                  });
-                                };
-                                reader.onerror = reject;
-                                reader.readAsDataURL(f);
-                              })
-                          )
-                        );
-                        const updated = await importWorkspaceFolder(payload);
-                        setWorkspaceStatus(updated);
-                        const skippedCount = updated.skipped_files?.length || 0;
-                        setStatusBanner({
-                          type: skippedCount > 0 ? "alert" : "ok",
-                          text: `Imported ${updated.imported_count ?? payload.length} file(s) into demo_workspace/${skippedCount > 0 ? ` (${skippedCount} skipped)` : ""}.`
-                        });
-                      } catch (err) {
-                        setStatusBanner({ type: "error", text: err.response?.data?.detail || err.message });
-                      } finally {
-                        setActionLoading(false);
-                        e.target.value = "";
-                      }
-                    }}
-                  />
-                  <button
-                    onClick={() => folderInputRef.current?.click()}
-                    disabled={actionLoading}
-                    className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-cyan-300 text-xs rounded border border-cyan-800/50"
-                  >
-                    Add Folder
-                  </button>
                   <button
                     onClick={async () => {
                       setActionLoading(true);
@@ -1519,13 +1530,13 @@ export default function App() {
                       }
                     }}
                     disabled={actionLoading}
-                    className="px-3 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-semibold rounded text-xs transition disabled:opacity-50"
+                    className="ns-btn ns-btn-primary"
                   >
                     Run Custom Bulk
                   </button>
                 </div>
                 {gateway?.bulk_processing_duration_ms !== undefined && (
-                  <span className="text-[11px] font-mono text-cyan-300">
+                  <span className="text-[11px] font-mono text-[#C084FC]">
                     Last Bulk: {gateway.bulk_requested_count} reqs in {gateway.bulk_processing_duration_ms} ms
                   </span>
                 )}
@@ -1534,105 +1545,105 @@ export default function App() {
               {gateway ? (
                 <>
                   <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-                    <div className="p-3 bg-slate-900/60 border border-slate-800 rounded-lg">
-                      <span className="text-[11px] text-slate-400 block">Total Requests</span>
-                      <span className="text-xl font-bold font-mono text-slate-100">{gateway.total_requests}</span>
+                    <div className="ns-stat">
+                      <span className="text-[11px] text-[#AD98C5] block">Total Requests</span>
+                      <span className="text-xl font-bold font-mono text-[#F5EDFF]">{gateway.total_requests}</span>
                     </div>
-                    <div className="p-3 bg-slate-900/60 border border-slate-800 rounded-lg">
-                      <span className="text-[11px] text-slate-400 block">Accepted</span>
+                    <div className="ns-stat">
+                      <span className="text-[11px] text-[#AD98C5] block">Accepted</span>
                       <span className="text-xl font-bold font-mono text-emerald-400">{gateway.accepted_requests}</span>
                     </div>
-                    <div className="p-3 bg-slate-900/60 border border-slate-800 rounded-lg">
-                      <span className="text-[11px] text-slate-400 block">Restricted (Throttled/Rejected)</span>
+                    <div className="ns-stat">
+                      <span className="text-[11px] text-[#AD98C5] block">Restricted (Throttled/Rejected)</span>
                       <span className="text-xl font-bold font-mono text-rose-400">
                         {gateway.throttled_requests + gateway.rejected_requests}
                       </span>
                     </div>
-                    <div className="p-3 bg-slate-900/60 border border-slate-800 rounded-lg">
-                      <span className="text-[11px] text-slate-400 block">AI Assessments Avoided</span>
-                      <span className="text-xl font-bold font-mono text-cyan-300">{gateway.avoided_assessments}</span>
+                    <div className="ns-stat">
+                      <span className="text-[11px] text-[#AD98C5] block">AI Assessments Avoided</span>
+                      <span className="text-xl font-bold font-mono text-[#C084FC]">{gateway.avoided_assessments}</span>
                     </div>
-                    <div className="p-3 bg-slate-900/60 border border-slate-800 rounded-lg">
-                      <span className="text-[11px] text-slate-400 block">Est. CPU Saved (Local RF)</span>
-                      <span className="text-xl font-bold font-mono text-cyan-300">{gateway.estimated_cpu_saved_ms} ms</span>
-                      <span className="text-[10px] text-slate-500 block font-mono">
+                    <div className="ns-stat">
+                      <span className="text-[11px] text-[#AD98C5] block">Est. CPU Saved (Local RF)</span>
+                      <span className="text-xl font-bold font-mono text-[#C084FC]">{gateway.estimated_cpu_saved_ms} ms</span>
+                      <span className="text-[10px] text-[#AD98C5] block font-mono">
                         GW: {gateway.measured_avg_gateway_latency_ms} ms/req
                       </span>
                     </div>
                   </div>
 
-                  <div className="p-4 bg-slate-900/60 border border-slate-800 rounded-lg space-y-2">
+                  <div className="ns-card p-4 space-y-2">
                     <div className="flex justify-between text-xs">
-                      <span className="font-semibold text-slate-200 uppercase tracking-wider">
+                      <span className="ns-section-title">
                         Bounded Processing Queue Utilization
                       </span>
-                      <span className="font-mono text-cyan-300">
+                      <span className="font-mono text-[#C084FC]">
                         {gateway.queue_depth} / {gateway.queue_capacity} ({gateway.queue_utilization_pct}%)
                       </span>
                     </div>
-                    <div className="w-full h-2.5 bg-slate-950 rounded-full overflow-hidden border border-slate-800">
+                    <div className="ns-progress-track">
                       <div
-                        className="h-full bg-cyan-500 transition-all"
+                        className="ns-progress-fill"
                         style={{ width: `${gateway.queue_utilization_pct}%` }}
                       />
                     </div>
-                    <p className="text-[11px] text-slate-400">{gateway.estimation_note}</p>
+                    <p className="text-[11px] text-[#AD98C5]">{gateway.estimation_note}</p>
                   </div>
 
                   {/* Live Workspace Monitoring (demo_workspace/ + Independent Harness) */}
-              {workspaceStatus && (
-                <div className="p-4 bg-slate-900/60 border border-slate-800 rounded-lg space-y-3">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div>
-                      <h3 className="text-xs font-semibold text-slate-200 uppercase tracking-wider">
-                        Live Workspace Monitoring ({workspaceStatus.workspace_path})
-                      </h3>
-                      <p className="text-[11px] text-slate-400">
-                        Status: <strong className="text-emerald-400 font-mono uppercase">{workspaceStatus.monitoring_status}</strong> |{" "}
-                        Dummy Files: <strong className="font-mono text-slate-200">{workspaceStatus.file_count}</strong> |{" "}
-                        Telemetry: <strong className="font-mono text-cyan-300">{workspaceStatus.telemetry_status}</strong>
-                      </p>
-                    </div>
-                    <span className="text-[10px] font-mono text-slate-400">
-                      Observed Events: {workspaceStatus.measurable_features?.observed_event_count ?? 0} |{" "}
-                      Exts: {workspaceStatus.measurable_features?.unique_ext_count ?? 0}
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 text-xs">
-                    <div className="p-2.5 bg-slate-950 border border-slate-800 rounded max-h-32 overflow-y-auto">
-                      <span className="text-[10px] font-mono text-slate-400 uppercase block mb-1">
-                        Recent Observed File Activity (workspace_observer)
-                      </span>
-                      {workspaceStatus.recent_events?.length > 0 ? (
-                        workspaceStatus.recent_events.slice(0, 6).map((ev, i) => (
-                          <div key={i} className="font-mono text-[11px] text-slate-300 flex justify-between">
-                            <span>[{ev.event_type}] {ev.filename}</span>
-                            <span className="text-slate-500">{ev.timestamp.substring(11, 19)}Z</span>
-                          </div>
-                        ))
-                      ) : (
-                        <span className="text-[11px] text-slate-500">
-                          No manual edits yet. Edit or rename a file in demo_workspace/ to observe live events.
+                  {workspaceStatus && (
+                    <div className="ns-card p-4 space-y-3">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                          <h3 className="ns-section-title">
+                            Live Workspace Monitoring ({workspaceStatus.workspace_path})
+                          </h3>
+                          <p className="text-[11px] text-[#AD98C5] mt-0.5">
+                            Status: <strong className="text-emerald-400 font-mono uppercase">{workspaceStatus.monitoring_status}</strong> |{" "}
+                            Dummy Files: <strong className="font-mono text-[#F5EDFF]">{workspaceStatus.file_count}</strong> |{" "}
+                            Telemetry: <strong className="font-mono text-[#C084FC]">{workspaceStatus.telemetry_status}</strong>
+                          </p>
+                        </div>
+                        <span className="text-[10px] font-mono text-[#AD98C5]">
+                          Observed Events: {workspaceStatus.measurable_features?.observed_event_count ?? 0} |{" "}
+                          Exts: {workspaceStatus.measurable_features?.unique_ext_count ?? 0}
                         </span>
-                      )}
+                      </div>
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 text-xs">
+                        <div className="p-2.5 bg-[#08050F]/80 border border-purple-900/40 rounded-lg max-h-32 overflow-y-auto">
+                          <span className="text-[10px] font-mono text-[#AD98C5] uppercase block mb-1">
+                            Recent Observed File Activity (workspace_observer)
+                          </span>
+                          {workspaceStatus.recent_events?.length > 0 ? (
+                            workspaceStatus.recent_events.slice(0, 6).map((ev, i) => (
+                              <div key={i} className="font-mono text-[11px] text-[#E9D5FF] flex justify-between">
+                                <span>[{ev.event_type}] {ev.filename}</span>
+                                <span className="text-[#AD98C5]">{ev.timestamp.substring(11, 19)}Z</span>
+                              </div>
+                            ))
+                          ) : (
+                            <span className="text-[11px] text-[#AD98C5]">
+                              No manual edits yet. Edit or rename a file in demo_workspace/ to observe live events.
+                            </span>
+                          )}
+                        </div>
+                        <div className="p-2.5 bg-[#08050F]/80 border border-purple-900/40 rounded-lg">
+                          <span className="text-[10px] font-mono text-amber-300 uppercase block mb-1">
+                            Unavailable Measurements (Not Fabricated)
+                          </span>
+                          <ul className="space-y-0.5 text-[11px] font-mono text-[#AD98C5]">
+                            {(workspaceStatus.unavailable_features || []).map((u, i) => (
+                              <li key={i}>• {u}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
                     </div>
-                    <div className="p-2.5 bg-slate-950 border border-slate-800 rounded">
-                      <span className="text-[10px] font-mono text-amber-300 uppercase block mb-1">
-                        Unavailable Measurements (Not Fabricated)
-                      </span>
-                      <ul className="space-y-0.5 text-[11px] font-mono text-slate-400">
-                        {(workspaceStatus.unavailable_features || []).map((u, i) => (
-                          <li key={i}>• {u}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-              )}
+                  )}
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-                    <div className="p-4 bg-slate-900/60 border border-slate-800 rounded-lg">
-                      <h3 className="text-xs font-semibold text-slate-200 uppercase tracking-wider mb-3">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                    <div className="ns-card p-4">
+                      <h3 className="ns-section-title mb-3">
                         Request Volume Breakdown
                       </h3>
                       <div className="h-44">
@@ -1644,33 +1655,33 @@ export default function App() {
                               { name: "Rejected", count: gateway.rejected_requests }
                             ]}
                           >
-                            <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                            <XAxis dataKey="name" stroke="#64748b" fontSize={11} />
-                            <YAxis stroke="#64748b" fontSize={11} />
-                            <Tooltip contentStyle={{ backgroundColor: "#0f172a", borderColor: "#334155", fontSize: "11px" }} />
-                            <Bar dataKey="count" fill="#22d3ee" radius={[3, 3, 0, 0]} />
+                            <CartesianGrid strokeDasharray="3 3" stroke="#211334" />
+                            <XAxis dataKey="name" stroke="#AD98C5" fontSize={11} />
+                            <YAxis stroke="#AD98C5" fontSize={11} />
+                            <Tooltip contentStyle={{ backgroundColor: "#10091C", borderColor: "#7C3AED", fontSize: "11px" }} />
+                            <Bar dataKey="count" fill="#A855F7" radius={[4, 4, 0, 0]} />
                           </BarChart>
                         </ResponsiveContainer>
                       </div>
                     </div>
 
-                    <div className="p-4 bg-slate-900/60 border border-slate-800 rounded-lg">
-                      <h3 className="text-xs font-semibold text-slate-200 uppercase tracking-wider mb-3">
+                    <div className="ns-card p-4">
+                      <h3 className="ns-section-title mb-3">
                         Simulated Uploader Activity
                       </h3>
                       {gateway.uploaders.length === 0 ? (
-                        <div className="h-44 flex items-center justify-center text-xs text-slate-500 border border-dashed border-slate-800 rounded">
+                        <div className="h-44 flex items-center justify-center text-xs text-[#AD98C5] border border-dashed border-purple-900/50 rounded-lg">
                           No simulated uploaders yet. Trigger a gateway scenario above.
                         </div>
                       ) : (
                         <div className="space-y-2 max-h-44 overflow-y-auto">
                           {gateway.uploaders.map((u) => (
-                            <div key={u.uploader_id} className="p-2.5 bg-slate-950 border border-slate-800 rounded flex items-center justify-between text-xs font-mono">
+                            <div key={u.uploader_id} className="p-2.5 bg-[#08050F]/80 border border-purple-900/40 rounded-lg flex items-center justify-between text-xs font-mono">
                               <div>
-                                <span className="text-cyan-300 font-semibold">{u.uploader_id}</span>
-                                <span className="text-slate-500 ml-2">({u.fictional_ip})</span>
+                                <span className="text-[#C084FC] font-semibold">{u.uploader_id}</span>
+                                <span className="text-[#AD98C5] ml-2">({u.fictional_ip})</span>
                               </div>
-                              <span className="text-slate-300">
+                              <span className="text-[#E9D5FF]">
                                 Req: {u.request_count} | Rest: {u.restricted_count}
                               </span>
                               <span className={u.status === "simulated_restricted" ? "text-rose-400" : "text-emerald-400"}>
@@ -1683,23 +1694,21 @@ export default function App() {
                     </div>
                   </div>
 
-                  <div className="p-4 bg-slate-900/60 border border-slate-800 rounded-lg">
-                    <h3 className="text-xs font-semibold text-slate-200 uppercase tracking-wider mb-3">
+                  <div className="ns-card p-4">
+                    <h3 className="ns-section-title mb-3">
                       Recent Gateway Decision Explanations
                     </h3>
                     {gateway.recent_decisions.length === 0 ? (
-                      <p className="text-xs text-slate-500">No gateway decisions recorded yet.</p>
+                      <p className="text-xs text-[#AD98C5]">No gateway decisions recorded yet.</p>
                     ) : (
                       <div className="space-y-1.5 max-h-44 overflow-y-auto">
                         {gateway.recent_decisions.slice(0, 8).map((d, idx) => (
-                          <div key={idx} className="p-2 bg-slate-950 border border-slate-800 rounded flex items-center justify-between text-xs">
-                            <span className="font-mono text-cyan-400">{d.uploader_id}</span>
-                            <span className="text-slate-300 truncate max-w-lg">{d.reason}</span>
+                          <div key={idx} className="p-2 bg-[#08050F]/80 border border-purple-900/40 rounded-lg flex items-center justify-between text-xs">
+                            <span className="font-mono text-[#C084FC]">{d.uploader_id}</span>
+                            <span className="text-[#E9D5FF] truncate max-w-lg">{d.reason}</span>
                             <span
-                              className={`font-mono uppercase text-[10px] px-2 py-0.5 rounded ${
-                                d.decision === "accepted"
-                                  ? "bg-emerald-950/50 text-emerald-300"
-                                  : "bg-rose-950/50 text-rose-300"
+                              className={`ns-badge ${
+                                d.decision === "accepted" ? "ns-badge-green" : "ns-badge-red"
                               }`}
                             >
                               {d.decision}
@@ -1711,7 +1720,7 @@ export default function App() {
                   </div>
                 </>
               ) : (
-                <div className="p-8 text-center text-xs text-slate-500 border border-dashed border-slate-800 rounded-lg">
+                <div className="ns-card p-8 text-center text-xs text-[#AD98C5] border-dashed">
                   Gateway status unavailable. Ensure backend is running.
                 </div>
               )}
@@ -1722,27 +1731,33 @@ export default function App() {
           {activeTab === "endpoints" && (
             <div className="space-y-5">
               {/* Organization Summary & Filters */}
-              <div className="p-4 bg-slate-900/70 border border-slate-800 rounded-lg flex flex-wrap items-center justify-between gap-3">
+              <div className="ns-card p-4 flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <h3 className="text-sm font-semibold text-slate-100">Virtual Organization Endpoints (Simulated)</h3>
-                  <p className="text-xs text-slate-400">
+                  <h3 className="text-sm font-semibold text-[#F5EDFF]">Virtual Organization Endpoints (Simulated)</h3>
+                  <p className="text-xs text-[#AD98C5] mt-0.5">
                     {endpoints.filter((e) => e.status === "monitoring").length} monitoring |{" "}
                     {endpoints.filter((e) => e.status === "simulated_isolated").length} simulated_isolated |{" "}
-                    Target for scenarios: <strong className="font-mono text-cyan-300">{selectedEndpointId}</strong>
+                    Target for scenarios: <strong className="font-mono text-[#C084FC]">{selectedEndpointId}</strong>
                   </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2 text-xs">
+                  <button
+                    onClick={() => setLowPerfMode((v) => !v)}
+                    className="ns-btn ns-btn-ghost text-[11px]"
+                  >
+                    {lowPerfMode ? "Enable 3D Topology" : "2D Fallback Mode"}
+                  </button>
                   <input
                     type="text"
                     value={epSearch}
                     onChange={(e) => setEpSearch(e.target.value)}
                     placeholder="Search ID or device..."
-                    className="bg-slate-950 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200 text-xs"
+                    className="ns-input"
                   />
                   <select
                     value={epDeptFilter}
                     onChange={(e) => setEpDeptFilter(e.target.value)}
-                    className="bg-slate-950 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200 text-xs"
+                    className="ns-input"
                   >
                     <option value="all">All Departments</option>
                     <option value="Finance">Finance</option>
@@ -1754,7 +1769,7 @@ export default function App() {
                   <select
                     value={epStatusFilter}
                     onChange={(e) => setEpStatusFilter(e.target.value)}
-                    className="bg-slate-950 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200 text-xs"
+                    className="ns-input"
                   >
                     <option value="all">All Statuses</option>
                     <option value="monitoring">monitoring</option>
@@ -1764,21 +1779,44 @@ export default function App() {
                 </div>
               </div>
 
+              {/* Interactive 3D Network Topology */}
+              <div className="ns-card p-4 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="ns-section-title">Interactive Endpoint Network Topology</span>
+                  <span className="text-[11px] text-[#AD98C5]">Hover a node to highlight connections • Click to inspect</span>
+                </div>
+                <Suspense
+                  fallback={
+                    <div className="h-72 flex items-center justify-center text-xs text-[#C084FC] font-mono">
+                      Loading 3D Topology...
+                    </div>
+                  }
+                >
+                  <SecurityTopology3D
+                    endpoints={endpoints}
+                    selectedEndpointId={selectedEndpointId}
+                    onSelectEndpoint={setSelectedEndpointId}
+                    gateway={gateway}
+                    lowPerfMode={lowPerfMode}
+                  />
+                </Suspense>
+              </div>
+
               {/* Endpoints Table */}
-              <div className="p-4 bg-slate-900/60 border border-slate-800 rounded-lg overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead className="text-[11px] text-slate-400 border-b border-slate-800">
+              <div className="ns-card p-4 overflow-x-auto">
+                <table className="ns-table">
+                  <thead>
                     <tr>
-                      <th className="pb-2">Endpoint ID</th>
-                      <th className="pb-2">Device</th>
-                      <th className="pb-2">Department</th>
-                      <th className="pb-2">Virtual OS</th>
-                      <th className="pb-2">Risk Score</th>
-                      <th className="pb-2">Status</th>
-                      <th className="pb-2">Actions</th>
+                      <th>Endpoint ID</th>
+                      <th>Device</th>
+                      <th>Department</th>
+                      <th>Virtual OS</th>
+                      <th>Risk Score</th>
+                      <th>Status</th>
+                      <th>Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-800/60">
+                  <tbody>
                     {endpoints
                       .filter((ep) => {
                         const q = epSearch.toLowerCase();
@@ -1794,40 +1832,40 @@ export default function App() {
                         <tr
                           key={ep.endpoint_id}
                           onClick={() => setSelectedEndpointId(ep.endpoint_id)}
-                          className={`cursor-pointer hover:bg-slate-800/40 ${
-                            selectedEndpointId === ep.endpoint_id ? "bg-cyan-950/20" : ""
+                          className={`cursor-pointer ${
+                            selectedEndpointId === ep.endpoint_id ? "bg-[#2E1065]/30" : ""
                           }`}
                         >
-                          <td className="py-2.5 font-mono text-cyan-300 font-semibold">{ep.endpoint_id}</td>
-                          <td className="py-2.5 font-mono text-slate-300">{ep.device_name}</td>
-                          <td className="py-2.5 text-slate-300">{ep.department}</td>
-                          <td className="py-2.5 text-slate-400">{ep.virtual_os}</td>
-                          <td className="py-2.5 font-mono font-bold">
+                          <td className="font-mono text-[#C084FC] font-semibold">{ep.endpoint_id}</td>
+                          <td className="font-mono text-[#F5EDFF]">{ep.device_name}</td>
+                          <td className="text-[#E9D5FF]">{ep.department}</td>
+                          <td className="text-[#AD98C5]">{ep.virtual_os}</td>
+                          <td className="font-mono font-bold">
                             <span className={(ep.current_risk_score || 0) >= 50 ? "text-rose-400" : "text-emerald-400"}>
                               {ep.current_risk_score ?? 0}/100
                             </span>
                           </td>
-                          <td className="py-2.5">
+                          <td>
                             <span
-                              className={`px-2 py-0.5 rounded text-[10px] font-mono uppercase ${
+                              className={`ns-badge ${
                                 ep.status === "simulated_isolated"
-                                  ? "bg-rose-950/60 text-rose-300 border border-rose-800"
+                                  ? "ns-badge-red"
                                   : ep.status === "paused"
-                                  ? "bg-amber-950/50 text-amber-300 border border-amber-800/50"
-                                  : "bg-emerald-950/40 text-emerald-300 border border-emerald-800/40"
+                                  ? "ns-badge-amber"
+                                  : "ns-badge-green"
                               }`}
                             >
                               {ep.status}
                             </span>
                           </td>
-                          <td className="py-2.5">
+                          <td>
                             <button
                               onClick={async (e) => {
                                 e.stopPropagation();
                                 await toggleEndpointMonitoring(ep.endpoint_id);
                                 await loadAllData();
                               }}
-                              className="text-[11px] text-cyan-400 hover:text-cyan-300 underline"
+                              className="text-[11px] text-[#C084FC] hover:text-[#E9D5FF] underline"
                             >
                               {ep.status === "monitoring" ? "Pause" : "Resume/Restore"}
                             </button>
@@ -1840,39 +1878,39 @@ export default function App() {
 
               {/* Selected Endpoint File Explorer */}
               {activeEndpoint && (
-                <div className="p-4 bg-slate-900/60 border border-slate-800 rounded-lg space-y-3">
+                <div className="ns-card p-4 space-y-3">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div>
-                      <h3 className="text-xs font-semibold text-slate-200 uppercase tracking-wider">
+                      <h3 className="ns-section-title">
                         Virtual Workstation File Explorer — {activeEndpoint.endpoint_id} ({activeEndpoint.department})
                       </h3>
-                      <p className="text-[11px] text-slate-400">
+                      <p className="text-[11px] text-[#AD98C5] mt-0.5">
                         Harmless metadata records only. Last activity: {activeEndpoint.last_activity || "Baseline"}
                       </p>
                     </div>
-                    <span className="text-[11px] font-mono text-cyan-300">
+                    <span className="ns-badge ns-badge-violet">
                       {(activeEndpoint.virtual_files || []).length} virtual files
                     </span>
                   </div>
-                  <div className="max-h-64 overflow-y-auto border border-slate-800 rounded bg-slate-950">
-                    <table className="w-full text-left text-xs">
-                      <thead className="text-[10px] text-slate-400 border-b border-slate-800 sticky top-0 bg-slate-950">
+                  <div className="max-h-64 overflow-y-auto border border-purple-900/40 rounded-lg bg-[#08050F]/80">
+                    <table className="ns-table">
+                      <thead>
                         <tr>
-                          <th className="p-2">Filename</th>
-                          <th className="p-2">Type</th>
-                          <th className="p-2">Size</th>
-                          <th className="p-2">Last Simulated Activity</th>
-                          <th className="p-2">Status</th>
+                          <th>Filename</th>
+                          <th>Type</th>
+                          <th>Size</th>
+                          <th>Last Simulated Activity</th>
+                          <th>Status</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-800/50 font-mono text-[11px]">
+                      <tbody className="font-mono text-[11px]">
                         {(activeEndpoint.virtual_files || []).map((vf) => (
                           <tr key={vf.file_id}>
-                            <td className="p-2 text-slate-200">{vf.filename}</td>
-                            <td className="p-2 text-slate-400 font-sans">{vf.file_type}</td>
-                            <td className="p-2 text-slate-400">{vf.size}</td>
-                            <td className="p-2 text-slate-400 font-sans">{vf.last_activity}</td>
-                            <td className="p-2">
+                            <td className="text-[#F5EDFF]">{vf.filename}</td>
+                            <td className="text-[#AD98C5] font-sans">{vf.file_type}</td>
+                            <td className="text-[#AD98C5]">{vf.size}</td>
+                            <td className="text-[#AD98C5] font-sans">{vf.last_activity}</td>
+                            <td>
                               <span
                                 className={
                                   vf.status === "simulated_encrypted"
@@ -1898,10 +1936,10 @@ export default function App() {
           {/* INCIDENTS (PHASE 10 ADVANCED INVESTIGATION CENTER) */}
           {activeTab === "incidents" && (
             <div className="space-y-5">
-              <div className="p-4 bg-slate-900/70 border border-slate-800 rounded-lg flex flex-wrap items-center justify-between gap-3">
+              <div className="ns-card p-4 flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <h3 className="text-sm font-semibold text-slate-100">Incident Investigation Center (Simulated)</h3>
-                  <p className="text-xs text-slate-400">
+                  <h3 className="text-sm font-semibold text-[#F5EDFF]">Incident Investigation Center (Simulated)</h3>
+                  <p className="text-xs text-[#AD98C5]">
                     Select an incident to inspect AI attributions, replay stored timeline, or resolve simulated containment.
                   </p>
                 </div>
@@ -1910,16 +1948,16 @@ export default function App() {
                   value={incSearch}
                   onChange={(e) => setIncSearch(e.target.value)}
                   placeholder="Search incident or endpoint..."
-                  className="bg-slate-950 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200 text-xs"
+                  className="ns-input w-56"
                 />
               </div>
 
               {incidents.length === 0 ? (
-                <div className="p-8 text-center bg-slate-900/60 border border-dashed border-slate-800 rounded-lg space-y-2">
-                  <p className="text-xs text-slate-400">No simulated incidents recorded. All 5 virtual endpoints are monitoring.</p>
+                <div className="ns-card p-8 text-center border-dashed space-y-3">
+                  <p className="text-xs text-[#AD98C5]">No simulated incidents recorded. All {endpoints.length} virtual endpoints are monitoring.</p>
                   <button
                     onClick={() => handleScenarioTrigger("suspicious")}
-                    className="text-xs text-rose-300 hover:text-rose-200 underline"
+                    className="ns-btn ns-btn-danger"
                   >
                     Trigger Suspicious Scenario on {selectedEndpointId}
                   </button>
@@ -1927,8 +1965,8 @@ export default function App() {
               ) : (
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
                   {/* Incident List */}
-                  <div className="p-4 bg-slate-900/60 border border-slate-800 rounded-lg space-y-2 max-h-[600px] overflow-y-auto">
-                    <span className="text-xs font-semibold text-slate-200 uppercase tracking-wider block mb-2">
+                  <div className="ns-card p-4 space-y-2 max-h-[600px] overflow-y-auto">
+                    <span className="ns-section-title block mb-2">
                       Recorded Incidents ({incidents.length})
                     </span>
                     {incidents
@@ -1949,19 +1987,19 @@ export default function App() {
                             setReplayPlaying(false);
                             setReplayStep(0);
                           }}
-                          className={`w-full text-left p-3 rounded border transition ${
+                          className={`w-full text-left p-3 rounded-lg border transition-all ${
                             activeIncident?.incident_id === inc.incident_id
-                              ? "bg-rose-950/30 border-rose-700"
-                              : "bg-slate-950 border-slate-800 hover:border-slate-700"
+                              ? "bg-[#2E1065]/40 border-[#A855F7]/70"
+                              : "bg-[#08050F]/80 border-purple-900/40 hover:border-purple-700/60"
                           }`}
                         >
                           <div className="flex justify-between items-center text-xs font-mono">
                             <span className="text-rose-300 font-bold">{inc.incident_id}</span>
-                            <span className="text-[10px] uppercase px-1.5 py-0.5 rounded bg-slate-800 text-slate-300">
+                            <span className="ns-badge ns-badge-violet">
                               {inc.investigation_status || "open"}
                             </span>
                           </div>
-                          <div className="flex justify-between text-[11px] text-slate-400 mt-1 font-mono">
+                          <div className="flex justify-between text-[11px] text-[#AD98C5] mt-1.5 font-mono">
                             <span>{inc.endpoint_id}</span>
                             <span>Score: {inc.risk_score ?? "--"}/100</span>
                           </div>
@@ -1971,23 +2009,23 @@ export default function App() {
 
                   {/* Dedicated Investigation Workspace */}
                   {activeIncident && (
-                    <div className="lg:col-span-2 p-5 bg-slate-900/60 border border-slate-800 rounded-lg space-y-4">
+                    <div className="lg:col-span-2 ns-card p-5 space-y-4">
                       {/* A. Incident Overview */}
-                      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-3">
+                      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-purple-900/40 pb-3">
                         <div>
                           <h4 className="text-sm font-bold font-mono text-rose-300">
                             {activeIncident.incident_id} — {activeIncident.endpoint_id}
                           </h4>
-                          <p className="text-xs text-slate-400">
+                          <p className="text-xs text-[#AD98C5] mt-0.5">
                             Severity: <strong className="uppercase text-rose-300">{activeIncident.severity}</strong> | Model:{" "}
-                            <span className="font-mono">{activeIncident.model_version || "rf-phase2-v1"}</span> | Latency:{" "}
-                            <span className="font-mono">{activeIncident.processing_time_ms ?? "--"} ms</span>
+                            <span className="font-mono text-[#E9D5FF]">{activeIncident.model_version || "rf-phase2-v1"}</span> | Latency:{" "}
+                            <span className="font-mono text-[#C084FC]">{activeIncident.processing_time_ms ?? "--"} ms</span>
                           </p>
                         </div>
                         <a
                           href={getIncidentReportUrl(activeIncident.incident_id)}
                           download={`${activeIncident.incident_id}_report.md`}
-                          className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-cyan-300 text-xs rounded border border-cyan-800/50 flex items-center space-x-1"
+                          className="ns-btn ns-btn-folder"
                         >
                           <Download className="w-3.5 h-3.5" />
                           <span>Download Report</span>
@@ -1996,15 +2034,15 @@ export default function App() {
 
                       {/* B. Behaviour Timeline & Incident Replay */}
                       {activeIncident.timeline && activeIncident.timeline.length > 0 && (
-                        <div className="p-3 bg-slate-950 border border-slate-800 rounded space-y-2">
+                        <div className="p-3.5 bg-[#08050F]/80 border border-purple-900/40 rounded-lg space-y-3">
                           <div className="flex items-center justify-between">
-                            <span className="text-xs font-semibold text-slate-200 uppercase">
+                            <span className="ns-section-title">
                               Stored Incident Replay ({replayStep + 1}/{activeIncident.timeline.length})
                             </span>
                             <div className="flex items-center space-x-2">
                               <button
                                 onClick={() => setReplayPlaying((p) => !p)}
-                                className="px-2 py-1 bg-cyan-600 text-slate-950 font-semibold text-[11px] rounded"
+                                className="ns-btn ns-btn-primary text-[11px] py-1 px-2.5"
                               >
                                 {replayPlaying ? "Pause" : "Play"}
                               </button>
@@ -2013,17 +2051,20 @@ export default function App() {
                                   setReplayPlaying(false);
                                   setReplayStep(0);
                                 }}
-                                className="px-2 py-1 bg-slate-800 text-slate-200 text-[11px] rounded border border-slate-700"
+                                className="ns-btn ns-btn-ghost text-[11px] py-1 px-2.5"
                               >
                                 Restart
                               </button>
                             </div>
                           </div>
-                          <div className="space-y-1 border-l-2 border-rose-800 pl-3 text-xs">
+                          <div className="ns-timeline space-y-2 text-xs">
                             {activeIncident.timeline.slice(0, replayStep + 1).map((ev, i) => (
-                              <div key={i}>
-                                <span className="text-slate-200">{ev.event}</span>
-                                <span className="text-[11px] font-mono text-slate-500 ml-2">(+{ev.elapsed_ms} ms)</span>
+                              <div key={i} className="flex items-start gap-2">
+                                <span className="ns-timeline-dot" />
+                                <div>
+                                  <span className="text-[#F5EDFF]">{ev.event}</span>
+                                  <span className="text-[11px] font-mono text-[#AD98C5] ml-2">(+{ev.elapsed_ms} ms)</span>
+                                </div>
                               </div>
                             ))}
                           </div>
@@ -2032,30 +2073,30 @@ export default function App() {
 
                       {/* C. AI Intelligence */}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-                        <div className="p-3 bg-slate-950 border border-slate-800 rounded space-y-1">
-                          <span className="text-[11px] font-semibold text-cyan-300 uppercase block">Model-Derived Explanations</span>
+                        <div className="p-3 bg-[#08050F]/80 border border-purple-900/40 rounded-lg space-y-1.5">
+                          <span className="text-[11px] font-semibold text-[#C084FC] uppercase block">Model-Derived Explanations</span>
                           {(activeIncident.explanations?.model_derived || []).map((m, i) => (
-                            <div key={i} className="font-mono text-[11px] text-slate-300">{m}</div>
+                            <div key={i} className="font-mono text-[11px] text-[#E9D5FF]">{m}</div>
                           ))}
                         </div>
-                        <div className="p-3 bg-slate-950 border border-slate-800 rounded space-y-1">
+                        <div className="p-3 bg-[#08050F]/80 border border-purple-900/40 rounded-lg space-y-1.5">
                           <span className="text-[11px] font-semibold text-amber-300 uppercase block">Heuristic Explanations</span>
                           {(activeIncident.explanations?.heuristic || []).map((h, i) => (
-                            <div key={i} className="font-mono text-[11px] text-slate-300">{h}</div>
+                            <div key={i} className="font-mono text-[11px] text-[#E9D5FF]">{h}</div>
                           ))}
                         </div>
                       </div>
 
                       {/* E. Response & Recovery */}
-                      <div className="p-3 bg-slate-950 border border-slate-800 rounded space-y-3">
-                        <span className="text-xs font-semibold text-slate-200 uppercase block">
+                      <div className="p-3.5 bg-[#08050F]/80 border border-purple-900/40 rounded-lg space-y-3">
+                        <span className="ns-section-title block">
                           Simulated Response & Recovery
                         </span>
                         <textarea
                           value={adminNotes}
                           onChange={(e) => setAdminNotes(e.target.value)}
                           placeholder="Add administrator investigation notes..."
-                          className="w-full h-16 p-2 bg-slate-900 border border-slate-700 rounded text-xs text-slate-200"
+                          className="ns-input w-full h-16 p-2"
                         />
                         <div className="flex flex-wrap gap-2">
                           <button
@@ -2063,7 +2104,7 @@ export default function App() {
                               await reviewIncident(activeIncident.incident_id, adminNotes);
                               await loadAllData();
                             }}
-                            className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-cyan-300 text-xs rounded border border-cyan-800/50"
+                            className="ns-btn ns-btn-folder"
                           >
                             Mark as Reviewed
                           </button>
@@ -2072,7 +2113,7 @@ export default function App() {
                               await resolveIncident(activeIncident.incident_id, adminNotes);
                               await loadAllData();
                             }}
-                            className="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-600 text-slate-950 font-semibold text-xs rounded"
+                            className="ns-btn ns-btn-primary"
                           >
                             Resolve & Restore Endpoint Monitoring
                           </button>
@@ -2099,103 +2140,103 @@ export default function App() {
                       { label: "FPR", val: `${(p2.false_positive_rate * 100).toFixed(2)}%` },
                       { label: "Inference Latency", val: `${metrics.single_call_latency_ms} ms` }
                     ].map((m) => (
-                      <div key={m.label} className="p-3 bg-slate-900/60 border border-slate-800 rounded-lg">
-                        <span className="text-[11px] text-slate-400 block">{m.label}</span>
-                        <span className="text-lg font-bold font-mono text-cyan-300">{m.val}</span>
+                      <div key={m.label} className="ns-stat">
+                        <span className="text-[11px] text-[#AD98C5] block">{m.label}</span>
+                        <span className="text-lg font-bold font-mono text-[#C084FC]">{m.val}</span>
                       </div>
                     ))}
                   </div>
 
                   {/* Live Workspace Monitoring (demo_workspace/ + Independent Harness) */}
-              {workspaceStatus && (
-                <div className="p-4 bg-slate-900/60 border border-slate-800 rounded-lg space-y-3">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div>
-                      <h3 className="text-xs font-semibold text-slate-200 uppercase tracking-wider">
-                        Live Workspace Monitoring ({workspaceStatus.workspace_path})
-                      </h3>
-                      <p className="text-[11px] text-slate-400">
-                        Status: <strong className="text-emerald-400 font-mono uppercase">{workspaceStatus.monitoring_status}</strong> |{" "}
-                        Dummy Files: <strong className="font-mono text-slate-200">{workspaceStatus.file_count}</strong> |{" "}
-                        Telemetry: <strong className="font-mono text-cyan-300">{workspaceStatus.telemetry_status}</strong>
-                      </p>
-                    </div>
-                    <span className="text-[10px] font-mono text-slate-400">
-                      Observed Events: {workspaceStatus.measurable_features?.observed_event_count ?? 0} |{" "}
-                      Exts: {workspaceStatus.measurable_features?.unique_ext_count ?? 0}
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 text-xs">
-                    <div className="p-2.5 bg-slate-950 border border-slate-800 rounded max-h-32 overflow-y-auto">
-                      <span className="text-[10px] font-mono text-slate-400 uppercase block mb-1">
-                        Recent Observed File Activity (workspace_observer)
-                      </span>
-                      {workspaceStatus.recent_events?.length > 0 ? (
-                        workspaceStatus.recent_events.slice(0, 6).map((ev, i) => (
-                          <div key={i} className="font-mono text-[11px] text-slate-300 flex justify-between">
-                            <span>[{ev.event_type}] {ev.filename}</span>
-                            <span className="text-slate-500">{ev.timestamp.substring(11, 19)}Z</span>
-                          </div>
-                        ))
-                      ) : (
-                        <span className="text-[11px] text-slate-500">
-                          No manual edits yet. Edit or rename a file in demo_workspace/ to observe live events.
+                  {workspaceStatus && (
+                    <div className="ns-card p-4 space-y-3">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                          <h3 className="ns-section-title">
+                            Live Workspace Monitoring ({workspaceStatus.workspace_path})
+                          </h3>
+                          <p className="text-[11px] text-[#AD98C5] mt-0.5">
+                            Status: <strong className="text-emerald-400 font-mono uppercase">{workspaceStatus.monitoring_status}</strong> |{" "}
+                            Dummy Files: <strong className="font-mono text-[#F5EDFF]">{workspaceStatus.file_count}</strong> |{" "}
+                            Telemetry: <strong className="font-mono text-[#C084FC]">{workspaceStatus.telemetry_status}</strong>
+                          </p>
+                        </div>
+                        <span className="text-[10px] font-mono text-[#AD98C5]">
+                          Observed Events: {workspaceStatus.measurable_features?.observed_event_count ?? 0} |{" "}
+                          Exts: {workspaceStatus.measurable_features?.unique_ext_count ?? 0}
                         </span>
-                      )}
+                      </div>
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 text-xs">
+                        <div className="p-2.5 bg-[#08050F]/80 border border-purple-900/40 rounded-lg max-h-32 overflow-y-auto">
+                          <span className="text-[10px] font-mono text-[#AD98C5] uppercase block mb-1">
+                            Recent Observed File Activity (workspace_observer)
+                          </span>
+                          {workspaceStatus.recent_events?.length > 0 ? (
+                            workspaceStatus.recent_events.slice(0, 6).map((ev, i) => (
+                              <div key={i} className="font-mono text-[11px] text-[#E9D5FF] flex justify-between">
+                                <span>[{ev.event_type}] {ev.filename}</span>
+                                <span className="text-[#AD98C5]">{ev.timestamp.substring(11, 19)}Z</span>
+                              </div>
+                            ))
+                          ) : (
+                            <span className="text-[11px] text-[#AD98C5]">
+                              No manual edits yet. Edit or rename a file in demo_workspace/ to observe live events.
+                            </span>
+                          )}
+                        </div>
+                        <div className="p-2.5 bg-[#08050F]/80 border border-purple-900/40 rounded-lg">
+                          <span className="text-[10px] font-mono text-amber-300 uppercase block mb-1">
+                            Unavailable Measurements (Not Fabricated)
+                          </span>
+                          <ul className="space-y-0.5 text-[11px] font-mono text-[#AD98C5]">
+                            {(workspaceStatus.unavailable_features || []).map((u, i) => (
+                              <li key={i}>• {u}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
                     </div>
-                    <div className="p-2.5 bg-slate-950 border border-slate-800 rounded">
-                      <span className="text-[10px] font-mono text-amber-300 uppercase block mb-1">
-                        Unavailable Measurements (Not Fabricated)
-                      </span>
-                      <ul className="space-y-0.5 text-[11px] font-mono text-slate-400">
-                        {(workspaceStatus.unavailable_features || []).map((u, i) => (
-                          <li key={i}>• {u}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-              )}
+                  )}
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-                    <div className="p-4 bg-slate-900/60 border border-slate-800 rounded-lg">
-                      <h3 className="text-xs font-semibold text-slate-200 uppercase tracking-wider mb-3">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                    <div className="ns-card p-4">
+                      <h3 className="ns-section-title mb-3">
                         Confusion Matrix (val_phase2.csv, n=600)
                       </h3>
                       <div className="grid grid-cols-2 gap-3 text-center font-mono text-xs">
-                        <div className="p-3 bg-slate-950 border border-slate-800 rounded">
-                          <span className="text-slate-400">True Negatives (TN)</span>
+                        <div className="ns-stat p-3">
+                          <span className="text-[#AD98C5]">True Negatives (TN)</span>
                           <div className="text-xl font-bold text-emerald-400 mt-1">{p2.confusion_matrix.tn}</div>
                         </div>
-                        <div className="p-3 bg-slate-950 border border-slate-800 rounded">
-                          <span className="text-slate-400">False Positives (FP)</span>
+                        <div className="ns-stat p-3">
+                          <span className="text-[#AD98C5]">False Positives (FP)</span>
                           <div className="text-xl font-bold text-rose-400 mt-1">{p2.confusion_matrix.fp}</div>
                         </div>
-                        <div className="p-3 bg-slate-950 border border-slate-800 rounded">
-                          <span className="text-slate-400">False Negatives (FN)</span>
+                        <div className="ns-stat p-3">
+                          <span className="text-[#AD98C5]">False Negatives (FN)</span>
                           <div className="text-xl font-bold text-rose-400 mt-1">{p2.confusion_matrix.fn}</div>
                         </div>
-                        <div className="p-3 bg-slate-950 border border-slate-800 rounded">
-                          <span className="text-slate-400">True Positives (TP)</span>
+                        <div className="ns-stat p-3">
+                          <span className="text-[#AD98C5]">True Positives (TP)</span>
                           <div className="text-xl font-bold text-emerald-400 mt-1">{p2.confusion_matrix.tp}</div>
                         </div>
                       </div>
                     </div>
 
-                    <div className="p-4 bg-slate-900/60 border border-slate-800 rounded-lg">
-                      <h3 className="text-xs font-semibold text-slate-200 uppercase tracking-wider mb-3">
+                    <div className="ns-card p-4">
+                      <h3 className="ns-section-title mb-3">
                         False-Positive Reduction: Phase 1 (89) vs Phase 2 (4)
                       </h3>
                       <div className="h-48">
                         <ResponsiveContainer width="100%" height="100%">
                           <BarChart data={fpComparisonData}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                            <XAxis dataKey="category" stroke="#64748b" fontSize={11} />
-                            <YAxis stroke="#64748b" fontSize={11} />
-                            <Tooltip contentStyle={{ backgroundColor: "#0f172a", borderColor: "#334155", fontSize: "11px" }} />
+                            <CartesianGrid strokeDasharray="3 3" stroke="#211334" />
+                            <XAxis dataKey="category" stroke="#AD98C5" fontSize={11} />
+                            <YAxis stroke="#AD98C5" fontSize={11} />
+                            <Tooltip contentStyle={{ backgroundColor: "#10091C", borderColor: "#7C3AED", fontSize: "11px" }} />
                             <Legend wrapperStyle={{ fontSize: "11px" }} />
-                            <Bar dataKey="Phase 1 Baseline" fill="#f43f5e" radius={[3, 3, 0, 0]} />
-                            <Bar dataKey="Phase 2 Model" fill="#22d3ee" radius={[3, 3, 0, 0]} />
+                            <Bar dataKey="Phase 1 Baseline" fill="#f43f5e" radius={[4, 4, 0, 0]} />
+                            <Bar dataKey="Phase 2 Model" fill="#A855F7" radius={[4, 4, 0, 0]} />
                           </BarChart>
                         </ResponsiveContainer>
                       </div>
@@ -2203,61 +2244,61 @@ export default function App() {
                   </div>
 
                   {earlyWarning && (
-                    <div className="p-4 bg-slate-900/60 border border-slate-800 rounded-lg space-y-3">
+                    <div className="ns-card p-4 space-y-3">
                       <div className="flex flex-wrap items-center justify-between gap-2">
-                        <h3 className="text-xs font-semibold text-slate-200 uppercase tracking-wider">
+                        <h3 className="ns-section-title">
                           Early-Warning Simulation Evaluation ({earlyWarning.total_sequences} Independent Sequences)
                         </h3>
-                        <span className="text-[11px] font-mono text-slate-400">
+                        <span className="text-[11px] font-mono text-[#AD98C5]">
                           Seed: {earlyWarning.evaluation_seed} | Overlap: {earlyWarning.train_val_exact_overlap}
                         </span>
                       </div>
                       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 font-mono text-xs">
-                        <div className="p-3 bg-slate-950 border border-slate-800 rounded">
-                          <span className="text-[11px] text-slate-400 block font-sans">Attack Outcomes (n={earlyWarning.attack_sequences})</span>
+                        <div className="ns-stat">
+                          <span className="text-[11px] text-[#AD98C5] block font-sans">Attack Outcomes (n={earlyWarning.attack_sequences})</span>
                           <span className="text-base font-bold text-emerald-400">
                             Early {earlyWarning.early_detections}/{earlyWarning.attack_sequences}
                           </span>
-                          <span className="text-[10px] text-slate-500 block">
+                          <span className="text-[10px] text-[#AD98C5] block">
                             Late: {earlyWarning.late_detections} | Missed: {earlyWarning.missed_detections} | Premature: {earlyWarning.premature_alerts}
                           </span>
                         </div>
-                        <div className="p-3 bg-slate-950 border border-slate-800 rounded">
-                          <span className="text-[11px] text-slate-400 block font-sans">Benign Control FA (n={earlyWarning.benign_control_sequences})</span>
-                          <span className="text-base font-bold text-cyan-300">
+                        <div className="ns-stat">
+                          <span className="text-[11px] text-[#AD98C5] block font-sans">Benign Control FA (n={earlyWarning.benign_control_sequences})</span>
+                          <span className="text-base font-bold text-[#C084FC]">
                             {earlyWarning.benign_control_false_alarms}/{earlyWarning.benign_control_sequences}
                           </span>
-                          <span className="text-[10px] text-slate-500 block">
+                          <span className="text-[10px] text-[#AD98C5] block">
                             Rate: {(earlyWarning.benign_control_false_alarm_rate * 100).toFixed(2)}%
                           </span>
                         </div>
-                        <div className="p-3 bg-slate-950 border border-slate-800 rounded">
-                          <span className="text-[11px] text-slate-400 block font-sans">Time to First Alert (Sim)</span>
-                          <span className="text-base font-bold text-slate-200">
+                        <div className="ns-stat">
+                          <span className="text-[11px] text-[#AD98C5] block font-sans">Time to First Alert (Sim)</span>
+                          <span className="text-base font-bold text-[#F5EDFF]">
                             Med {earlyWarning.median_time_to_first_alert_sim_s}s
                           </span>
-                          <span className="text-[10px] text-slate-500 block">
+                          <span className="text-[10px] text-[#AD98C5] block">
                             p95: {earlyWarning.p95_time_to_first_alert_sim_s}s
                           </span>
                         </div>
-                        <div className="p-3 bg-slate-950 border border-slate-800 rounded">
-                          <span className="text-[11px] text-slate-400 block font-sans">Warm Latency (100 calls)</span>
-                          <span className="text-base font-bold text-slate-200">{earlyWarning.latency_mean_ms} ms</span>
-                          <span className="text-[10px] text-slate-500 block">
+                        <div className="ns-stat">
+                          <span className="text-[11px] text-[#AD98C5] block font-sans">Warm Latency (100 calls)</span>
+                          <span className="text-base font-bold text-[#F5EDFF]">{earlyWarning.latency_mean_ms} ms</span>
+                          <span className="text-[10px] text-[#AD98C5] block">
                             Med {earlyWarning.latency_median_ms} | p95 {earlyWarning.latency_p95_ms}
                           </span>
                         </div>
-                        <div className="p-3 bg-slate-950 border border-slate-800 rounded">
-                          <span className="text-[11px] text-slate-400 block font-sans">Peak Traced Memory</span>
-                          <span className="text-base font-bold text-slate-200">{earlyWarning.peak_traced_memory_mb} MB</span>
-                          <span className="text-[10px] text-slate-500 block">tracemalloc (separate)</span>
+                        <div className="ns-stat">
+                          <span className="text-[11px] text-[#AD98C5] block font-sans">Peak Traced Memory</span>
+                          <span className="text-base font-bold text-[#F5EDFF]">{earlyWarning.peak_traced_memory_mb} MB</span>
+                          <span className="text-[10px] text-[#AD98C5] block">tracemalloc (separate)</span>
                         </div>
                       </div>
                     </div>
                   )}
                 </>
               ) : (
-                <div className="p-8 text-center text-xs text-slate-500 border border-dashed border-slate-800 rounded-lg">
+                <div className="ns-card p-8 text-center text-xs text-[#AD98C5] border-dashed">
                   Evaluation metrics unavailable. Ensure backend is running at http://localhost:8000.
                 </div>
               )}

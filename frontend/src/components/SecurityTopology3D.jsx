@@ -5,10 +5,10 @@ import * as THREE from "three";
 
 const STATE_COLORS = {
   normal: "#10b981",
-  monitoring: "#22d3ee",
+  monitoring: "#C084FC",
   warning: "#f59e0b",
   suspicious: "#f43f5e",
-  contained: "#a855f7",
+  contained: "#7C3AED",
   inactive: "#64748b"
 };
 
@@ -52,14 +52,14 @@ function ProtectionCore({ hasIncident, reducedMotion }) {
       </mesh>
       <mesh ref={ring1Ref} rotation={[Math.PI / 3, 0, 0]}>
         <torusGeometry args={[1.1, 0.025, 12, 48]} />
-        <meshStandardMaterial color="#38bdf8" metalness={0.5} roughness={0.4} />
+        <meshStandardMaterial color="#C084FC" metalness={0.5} roughness={0.4} />
       </mesh>
       <mesh ref={ring2Ref} rotation={[-Math.PI / 4, Math.PI / 4, 0]}>
         <torusGeometry args={[1.3, 0.02, 12, 48]} />
         <meshStandardMaterial color={color} metalness={0.4} roughness={0.5} />
       </mesh>
       <Html position={[0, 1.55, 0]} center distanceFactor={10}>
-        <div className="px-2 py-0.5 rounded bg-slate-950/90 border border-cyan-800/60 text-[10px] font-mono text-cyan-300 whitespace-nowrap pointer-events-none">
+        <div className="px-2 py-0.5 rounded bg-[#10091C]/90 border border-purple-500/50 text-[10px] font-mono text-[#E9D5FF] whitespace-nowrap pointer-events-none">
           AI CORE
         </div>
       </Html>
@@ -112,6 +112,7 @@ export default function SecurityTopology3D({
 }) {
   const [webglOk, setWebglOk] = useState(true);
   const [reducedMotion, setReducedMotion] = useState(false);
+  const [hoveredEndpointId, setHoveredEndpointId] = useState(null);
 
   useEffect(() => {
     const mq = window.matchMedia?.("(prefers-reduced-motion: reduce)");
@@ -143,27 +144,28 @@ export default function SecurityTopology3D({
 
   if (!webglOk || lowPerfMode) {
     return (
-      <div className="p-4 bg-slate-950 border border-slate-800 rounded-lg space-y-3">
+      <div className="p-4 bg-[#08050F]/90 border border-purple-900/50 rounded-xl space-y-3">
         <div className="flex items-center justify-between text-xs">
-          <span className="font-semibold text-cyan-300 uppercase tracking-wider">
+          <span className="font-semibold text-[#C084FC] uppercase tracking-wider">
             2D Topology Fallback ({!webglOk ? "WebGL Unavailable" : "Low-Performance Mode"})
           </span>
-          <span className="font-mono text-slate-400">
+          <span className="font-mono text-[#AD98C5]">
             GW: {gateway?.accepted_requests ?? 0} accepted / {gateway?.avoided_assessments ?? 0} avoided
           </span>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
           {endpoints.map((ep) => {
             const color = resolveEndpointColor(ep, replayIncident, replayStep);
+            const isSelected = ep.endpoint_id === selectedEndpointId;
             return (
               <button
                 key={ep.endpoint_id}
                 onClick={() => onSelectEndpoint(ep.endpoint_id)}
-                style={{ borderColor: color }}
-                className="p-2.5 bg-slate-900 rounded border text-left text-xs font-mono hover:bg-slate-800 transition"
+                style={{ borderColor: isSelected ? "#C084FC" : color }}
+                className="p-2.5 bg-[#10091C] rounded-lg border text-left text-xs font-mono hover:bg-[#211334] transition"
               >
-                <div className="font-bold text-slate-100">{ep.endpoint_id}</div>
-                <div className="text-[10px] text-slate-400">{ep.department}</div>
+                <div className="font-bold text-[#F5EDFF]">{ep.endpoint_id}</div>
+                <div className="text-[10px] text-[#AD98C5]">{ep.department}</div>
                 <div className="text-[10px] mt-1" style={{ color }}>
                   {ep.status} ({ep.current_risk_score ?? 0})
                 </div>
@@ -176,16 +178,16 @@ export default function SecurityTopology3D({
   }
 
   return (
-    <div className="h-72 w-full bg-slate-950 border border-slate-800 rounded-lg overflow-hidden relative">
+    <div className="h-72 w-full bg-[#08050F] border border-purple-900/50 rounded-xl overflow-hidden relative">
       <Canvas
         dpr={[1, 1.5]}
         camera={{ position: [0, 4.2, 7.2], fov: 45 }}
         frameloop={reducedMotion ? "demand" : "always"}
       >
-        <color attach="background" args={["#020617"]} />
+        <color attach="background" args={["#08050F"]} />
         <ambientLight intensity={0.6} />
-        <pointLight position={[5, 6, 5]} intensity={1.1} color="#38bdf8" />
-        <pointLight position={[-5, 4, -5]} intensity={0.6} color="#0ea5e9" />
+        <pointLight position={[5, 6, 5]} intensity={1.2} color="#A855F7" />
+        <pointLight position={[-5, 4, -5]} intensity={0.7} color="#7C3AED" />
 
         <ProtectionCore hasIncident={hasIncident} reducedMotion={reducedMotion} />
 
@@ -193,27 +195,40 @@ export default function SecurityTopology3D({
         <group position={[0, 0, 3.0]}>
           <mesh>
             <boxGeometry args={[0.8, 0.45, 0.5]} />
-            <meshStandardMaterial color="#0284c7" metalness={0.4} roughness={0.4} />
+            <meshStandardMaterial color="#7C3AED" metalness={0.5} roughness={0.35} />
           </mesh>
           <Html position={[0, 0.55, 0]} center distanceFactor={10}>
-            <div className="px-2 py-0.5 rounded bg-slate-950/90 border border-slate-700 text-[10px] font-mono text-slate-200 whitespace-nowrap pointer-events-none">
+            <div className="px-2 py-0.5 rounded bg-[#10091C]/90 border border-purple-700/60 text-[10px] font-mono text-[#E9D5FF] whitespace-nowrap pointer-events-none">
               GATEWAY ({gateway?.queue_depth ?? 0}/{gateway?.queue_capacity ?? 10})
             </div>
           </Html>
         </group>
 
-        <Line points={[[0, 0, 3.0], [0, 0, 0]]} color="#0ea5e9" lineWidth={1.5} />
+        <Line points={[[0, 0, 3.0], [0, 0, 0]]} color="#A855F7" lineWidth={1.5} />
         <GatewayFlowParticles gateway={gateway} reducedMotion={reducedMotion} />
 
         {/* 5 Virtual Department Workstations */}
         {nodePositions.map(({ ep, pos }) => {
           const color = resolveEndpointColor(ep, replayIncident, replayStep);
           const isSelected = ep.endpoint_id === selectedEndpointId;
+          const isHovered = ep.endpoint_id === hoveredEndpointId;
+          const dimmed = hoveredEndpointId && !isHovered;
           return (
             <group key={ep.endpoint_id}>
-              <Line points={[[0, 0, 0], pos]} color={color} lineWidth={isSelected ? 2 : 1} />
+              <Line
+                points={[[0, 0, 0], pos]}
+                color={isHovered ? "#E9D5FF" : color}
+                lineWidth={isHovered || isSelected ? 2.5 : 1}
+                transparent
+                opacity={dimmed ? 0.2 : 0.9}
+              />
               <mesh
                 position={pos}
+                onPointerOver={(e) => {
+                  e.stopPropagation();
+                  setHoveredEndpointId(ep.endpoint_id);
+                }}
+                onPointerOut={() => setHoveredEndpointId(null)}
                 onClick={(e) => {
                   e.stopPropagation();
                   onSelectEndpoint(ep.endpoint_id);
@@ -223,16 +238,22 @@ export default function SecurityTopology3D({
                 <meshStandardMaterial
                   color={color}
                   emissive={color}
-                  emissiveIntensity={isSelected ? 0.5 : 0.15}
+                  emissiveIntensity={isHovered ? 0.8 : isSelected ? 0.5 : 0.15}
+                  transparent
+                  opacity={dimmed ? 0.35 : 1}
                 />
               </mesh>
               <Html position={[pos[0], pos[1] + 0.55, pos[2]]} center distanceFactor={10}>
                 <button
+                  onMouseEnter={() => setHoveredEndpointId(ep.endpoint_id)}
+                  onMouseLeave={() => setHoveredEndpointId(null)}
                   onClick={() => onSelectEndpoint(ep.endpoint_id)}
-                  className={`px-1.5 py-0.5 rounded text-[10px] font-mono whitespace-nowrap border ${
-                    isSelected
-                      ? "bg-slate-900 border-cyan-400 text-cyan-300"
-                      : "bg-slate-950/90 border-slate-700 text-slate-200"
+                  className={`px-1.5 py-0.5 rounded text-[10px] font-mono whitespace-nowrap border transition-opacity ${
+                    dimmed ? "opacity-35" : "opacity-100"
+                  } ${
+                    isHovered || isSelected
+                      ? "bg-[#211334] border-[#C084FC] text-[#E9D5FF]"
+                      : "bg-[#10091C]/90 border-purple-800/60 text-[#AD98C5]"
                   }`}
                 >
                   {ep.endpoint_id} ({ep.current_risk_score ?? 0})
