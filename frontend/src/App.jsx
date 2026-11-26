@@ -168,6 +168,7 @@ export default function App() {
   const fileInputRef = useRef(null);
   const isFetchingRef = useRef(false);
   const syncEpochRef = useRef(0);
+  const vaultBackoffRef = useRef({ failures: 0, nextRetryAt: 0 });
 
   const loadStaticAnalytics = async () => {
     const [metRes, ewRes] = await Promise.all([
@@ -191,7 +192,19 @@ export default function App() {
         fetchMonitorStatus().catch(() => ({ status: "stopped", processed_count: 0, total_sequence: 6, duration_seconds: 0 })),
         fetchGatewayStatus().catch(() => null),
         fetchWorkspaceStatus().catch(() => null),
-        fetchVaultStatus().catch(() => null)
+        Date.now() >= (vaultBackoffRef.current?.nextRetryAt ?? 0)
+          ? fetchVaultStatus()
+              .then((res) => {
+                vaultBackoffRef.current = { failures: 0, nextRetryAt: 0 };
+                return res;
+              })
+              .catch(() => {
+                const failures = (vaultBackoffRef.current?.failures ?? 0) + 1;
+                const delayMs = Math.min(30000, 3000 * Math.pow(2, failures - 1));
+                vaultBackoffRef.current = { failures, nextRetryAt: Date.now() + delayMs };
+                return null;
+              })
+          : Promise.resolve(vaultStatus)
       ]);
       // Discard stale polling responses if a reset or scenario trigger happened while in-flight
       if (myEpoch !== syncEpochRef.current) return;
