@@ -1,22 +1,22 @@
 {
   "schema_version": "1.0.0",
-  "train_samples": 1200,
+  "train_samples": 3000,
   "exact_row_overlap": 0,
-  "single_call_latency_ms": 40.5175,
+  "single_call_latency_ms": 16.1709,
   "sklearn_version": "1.9.1",
   "numpy_version": "2.5.5",
   "joblib_version": "1.6.0",
   "phase2_model": {
     "validation_samples": 600,
-    "precision": 0.9801,
-    "recall": 0.985,
-    "f1_score": 0.982544,
-    "false_positive_rate": 0.01,
+    "precision": 0.975124,
+    "recall": 0.98,
+    "f1_score": 0.977556,
+    "false_positive_rate": 0.0125,
     "confusion_matrix": {
-      "tn": 396,
-      "fp": 4,
-      "fn": 3,
-      "tp": 197
+      "tn": 395,
+      "fp": 5,
+      "fn": 4,
+      "tp": 196
     },
     "scenario_breakdown": {
       "normal": {
@@ -26,8 +26,8 @@
       },
       "backup": {
         "total": 125,
-        "false_positives": 3,
-        "false_positive_rate": 0.024
+        "false_positives": 4,
+        "false_positive_rate": 0.032
       },
       "compression": {
         "total": 75,
@@ -36,11 +36,11 @@
       },
       "suspicious": {
         "total": 200,
-        "true_positives": 197,
-        "detection_rate": 0.985
+        "true_positives": 196,
+        "detection_rate": 0.98
       }
     },
-    "avg_batch_inference_latency_ms": 0.070793
+    "avg_batch_inference_latency_ms": 0.017036
   },
   "phase1_fallback_on_phase2_val": {
     "validation_samples": 600,
@@ -76,7 +76,7 @@
         "detection_rate": 0.99
       }
     },
-    "avg_batch_inference_latency_ms": 0.020935
+    "avg_batch_inference_latency_ms": 0.024094
   },
   "limitations": "Synthetic tabular records only. risk_score is a model-derived 0-100 score, not a calibrated real-world probability. Does not provide real-world protection."
 }
