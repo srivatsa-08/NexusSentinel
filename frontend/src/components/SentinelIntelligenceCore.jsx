@@ -39,7 +39,7 @@ const SentinelIntelligenceCore = React.memo(function SentinelIntelligenceCore({
 
   useEffect(() => {
     if (threatReactionNonce > 0) {
-      threatTimerRef.current = 2.2;
+      threatTimerRef.current = 3.5;
     }
   }, [threatReactionNonce]);
 
@@ -100,7 +100,14 @@ const SentinelIntelligenceCore = React.memo(function SentinelIntelligenceCore({
       let threatBurst = 0;
       if (threatTimerRef.current > 0) {
         threatTimerRef.current = Math.max(0, threatTimerRef.current - 0.016);
-        threatBurst = bell(1 - threatTimerRef.current / 2.2);
+        const p = 1 - threatTimerRef.current / 3.5;
+        if (p < 0.3) {
+          threatBurst = easeOutCubic(p / 0.3);
+        } else if (p < 0.65) {
+          threatBurst = 1.0 - Math.sin(((p - 0.3) / 0.35) * Math.PI) * 0.06;
+        } else {
+          threatBurst = 1.0 - easeOutCubic((p - 0.65) / 0.35);
+        }
       }
 
       // Idle rotations (deg)
@@ -122,8 +129,10 @@ const SentinelIntelligenceCore = React.memo(function SentinelIntelligenceCore({
       if (wrapRef.current) {
         wrapRef.current.style.filter =
           threatBurst > 0.01
-            ? `drop-shadow(0 0 ${(18 + threatBurst * 22).toFixed(1)}px rgba(244,63,94,${(0.35 + threatBurst * 0.45).toFixed(2)}))`
+            ? `hue-rotate(${(-48 * threatBurst).toFixed(1)}deg) saturate(${(1 + threatBurst * 0.9).toFixed(2)}) drop-shadow(0 0 ${(18 + threatBurst * 26).toFixed(1)}px rgba(244,63,94,${(0.4 + threatBurst * 0.5).toFixed(2)}))`
             : "";
+        wrapRef.current.style.transform =
+          threatBurst > 0.01 ? `scale(${(1 + threatBurst * 0.08).toFixed(3)})` : "";
       }
       if (refs.l5) {
         const sc = (0.6 + 0.4 * eL5) * (1 - convBell * 0.14 + pulseAt(0.12) * 0.05);

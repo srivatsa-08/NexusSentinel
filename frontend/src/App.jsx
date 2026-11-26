@@ -179,6 +179,11 @@ export default function App() {
   const [isMuted, setIsMuted] = useState(false);
   const [threatReactionNonce, setThreatReactionNonce] = useState(0);
 
+  const handleThreatDetectionEvent = () => {
+    setThreatReactionNonce((n) => n + 1);
+    playThreatWarningBeep();
+  };
+
   const playThreatWarningBeep = () => {
     if (isMuted) return;
     try {
@@ -268,8 +273,7 @@ export default function App() {
           }
         }
         if (hasNewIncident) {
-          setThreatReactionNonce((n) => n + 1);
-          playThreatWarningBeep();
+          handleThreatDetectionEvent();
         }
       }
       setMonitorStatus(monRes);
@@ -669,6 +673,39 @@ export default function App() {
                     </span>
                   </div>
                   <ErrorBoundary name="SentinelIntelligenceCore">
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!audioCtxRef.current) {
+                            const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                            if (AudioCtx) audioCtxRef.current = new AudioCtx();
+                          }
+                          if (audioCtxRef.current?.state === "suspended") {
+                            audioCtxRef.current.resume().catch(() => null);
+                          }
+                          setIsMuted((m) => !m);
+                        }}
+                        className="px-2 py-1 rounded bg-white/5 border border-white/10 text-[10px] font-mono text-slate-300 hover:text-[#E8BB65] flex items-center gap-1"
+                      >
+                        {isMuted ? <VolumeX className="w-3 h-3" /> : <Volume2 className="w-3 h-3" />}
+                        <span>{isMuted ? "Muted" : "Sound On"}</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => playThreatWarningBeep()}
+                        className="px-2 py-1 rounded bg-white/5 border border-white/10 text-[10px] font-mono text-slate-300 hover:text-[#E8BB65]"
+                      >
+                        Test Sound
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setThreatReactionNonce((n) => n + 1)}
+                        className="px-2 py-1 rounded bg-white/5 border border-white/10 text-[10px] font-mono text-rose-300 hover:border-rose-400/40"
+                      >
+                        Test Breakdown
+                      </button>
+                    </div>
                     <Suspense
                       fallback={
                         <div className="h-[300px] flex flex-col items-center justify-center gap-2 text-xs text-[#E8BB65] font-mono">
