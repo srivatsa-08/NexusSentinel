@@ -985,6 +985,93 @@ def post_workspace_run_test(payload: dict[str, Any] | None = None) -> dict[str, 
     }
 
 
+@app.post("/api/v1/workspace/randomized-simulation")
+def post_workspace_randomized_simulation(payload: dict[str, Any] | None = None) -> dict[str, Any]:
+    """Run a randomized synthetic threat simulation on virtual file metadata with clean vault backup first."""
+    import random
+
+    body = payload or {}
+    endpoint_id = str(body.get("endpoint_id", "FIN-001")).strip() or "FIN-001"
+    raw_seed = body.get("seed")
+    if raw_seed is not None and str(raw_seed).strip() != "":
+        try:
+            seed_used = int(raw_seed)
+        except (TypeError, ValueError):
+            seed_used = abs(hash(str(raw_seed))) % 1_000_000
+    else:
+        seed_used = random.SystemRandom().randint(1000, 999_999)
+
+    rng = random.Random(seed_used)
+
+    # 1. Create verified clean backup copies before simulation
+    snap = recovery_vault.snapshot_workspace()
+
+    # 2. Randomly select virtual file records from the uploaded workspace
+    ws = workspace_monitor.get_status()
+    ws_files = ws.get("files", [])
+    if not ws_files:
+        raise HTTPException(status_code=400, detail="Workspace has no files. Upload demonstration files first.")
+
+    max_k = min(6, len(ws_files))
+    min_k = min(2, len(ws_files))
+    k = rng.randint(min_k, max_k)
+    chosen = rng.sample(ws_files, k)
+
+    virtual_affected = []
+    for f in chosen:
+        rel = f.get("relative_path", f.get("filename", ""))
+        v_state = rng.choice(["simulated_encrypted", "simulated_altered"])
+        virtual_affected.append(
+            {
+                "relative_path": rel,
+                "filename": f.get("filename", rel),
+                "size_bytes": f.get("size_bytes", 0),
+                "virtual_state": v_state,
+                "simulated_note": "Virtual metadata only; actual file untouched",
+            }
+        )
+
+    test_start_iso = datetime.now(timezone.utc).isoformat()
+    workspace_monitor.reset_simulation()
+    workspace_monitor.harness_state["status"] = "running"
+    workspace_monitor.harness_state["test_start_timestamp"] = test_start_iso
+    workspace_monitor.harness_state["virtual_affected_files"] = virtual_affected
+
+    # 3. Feed randomized synthetic behavioural observation through the trained AI model
+    synthetic_obs = {
+        "file_modification_rate": round(rng.uniform(45.0, 180.0), 2),
+        "entropy_change": round(rng.uniform(1.4, 3.3), 3),
+        "rename_ratio": round(rng.uniform(0.35, 0.92), 3),
+        "unique_extensions_touched": rng.randint(4, 24),
+        "burst_score": round(rng.uniform(0.45, 0.98), 3),
+        "backup_delete_attempt": rng.choice([0, 1]),
+    }
+
+    ingest_res = post_workspace_ingest(
+        {
+            "endpoint_id": endpoint_id,
+            "telemetry_source": f"randomized_simulation_seed_{seed_used}",
+            "test_start_timestamp": test_start_iso,
+            "observation": synthetic_obs,
+        }
+    )
+
+    updated_ws = workspace_monitor.get_status()
+    vault_status = recovery_vault.get_status(updated_ws.get("files", []))
+
+    return {
+        "seed_used": seed_used,
+        "snapshot": snap,
+        "selected_virtual_files": virtual_affected,
+        "synthetic_observation": synthetic_obs,
+        "assessment": ingest_res.get("assessment"),
+        "containment_triggered": ingest_res.get("containment_triggered", False),
+        "incident": ingest_res.get("incident"),
+        "workspace": updated_ws,
+        "vault": vault_status,
+    }
+
+
 @app.post("/api/v1/workspace/stop-test")
 def post_workspace_stop_test() -> dict[str, Any]:
     workspace_monitor.harness_state["status"] = "stopped"

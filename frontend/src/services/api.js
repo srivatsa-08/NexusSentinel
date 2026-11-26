@@ -47,6 +47,8 @@ export const getIncidentReportUrl = (incidentId) => `${API_BASE}/incidents/${inc
 export const fetchWorkspaceStatus = async () => (await api.get("/workspace/status")).data;
 export const runWorkspaceTest = async (endpointId = "FIN-001") =>
   (await api.post("/workspace/run-test", { endpoint_id: endpointId })).data;
+export const runRandomizedSimulation = async (endpointId = "FIN-001", seed = null) =>
+  (await api.post("/workspace/randomized-simulation", { endpoint_id: endpointId, seed })).data;
 export const stopWorkspaceTest = async () => (await api.post("/workspace/stop-test")).data;
 export const resetWorkspaceSimulation = async () => (await api.post("/workspace/reset")).data;
 export const importWorkspaceFolder = async (files) =>

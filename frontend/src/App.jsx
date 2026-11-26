@@ -77,6 +77,7 @@ import {
   getIncidentReportUrl,
   fetchWorkspaceStatus,
   runWorkspaceTest,
+  runRandomizedSimulation,
   stopWorkspaceTest,
   resetWorkspaceSimulation,
   importWorkspaceFolder,
@@ -127,6 +128,8 @@ export default function App() {
   const [vaultStatus, setVaultStatus] = useState(null);
   const [wsPreview, setWsPreview] = useState(null);
   const [wsMeta, setWsMeta] = useState(null);
+  const [simSeed, setSimSeed] = useState("");
+  const [randomizedSimResult, setRandomizedSimResult] = useState(null);
   const [wsSearch, setWsSearch] = useState("");
   const [wsShowExplain, setWsShowExplain] = useState(false);
   const folderInputRef = useRef(null);
@@ -869,6 +872,44 @@ export default function App() {
                     <Play className="w-3.5 h-3.5" />
                     <span>Run Test Script</span>
                   </button>
+                  <input
+                    type="text"
+                    value={simSeed}
+                    onChange={(e) => setSimSeed(e.target.value)}
+                    placeholder="Seed (optional)"
+                    className="px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-slate-200 placeholder-slate-500 w-28 focus:outline-none focus:border-purple-400/50"
+                  />
+                  <button
+                    onClick={async () => {
+                      setActionLoading(true);
+                      try {
+                        const res = await runRandomizedSimulation(
+                          selectedEndpointId,
+                          simSeed.trim() ? simSeed.trim() : null
+                        );
+                        setRandomizedSimResult(res);
+                        if (res.workspace) setWorkspaceStatus(res.workspace);
+                        if (res.vault) setVaultStatus(res.vault);
+                        await loadAllData({ force: true });
+                        setStatusBanner({
+                          type: res.containment_triggered ? "warn" : "ok",
+                          text: `Randomized simulation (seed ${res.seed_used}): AI predicted ${res.assessment?.label ?? "unknown"} (${Math.round(res.assessment?.risk_score ?? 0)}/100).`,
+                        });
+                      } catch (err) {
+                        setStatusBanner({
+                          type: "err",
+                          text: err?.response?.data?.detail || "Randomized simulation failed.",
+                        });
+                      } finally {
+                        setActionLoading(false);
+                      }
+                    }}
+                    disabled={actionLoading}
+                    className="ns-btn ns-btn-primary"
+                  >
+                    <Zap className="w-3.5 h-3.5" />
+                    <span>Run Randomized Threat Simulation</span>
+                  </button>
                   <button
                     onClick={async () => {
                       setWorkspaceStatus(await stopWorkspaceTest());
@@ -891,6 +932,7 @@ export default function App() {
                       await stopWorkspaceTest().catch(() => null);
                       setWsPreview(null);
                       setWsMeta(null);
+                      setRandomizedSimResult(null);
                       setVirtualFiles(INITIAL_VIRTUAL_FILES);
                       setWorkspaceStatus(await resetWorkspaceSimulation());
                       await loadAllData({ force: true });
