@@ -25,6 +25,16 @@ Demonstration Workflow
 Scalability
 Limitations and Safety
 Future Scope
+Engineering Design and Module Reference
+Algorithmic Foundations
+Evaluation Methodology and Evidence
+Recovery Engineering and Business Continuity
+User Experience and Reporting
+Quality Assurance and Acceptance Criteria
+Operational Troubleshooting
+Security, Privacy and Responsible Use
+Development Roadmap
+Frequently Asked Questions
 Team and License
 Problem Statement
 Financial institutions depend on continuous access to transaction systems, customer records and operational infrastructure. Ransomware-related disruption can compromise data availability, integrity and business continuity.
@@ -257,6 +267,203 @@ Distributed inference and enterprise load testing.
 Authentication, role-based access control and tamper-evident audit records.
 Integration with established EDR and SIEM platforms.
 Assessment against applicable financial-sector security requirements.
+Engineering Design and Module Reference
+Design principles
+Nexus Sentinel separates observation from inference, inference from response, and response from presentation. A visual animation is never evidence of a security decision. Every reported assessment should be traceable to a validated input, a model version and an incident record. The system prioritizes reproducibility, bounded resource consumption and transparent limitations over unsupported claims of autonomous protection.
+Data flow and trust boundaries
+```mermaid
+sequenceDiagram
+    participant U as Operator
+    participant F as React UI
+    participant A as FastAPI
+    participant M as Trained model
+    participant D as SQLite
+    U->>F: Select controlled scenario
+    F->>A: Request synthetic assessment
+    A->>A: Validate feature schema and provenance
+    A->>M: Evaluate observation
+    M-->>A: Class estimate and probability
+    A->>D: Persist assessment and incident if applicable
+    A-->>F: Assessment and response state
+    F-->>U: Risk, explanation and status
+```
+The sequence is a logical design view, not a claim about exact endpoint names or transaction ordering in every revision. User-selected files remain within the authorized demonstration boundary. Synthetic observations must be labelled separately from actual workspace events.
+Functional module guide
+Module	Inputs	Outputs	Important boundary
+Command Center	Monitoring state, assessments, incidents	Overview and operator controls	UI does not itself enforce security policy
+Simulation Lab	Controlled scenario or structured telemetry	Actual model assessment	Synthetic inputs are not malware execution
+Workspace Protection	Authorized demonstration workspace	Observed file metadata	Incomplete telemetry is not a full model input
+Topology	Virtual endpoint records	Interactive device and status visualization	Devices are virtual representations
+Gateway	Bounded synthetic event workload	Queue and throttling state	No real network flood or firewall enforcement
+Analytics	Evaluation artifacts	Metrics and comparisons	Benchmark results are not production guarantees
+Incidents	Assessment and response records	Incident details and reports	Containment is simulated
+Recovery Vault	Authorized clean backup references	Restored copies and integrity evidence	Integration requires validation
+Monitoring lifecycle
+```mermaid
+stateDiagram-v2
+    [*] --> Idle
+    Idle --> Running: Start
+    Running --> Paused: Pause
+    Paused --> Running: Resume
+    Running --> Stopped: Stop
+    Paused --> Stopped: Stop
+    Stopped --> Idle: Reset
+    Paused --> Idle: Reset
+    Running --> Idle: Reset
+```
+This conceptual lifecycle describes operator intent. The backend should remain the authoritative source of monitoring state. Duplicate starts should not create competing monitoring sessions. Navigation must not reset the backend or lose incident records. Reset semantics should be tested explicitly rather than inferred from the visual state.
+Endpoint representation
+Virtual identifier	Business role
+FIN-001	Finance
+DEV-001	Development
+HR-001	Human resources
+BAK-001	Backup infrastructure
+ADM-001	Administration
+These are demonstration identities, not discovered devices on a live corporate network.
+Logical data model
+The following entities describe the intended information relationships, not an exact SQL schema dump.
+```mermaid
+erDiagram
+    ENDPOINT ||--o{ ASSESSMENT : receives
+    ASSESSMENT ||--o{ INCIDENT : may_generate
+    ENDPOINT ||--o{ WORKSPACE_EVENT : associated_with
+    INCIDENT ||--o{ RESPONSE_RECORD : documents
+    BACKUP_REFERENCE ||--o{ RECOVERY_RECORD : supports
+```
+Assessment records should retain input provenance, timestamp, model identifier, classification, risk score and explanation. Incident records should reference the assessment and endpoint, preserve response history and distinguish simulated status from real enforcement. Recovery records should retain a trusted backup reference, integrity result and measured duration when available.
+Algorithmic Foundations
+Decision-tree learning
+A decision tree recursively partitions labelled training observations into groups. A split is chosen to improve class separation. For Gini impurity, a common classification criterion, the impurity of a node is:
+$$G = 1 - \sum_{k=1}^{K} p_k^2$$
+Here, K is the number of classes and p is the fraction of observations belonging to a class. A pure node has zero impurity. Tree depth and minimum leaf size constrain complexity. The exact split criterion should be verified from the serialized model configuration.
+Ensemble prediction
+Random Forest combines decision trees trained using randomized sampling and feature selection. In scikit-learn, class probabilities are averaged across the individual trees. This differs from assuming that every tree contributes only a hard yes/no vote.
+$$\hat{P}(c|x) = \frac{1}{T}\sum_{t=1}^{T} P_t(c|x)$$
+For the original model, T = 120. The resulting probability is converted into the displayed risk score. Intermediate scores are possible; strong class separation in synthetic data can concentrate predictions near the extremes.
+Conceptual inference algorithm
+```text
+Receive a structured observation
+Validate required fields, types and provenance
+If telemetry is incomplete: report insufficient evidence
+Otherwise: evaluate the trained classifier
+Read the suspicious-class probability using the model class mapping
+Convert the probability to a bounded risk score
+Apply the configured classification policy
+Generate a model-based explanation where supported
+Persist the assessment and update the interface
+```
+This is descriptive pseudocode. The actual classification threshold, class mapping and incomplete-input handling must be verified in the deployed implementation. The model does not continuously retrain itself during monitoring.
+Why not another algorithm?
+Algorithm	Relevant trade-off
+Single decision tree	Easy to inspect but potentially high variance
+Logistic regression	Efficient baseline; nonlinear interactions may need engineered features
+K-nearest neighbours	Simple concept; inference can depend on stored training data size
+Gradient boosting	Strong structured-data candidate; requires comparative tuning
+Neural network	Flexible but adds complexity and evaluation requirements
+Random Forest	Practical nonlinear ensemble for a small structured feature vector
+This is a design rationale, not evidence that Random Forest outperformed every alternative. A fair comparison requires identical evaluation splits and metrics.
+Probability calibration and uncertainty
+A model probability is not necessarily a calibrated real-world probability. Calibration can be assessed using reliability diagrams and Brier score on independent data. A future uncertainty-aware interface could distinguish normal, under observation, suspicious and insufficient-evidence states without implying that every intermediate score is an attack.
+Explainability boundaries
+Global importance summarizes model-wide feature influence. Local perturbation analysis examines prediction sensitivity to input changes. Neither establishes causal relationships or proves malicious intent. Explanations should be displayed with the relevant assessment rather than substituted with generic threat descriptions.
+Evaluation Methodology and Evidence
+Reproducibility details
+Item	Previously reported baseline
+Training seed	2027
+Validation seed	9001
+Sequence evaluation seed	424242
+Model random state	42
+Exact training-validation duplicate observations	Reported zero
+Independent external validation	Not established
+Separate seeds and absence of exact duplicates do not eliminate generator bias. The same generator can produce similar statistical patterns across training and validation. A future evaluation should separate data by collection source and time where appropriate.
+Metric definitions
+Metric	Formula	Interpretation
+Accuracy	(TP + TN) / total	Overall correctness
+Precision	TP / (TP + FP)	Reliability of positive predictions
+Recall	TP / (TP + FN)	Coverage of positive observations
+F1	2TP / (2TP + FP + FN)	Balance of precision and recall
+Specificity	TN / (TN + FP)	Correct benign classification
+False-positive rate	FP / (FP + TN)	Benign observations incorrectly flagged
+False-negative rate	FN / (FN + TP)	Suspicious observations missed
+From the reported confusion matrix, specificity is 99% and false-negative rate is 1.5%. These are derived values, not additional experiments. Accuracy alone is insufficient when class frequencies differ.
+Early-warning validity
+An early-warning experiment must define the impact milestone independently of predictions, evaluate only information available at each observation, preserve first-alert timestamps and include benign sequences. The fixed eight-second milestone is a synthetic benchmark boundary, not a measured real-world time-to-damage. Premature detections must be counted separately rather than automatically credited as successes.
+Evidence checklist
+Artifact	Purpose
+Model configuration and class mapping	Verify the deployed classifier
+Dataset generation configuration	Reproduce the benchmark
+Raw predictions and labels	Independently calculate classification metrics
+Sequence timestamps and alert outcomes	Verify early-warning calculations
+Browser and API test logs	Validate integration
+Recovery hashes and byte counts	Verify restoration and storage claims
+These are recommended evidence artifacts; their presence in the repository has not been independently verified.
+Performance measurements
+Inference latency measures the duration of a prediction call. End-to-end latency additionally includes observation collection, validation, persistence, transport and rendering. Throughput measures completed operations per unit time. Memory allocation measured by a Python tracing tool is not total process RAM. Report hardware, sample count, warm-up procedure, median and tail latency together. Do not derive enterprise capacity directly from a single local inference benchmark.
+Recovery Engineering and Business Continuity
+Recovery design
+```mermaid
+flowchart LR
+    A[Authorized clean demo file] --> B[Backup reference and digest]
+    B --> C[Verified backup storage]
+    C --> D[Restore separate copy]
+    D --> E{Digest matches trusted reference?}
+    E -->|Yes| F[Record verified recovery]
+    E -->|No| G[Report integrity failure]
+```
+The proposed vault restores clean copies; it does not reverse unknown encryption. Original files remain unchanged. A local backup is not an immutable or isolated backup merely because it is stored in another directory.
+Storage accounting
+A conventional complete backup adds approximately the original dataset size, excluding filesystem overhead. Deduplication reduces redundant identical content; compression reduces stored representation size where effective. Incremental versioning avoids unnecessary repeated full copies. Already compressed formats may yield little additional reduction.
+Illustrative example: Three identical 10 MB files require 30 MB of conventional backup data but only 10 MB of unique content with ideal whole-file deduplication, excluding metadata. This is a hypothetical 66.67% reduction, not a measured Nexus Sentinel result.
+Business impact intelligence (proposed)
+Model risk and business priority should be separate. A critical financial service may warrant faster human review than a less critical endpoint at the same risk score. A hypothetical exposure estimator can combine hourly disruption cost, assumed downtime and recovery cost. Such estimates must be labelled as scenarios, not actual losses avoided.
+Recovery Point Objective (RPO) describes acceptable data loss in time; Recovery Time Objective (RTO) describes the target restoration duration. Neither has been established for production deployment of this prototype.
+User Experience and Reporting
+The interface is designed around a purple and champagne-gold command center, glass-style panels, continuous visual background and a mechanical 3D intelligence core. The topology communicates virtual endpoint state; analytics communicate measured evidence. Animations must remain subordinate to actual security state.
+The proposed audible and mechanical alert response should trigger once per new incident, respect mute and reduced-motion preferences, and never imply resolution merely because the core returns to its idle animation. Browser audio permissions and event propagation require integration testing.
+Reported PDF categories include comprehensive security, individual incident, workspace, AI model and gateway reports. Reports should preserve telemetry provenance, benchmark limitations and actual incident state. Regulatory references are contextual and do not establish compliance.
+Quality Assurance and Acceptance Criteria
+Test area	Expected result
+API connectivity	Health and documented routes respond without recurring errors
+Benign scenarios	Actual model output is displayed; false alarms are recorded
+Suspicious synthetic scenarios	Actual inference and simulated response are traceable
+Incomplete input	Missing features are not silently invented
+Monitoring lifecycle	Start, pause, resume, stop and reset behave consistently
+Navigation	Monitoring state persists; no uncaught runtime errors
+Recovery	Separate restored copy matches trusted backup digest
+Missing backup	Explicit failure rather than fabricated success
+Reporting	Generated PDFs open and contain correct metrics
+Build	Existing automated tests and production frontend build pass
+A test plan is not a test result. Mark each test PASS, FAIL or NOT TESTED only after execution. Recent integration issues involving backend connectivity, Recovery Vault routes and alert animations must be resolved and retested before declaring demo readiness.
+Operational Troubleshooting
+Symptom	First diagnostic step
+Connection refused	Check backend terminal, process and port
+HTTP 404	Compare request method and path with FastAPI documentation
+HTTP 500	Inspect backend traceback and request validation
+Missing warning audio	Check user interaction, mute state and browser audio permission
+Missing core animation	Trace new incident state to the presentation component
+Stale dashboard	Check polling lifecycle and API responses
+Failed recovery	Check backup availability and integrity result
+Use the actual server logs and browser console. Do not suppress errors or substitute placeholder success responses.
+Security, Privacy and Responsible Use
+Use only authorized disposable demonstration files and synthetic threat telemetry. Do not commit private documents, backup contents, database records containing sensitive information, credentials, tokens or environment secrets. Review staged files before publishing. Production use would require authenticated ingestion, authorization, encrypted transport, secure model artifact handling, audit retention and independently protected backups. Load serialized model artifacts only from trusted sources.
+Nexus Sentinel is an educational research prototype. It is not a certified security product, a ransomware decryptor, or a substitute for established endpoint protection and incident response procedures.
+Development Roadmap
+Stage	Objective	Exit criterion
+Prototype stabilization	Reliable API and UI integration	Reproducible end-to-end demo
+Evidence strengthening	Independent evaluation and calibration	Documented external benchmark
+Recovery validation	Verified clean-copy restoration	Integrity and storage measurements
+Secure integration	Authorized endpoint telemetry and access control	Security review and controlled testing
+Scale evaluation	Distributed ingestion and inference	Measured throughput and tail latency
+Production readiness	Operational resilience and governance	Independent assessment and recovery drills
+Frequently Asked Questions
+Does Nexus Sentinel execute ransomware? No. Threat demonstrations use synthetic telemetry and virtual affected states.
+Does it replace antivirus? No. It explores complementary behavioural intelligence and incident visibility.
+Does it require a GPU? The original Random Forest inference does not; 3D rendering has separate graphics requirements.
+Does the risk score represent a guaranteed infection probability? No. It is an uncalibrated model estimate.
+Can it restore every affected file? No. Recovery depends on a trustworthy available backup and verified integration.
+Can it monitor thousands of endpoints? That is a future architecture goal, not a measured current capacity.
+Is the project compliant with RBI, PCI DSS or ISO 27001 requirements? No formal compliance assessment has been established.
+What makes the project valuable? It combines controlled behavioural inference, false-positive evaluation, explainability, incident visibility and recovery-oriented design around financial business continuity.
 Team and License
 Developed by Team Nexus as a hackathon cybersecurity prototype.
 See the repository's LICENSE file if one has been provided. No particular open-source license is asserted by this README.
