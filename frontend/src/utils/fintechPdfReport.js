@@ -467,3 +467,4 @@ export function downloadFinTechPdf(reportType, state) {
   doc.save(`${data.reportId.toLowerCase()}.pdf`);
   return data;
 }
+

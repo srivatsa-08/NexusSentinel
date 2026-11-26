@@ -45,3 +45,4 @@ if __name__ == "__main__":
     args = parser.parse_args()
     result = emit_synthetic_telemetry(args.scenario, args.endpoint, args.url)
     print(json.dumps(result, indent=2))
+

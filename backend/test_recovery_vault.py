@@ -71,3 +71,4 @@ def test_vault_rejects_unsafe_paths_and_detects_mismatch(tmp_path: Path):
     (vault / "a.txt").write_bytes(b"tampered")
     res = mgr.recover_file("a.txt")
     assert res["integrity_verified"] is False
+

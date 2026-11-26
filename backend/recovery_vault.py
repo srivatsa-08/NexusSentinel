@@ -171,3 +171,4 @@ class RecoveryVaultManager:
                 "recovered_files": list(self._recovered.values()),
                 "recovery_history": list(self._history),
             }
+
