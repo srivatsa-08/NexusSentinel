@@ -36,6 +36,7 @@ import PrismBackground from "./components/PrismBackground";
 import InteractiveCard from "./components/InteractiveCard";
 import AnalyticsSection from "./components/AnalyticsSection";
 import ErrorBoundary from "./components/ErrorBoundary";
+import StartupOverlay from "./components/StartupOverlay";
 import { REPORT_TYPES, buildReportData, downloadFinTechPdf } from "./utils/fintechPdfReport";
 import {
   ResponsiveContainer,
@@ -150,6 +151,13 @@ export default function App() {
   const [lowPerfMode, setLowPerfMode] = useState(false);
   const [reportType, setReportType] = useState("comprehensive");
   const [reportPreviewData, setReportPreviewData] = useState(null);
+  const [showStartup, setShowStartup] = useState(() => {
+    try {
+      return sessionStorage.getItem("ns_startup_played") !== "1";
+    } catch {
+      return false;
+    }
+  });
   const [virtualFiles, setVirtualFiles] = useState(INITIAL_VIRTUAL_FILES);
   const [monitorStatus, setMonitorStatus] = useState({
     status: "stopped",
@@ -428,6 +436,7 @@ export default function App() {
 
   return (
     <div className="ns-cursor-spotlight relative flex h-screen bg-[#08050F] text-[#F5EDFF] overflow-hidden font-sans">
+      {showStartup && <StartupOverlay onComplete={() => setShowStartup(false)} />}
       <ErrorBoundary name="PrismBackground" fallback={null}>
         <PrismBackground />
       </ErrorBoundary>
@@ -548,7 +557,7 @@ export default function App() {
           </div>
         </header>
 
-        <div key={activeTab} className="p-6 space-y-5 max-w-7xl w-full mx-auto transition-opacity duration-200">
+        <div key={activeTab} className="ns-section-enter p-6 space-y-5 max-w-7xl w-full mx-auto">
           {health.status !== "ok" && (
             <div className="p-3.5 bg-rose-950/30 border border-rose-800/50 rounded-xl flex items-center space-x-3 text-rose-200 text-xs backdrop-blur-md">
               <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
