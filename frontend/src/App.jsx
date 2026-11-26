@@ -30,6 +30,8 @@ import {
   Clock,
   Cpu,
   ShieldCheck,
+  Volume2,
+  VolumeX,
   Zap
 } from "lucide-react";
 import PrismBackground from "./components/PrismBackground";
@@ -172,6 +174,43 @@ export default function App() {
   const isFetchingRef = useRef(false);
   const syncEpochRef = useRef(0);
   const vaultBackoffRef = useRef({ failures: 0, nextRetryAt: 0 });
+  const seenIncidentIdsRef = useRef(null);
+  const audioCtxRef = useRef(null);
+  const [isMuted, setIsMuted] = useState(false);
+  const [threatReactionNonce, setThreatReactionNonce] = useState(0);
+
+  const playThreatWarningBeep = () => {
+    if (isMuted) return;
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      if (!audioCtxRef.current) {
+        audioCtxRef.current = new AudioCtx();
+      }
+      const ctx = audioCtxRef.current;
+      if (ctx.state === "suspended") {
+        ctx.resume().catch(() => null);
+      }
+      if (ctx.state !== "running") return;
+
+      const now = ctx.currentTime;
+      [0, 0.19].forEach((offset) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "triangle";
+        osc.frequency.setValueAtTime(880, now + offset);
+        gain.gain.setValueAtTime(0.001, now + offset);
+        gain.gain.exponentialRampToValueAtTime(0.12, now + offset + 0.015);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + offset + 0.09);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now + offset);
+        osc.stop(now + offset + 0.095);
+      });
+    } catch {
+      // Ignore Web Audio errors if blocked by browser policy
+    }
+  };
 
   const loadStaticAnalytics = async () => {
     const [metRes, ewRes] = await Promise.all([
@@ -216,7 +255,23 @@ export default function App() {
       setEndpoints(epRes.items || []);
       const loadedAssessments = asRes.items || [];
       setAssessments(loadedAssessments);
-      setIncidents(incRes.items || []);
+      const loadedIncidents = incRes.items || [];
+      setIncidents(loadedIncidents);
+      if (seenIncidentIdsRef.current === null) {
+        seenIncidentIdsRef.current = new Set(loadedIncidents.map((inc) => inc.id));
+      } else {
+        let hasNewIncident = false;
+        for (const inc of loadedIncidents) {
+          if (inc?.id && !seenIncidentIdsRef.current.has(inc.id)) {
+            seenIncidentIdsRef.current.add(inc.id);
+            hasNewIncident = true;
+          }
+        }
+        if (hasNewIncident) {
+          setThreatReactionNonce((n) => n + 1);
+          playThreatWarningBeep();
+        }
+      }
       setMonitorStatus(monRes);
       setGateway(gwRes);
       setWorkspaceStatus(wsRes);
@@ -624,6 +679,7 @@ export default function App() {
                     >
                       <SentinelIntelligenceCore
                         hasIncident={incidents.length > 0}
+                        threatReactionNonce={threatReactionNonce}
                         onInspect={() => setActiveTab("analytics")}
                       />
                     </Suspense>

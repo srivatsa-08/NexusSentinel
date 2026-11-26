@@ -19,10 +19,12 @@ const bell = (t) => Math.sin(clamp01(t) * Math.PI); // smooth 0 -> 1 -> 0
  */
 const SentinelIntelligenceCore = React.memo(function SentinelIntelligenceCore({
   hasIncident = false,
+  threatReactionNonce = 0,
   onInspect,
 }) {
   const wrapRef = useRef(null);
   const svgRef = useRef(null);
+  const threatTimerRef = useRef(0);
   const layerRefs = useRef({
     core: null,
     l5: null,
@@ -34,6 +36,12 @@ const SentinelIntelligenceCore = React.memo(function SentinelIntelligenceCore({
     hud: null,
   });
   const [hovered, setHovered] = useState(false);
+
+  useEffect(() => {
+    if (threatReactionNonce > 0) {
+      threatTimerRef.current = 2.2;
+    }
+  }, [threatReactionNonce]);
 
   useEffect(() => {
     const mq = window.matchMedia?.("(prefers-reduced-motion: reduce)");
@@ -89,6 +97,11 @@ const SentinelIntelligenceCore = React.memo(function SentinelIntelligenceCore({
       const syncBell = syncT >= 0 ? bell(syncT) : 0;
       const gyroBell = gyroT >= 0 ? bell(gyroT) : 0;
       const convBell = convT >= 0 ? bell(convT) : 0;
+      let threatBurst = 0;
+      if (threatTimerRef.current > 0) {
+        threatTimerRef.current = Math.max(0, threatTimerRef.current - 0.016);
+        threatBurst = bell(1 - threatTimerRef.current / 2.2);
+      }
 
       // Idle rotations (deg)
       const r1 = (elapsed * 4) % 360;
@@ -102,9 +115,15 @@ const SentinelIntelligenceCore = React.memo(function SentinelIntelligenceCore({
       const syncBlend = (deg) => deg * (1 - syncBell * 0.85);
 
       if (refs.core) {
-        const breath = 1 + Math.sin(elapsed * 2.1) * 0.04 + pulseAt(0.0) * 0.12 + syncBell * 0.08;
+        const breath = 1 + Math.sin(elapsed * 2.1) * 0.04 + pulseAt(0.0) * 0.12 + syncBell * 0.08 + threatBurst * 0.18;
         refs.core.style.opacity = String(eCore);
         refs.core.style.transform = `scale(${( (0.35 + 0.65 * eCore) * breath ).toFixed(3)})`;
+      }
+      if (wrapRef.current) {
+        wrapRef.current.style.filter =
+          threatBurst > 0.01
+            ? `drop-shadow(0 0 ${(18 + threatBurst * 22).toFixed(1)}px rgba(244,63,94,${(0.35 + threatBurst * 0.45).toFixed(2)}))`
+            : "";
       }
       if (refs.l5) {
         const sc = (0.6 + 0.4 * eL5) * (1 - convBell * 0.14 + pulseAt(0.12) * 0.05);
