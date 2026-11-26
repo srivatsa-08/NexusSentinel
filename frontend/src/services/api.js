@@ -56,3 +56,10 @@ export const renameWorkspaceFile = async (relativePath, newName) =>
 export const previewWorkspaceFile = async (relativePath) =>
   (await api.get("/workspace/file/preview", { params: { relative_path: relativePath } })).data;
 export const clearWorkspace = async () => (await api.post("/workspace/clear")).data;
+
+export const fetchVaultStatus = async () => (await api.get("/vault/status")).data;
+export const snapshotVault = async () => (await api.post("/vault/snapshot")).data;
+export const recoverVaultFile = async (relativePath) =>
+  (await api.post("/vault/recover", { relative_path: relativePath })).data;
+export const recoverAllVaultFiles = async () => (await api.post("/vault/recover-all")).data;
+export const resetVault = async () => (await api.post("/vault/reset")).data;

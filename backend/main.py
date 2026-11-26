@@ -20,6 +20,14 @@ from fastapi.responses import PlainTextResponse
 from backend.database import get_db_connection, init_db, reset_db
 from backend.gateway import gateway_controller
 from backend.workspace_monitor import workspace_monitor
+from backend.recovery_vault import RecoveryVaultManager
+
+_ROOT_DIR = Path(__file__).resolve().parent.parent
+recovery_vault = RecoveryVaultManager(
+    workspace_dir=_ROOT_DIR / "demo_workspace",
+    vault_dir=_ROOT_DIR / "demo_vault",
+    recovered_dir=_ROOT_DIR / "demo_recovered",
+)
 from backend.schemas import (
     AssessmentRecord,
     AssessmentsResponse,
@@ -1025,3 +1033,48 @@ def get_workspace_file_preview(relative_path: str) -> dict[str, Any]:
 @app.post("/api/v1/workspace/clear")
 def post_workspace_clear() -> dict[str, Any]:
     return workspace_monitor.clear_imported_workspace()
+
+
+@app.get("/api/v1/vault/status")
+def get_vault_status() -> dict[str, Any]:
+    ws = workspace_monitor.get_status()
+    return recovery_vault.get_status(ws.get("files", []))
+
+
+@app.post("/api/v1/vault/snapshot")
+def post_vault_snapshot() -> dict[str, Any]:
+    snap = recovery_vault.snapshot_workspace()
+    ws = workspace_monitor.get_status()
+    return {"snapshot": snap, "vault": recovery_vault.get_status(ws.get("files", []))}
+
+
+@app.post("/api/v1/vault/recover")
+def post_vault_recover(payload: dict[str, Any]) -> dict[str, Any]:
+    rel_path = str(payload.get("relative_path", ""))
+    try:
+        res = recovery_vault.recover_file(rel_path)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    ws = workspace_monitor.get_status()
+    return {"recovery": res, "vault": recovery_vault.get_status(ws.get("files", []))}
+
+
+@app.post("/api/v1/vault/recover-all")
+def post_vault_recover_all() -> dict[str, Any]:
+    ws = workspace_monitor.get_status()
+    affected = [
+        f["relative_path"]
+        for f in ws.get("files", [])
+        if f.get("simulated_status") in ("simulated_encrypted", "simulated_altered", "simulated_contained")
+    ]
+    bulk = recovery_vault.recover_all(affected if affected else None)
+    return {"bulk": bulk, "vault": recovery_vault.get_status(ws.get("files", []))}
+
+
+@app.post("/api/v1/vault/reset")
+def post_vault_reset() -> dict[str, Any]:
+    recovery_vault.reset()
+    ws = workspace_monitor.get_status()
+    return recovery_vault.get_status(ws.get("files", []))

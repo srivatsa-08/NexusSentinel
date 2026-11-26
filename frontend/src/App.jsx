@@ -81,7 +81,12 @@ import {
   importWorkspaceFolder,
   renameWorkspaceFile,
   previewWorkspaceFile,
-  clearWorkspace
+  clearWorkspace,
+  fetchVaultStatus,
+  snapshotVault,
+  recoverVaultFile,
+  recoverAllVaultFiles,
+  resetVault
 } from "./services/api";
 
 const SecurityTopology3D = lazy(() => import("./components/SecurityTopology3D"));
@@ -118,6 +123,7 @@ export default function App() {
   const [earlyWarning, setEarlyWarning] = useState(null);
   const [gateway, setGateway] = useState(null);
   const [workspaceStatus, setWorkspaceStatus] = useState(null);
+  const [vaultStatus, setVaultStatus] = useState(null);
   const [wsPreview, setWsPreview] = useState(null);
   const [wsMeta, setWsMeta] = useState(null);
   const [wsSearch, setWsSearch] = useState("");
@@ -169,14 +175,15 @@ export default function App() {
     const myEpoch = syncEpochRef.current;
     isFetchingRef.current = true;
     try {
-      const [hRes, epRes, asRes, incRes, monRes, gwRes, wsRes] = await Promise.all([
+      const [hRes, epRes, asRes, incRes, monRes, gwRes, wsRes, vRes] = await Promise.all([
         fetchHealth().catch(() => ({ status: "offline" })),
         fetchEndpoints().catch(() => ({ items: [] })),
         fetchAssessments().catch(() => ({ items: [] })),
         fetchIncidents().catch(() => ({ items: [] })),
         fetchMonitorStatus().catch(() => ({ status: "stopped", processed_count: 0, total_sequence: 6, duration_seconds: 0 })),
         fetchGatewayStatus().catch(() => null),
-        fetchWorkspaceStatus().catch(() => null)
+        fetchWorkspaceStatus().catch(() => null),
+        fetchVaultStatus().catch(() => null)
       ]);
       // Discard stale polling responses if a reset or scenario trigger happened while in-flight
       if (myEpoch !== syncEpochRef.current) return;
@@ -189,6 +196,7 @@ export default function App() {
       setMonitorStatus(monRes);
       setGateway(gwRes);
       setWorkspaceStatus(wsRes);
+      setVaultStatus(vRes);
 
       if (loadedAssessments.length > 0) {
         setSelectedAssessment((prev) => prev || loadedAssessments[0]);
@@ -1033,6 +1041,23 @@ export default function App() {
                                 >
                                   Rename/Ext
                                 </button>
+                                <button
+                                  onClick={async () => {
+                                    try {
+                                      const res = await recoverVaultFile(f.relative_path);
+                                      if (res.vault) setVaultStatus(res.vault);
+                                      setStatusBanner({
+                                        type: res.recovery?.integrity_verified ? "ok" : "alert",
+                                        text: `Restored ${f.relative_path} → demo_recovered/${res.recovery?.restored_path} (SHA-256 ${res.recovery?.integrity_verified ? "VERIFIED" : "MISMATCH"}, ${res.recovery?.duration_ms} ms).`,
+                                      });
+                                    } catch (err) {
+                                      setStatusBanner({ type: "error", text: err.response?.data?.detail || err.message });
+                                    }
+                                  }}
+                                  className="text-[#E8BB65] hover:text-[#FFE3A5] underline"
+                                >
+                                  Recover
+                                </button>
                               </td>
                             </tr>
                           );
@@ -1136,6 +1161,125 @@ export default function App() {
                     </p>
                   )}
                 </InteractiveCard>
+              </div>
+
+              {/* Recovery Vault Section */}
+              <div className="ns-card p-4 space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <h4 className="ns-section-title">Recovery Vault (Isolated Backup & SHA-256 Verification)</h4>
+                    <p className="text-[11px] text-[#AD98C5] mt-0.5">
+                      Restores clean backup copies from <code className="font-mono text-[#E8BB65]">demo_vault/</code> into{" "}
+                      <code className="font-mono text-[#E8BB65]">demo_recovered/</code> without modifying original files.
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      onClick={async () => {
+                        setActionLoading(true);
+                        try {
+                          const res = await snapshotVault();
+                          if (res.vault) setVaultStatus(res.vault);
+                          setStatusBanner({
+                            type: "ok",
+                            text: `Snapshotted ${res.snapshot?.snapshotted_count ?? 0} clean file(s) into demo_vault/.`,
+                          });
+                        } finally {
+                          setActionLoading(false);
+                        }
+                      }}
+                      disabled={actionLoading}
+                      className="ns-btn ns-btn-folder"
+                    >
+                      Snapshot Backups
+                    </button>
+                    <button
+                      onClick={async () => {
+                        setActionLoading(true);
+                        try {
+                          const res = await recoverAllVaultFiles();
+                          if (res.vault) setVaultStatus(res.vault);
+                          setStatusBanner({
+                            type: "ok",
+                            text: `Bulk recovery complete: ${res.bulk?.recovered_count ?? 0} file(s) restored in ${res.bulk?.total_duration_ms ?? 0} ms.`,
+                          });
+                        } catch (err) {
+                          setStatusBanner({ type: "error", text: err.response?.data?.detail || err.message });
+                        } finally {
+                          setActionLoading(false);
+                        }
+                      }}
+                      disabled={actionLoading}
+                      className="ns-btn ns-btn-primary"
+                    >
+                      Recover All
+                    </button>
+                    <button
+                      onClick={async () => {
+                        setVaultStatus(await resetVault());
+                        setStatusBanner({ type: "ok", text: "Recovery output and history cleared; clean backups retained." });
+                      }}
+                      disabled={actionLoading}
+                      className="ns-btn ns-btn-ghost"
+                    >
+                      Reset Vault
+                    </button>
+                  </div>
+                </div>
+
+                {vaultStatus && (
+                  <>
+                    <div className="interactive-group grid grid-cols-2 lg:grid-cols-5 gap-3 text-xs">
+                      <InteractiveCard noPerspective className="p-3">
+                        <span className="text-[11px] text-[#AD98C5] block">Protected Files</span>
+                        <span className="text-lg font-bold font-mono text-[#F3E8FF]">{vaultStatus.protected_count}</span>
+                      </InteractiveCard>
+                      <InteractiveCard noPerspective className="p-3">
+                        <span className="text-[11px] text-[#AD98C5] block">Available Backups</span>
+                        <span className="text-lg font-bold font-mono text-[#E8BB65]">{vaultStatus.backup_count}</span>
+                      </InteractiveCard>
+                      <InteractiveCard noPerspective className="p-3">
+                        <span className="text-[11px] text-[#AD98C5] block">Affected Virtual Files</span>
+                        <span className="text-lg font-bold font-mono text-rose-400">{vaultStatus.affected_count}</span>
+                      </InteractiveCard>
+                      <InteractiveCard noPerspective className="p-3">
+                        <span className="text-[11px] text-[#AD98C5] block">Recoverable Files</span>
+                        <span className="text-lg font-bold font-mono text-[#C084FC]">{vaultStatus.recoverable_count}</span>
+                      </InteractiveCard>
+                      <InteractiveCard noPerspective className="p-3">
+                        <span className="text-[11px] text-[#AD98C5] block">Recovered Files</span>
+                        <span className="text-lg font-bold font-mono text-emerald-400">{vaultStatus.recovered_count}</span>
+                      </InteractiveCard>
+                    </div>
+
+                    <div className="p-3 bg-[#160D26]/14 border border-purple-300/12 rounded-lg max-h-44 overflow-y-auto">
+                      <span className="text-[10px] font-semibold text-[#E8BB65] uppercase tracking-wider block mb-2">
+                        Recovery Audit Trail
+                      </span>
+                      {vaultStatus.recovery_history?.length > 0 ? (
+                        <div className="space-y-1.5 text-[11px] font-mono">
+                          {vaultStatus.recovery_history.map((rec, idx) => (
+                            <div key={idx} className="flex flex-wrap items-center justify-between gap-2 py-1 border-b border-purple-300/10">
+                              <span className="text-[#F3E8FF]">
+                                {rec.relative_path} → {rec.restored_path}
+                              </span>
+                              <div className="flex items-center gap-2">
+                                <span className={rec.integrity_verified ? "text-emerald-400" : "text-rose-400"}>
+                                  {rec.integrity_verified ? "SHA-256 VERIFIED" : "HASH MISMATCH"}
+                                </span>
+                                <span className="text-[#E8BB65]">{rec.duration_ms} ms</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-xs text-[#AD98C5]">
+                          No recovery operations yet. Click Snapshot Backups, then Recover or Recover All.
+                        </span>
+                      )}
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           )}
